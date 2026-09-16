@@ -37,8 +37,6 @@ Created the `Project Statistics` Block for displaying project statistics, the `H
 
 ## Final Block 4
 
-### Русский
-
 Все задачи **4.1–4.4** выполнены и проверены. Проведён дополнительный рефакторинг согласно методичке. **PHPStan, PHPCS и GrumPHP прошли успешно.** Все изменения были объединены через PR сначала в `develop`, затем в `main`.
 
 ### English
