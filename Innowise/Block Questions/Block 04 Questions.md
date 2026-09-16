@@ -363,7 +363,7 @@ field_types: ['decimal']
 **Answer:**  
 It is determined by the `field_types` parameter in the PHP Attribute. In our case, it is:
 
-```
+```php
 field_types: ['decimal']
 ```
 
