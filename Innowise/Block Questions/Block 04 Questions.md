@@ -354,7 +354,7 @@ To avoid duplicating business logic. `TaskStatService` already calculates logged
 **Ответ:**  
 Это определяется параметром `field_types` в PHP Attribute. В нашем случае указано:
 
-```
+```php
 field_types: ['decimal']
 ```
 
