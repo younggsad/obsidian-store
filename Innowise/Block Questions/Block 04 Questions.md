@@ -13,11 +13,7 @@ Created the `TaskStatService` for task and project statistics. Implemented logge
 
 ## Task 4.2 — Dependency Injection
 
-### Русский
-
 Добавлен Dependency Injection для `TaskStatService` и `TimeLogWriteOffForm`. Зависимости передаются через конструктор и `create()` method. Убрано использование статического `\Drupal::` в соответствующем коде.
-
-### English
 
 Added Dependency Injection to `TaskStatService` and `TimeLogWriteOffForm`. Dependencies are passed through the constructor and `create()` method. Static `\Drupal::` usage was removed from the related code.
 
