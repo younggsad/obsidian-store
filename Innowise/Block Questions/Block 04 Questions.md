@@ -31,8 +31,6 @@ Created a Plugin API for report generation. Added `ReportGeneratorInterface`, `R
 
 Создан `Project Statistics` Block для отображения статистики проекта, `Hours + Minutes` Widget для удобного ввода оценки времени и `Time Summary` Formatter для отображения затраченного и оставшегося времени. Добавлено автоматическое инвалидирование кеша при изменении TimeLog. Обновлена конфигурация `field_estimate` для поддержки двух знаков после запятой и экспортировано размещение блока.
 
-### English
-
 Created the `Project Statistics` Block for displaying project statistics, the `Hours + Minutes` Widget for entering time estimates, and the `Time Summary` Formatter for displaying logged and remaining time. Automatic cache invalidation was added for TimeLog changes. The `field_estimate` configuration was updated to support two decimal places, and the block placement was exported.
 
 ---
