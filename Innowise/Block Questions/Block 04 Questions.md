@@ -21,8 +21,6 @@ Added Dependency Injection to `TaskStatService` and `TimeLogWriteOffForm`. Depen
 
 ## Task 4.3 — ReportGenerator Plugin API
 
-### Русский
-
 Создан Plugin API для генерации отчётов. Добавлены `ReportGeneratorInterface`, `ReportGeneratorManager` и два плагина: `ProjectSummaryReport` и `OverdueTasksReport`. Используется Attribute-based plugin discovery и Dependency Injection. Работа discovery была проверена — обнаруживаются ровно два плагина.
 
 ### English
