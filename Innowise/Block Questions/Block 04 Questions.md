@@ -7,8 +7,6 @@ custom-width: 80
 
 Создан сервис `TaskStatService` для работы со статистикой задач и проектов. Реализованы расчёт затраченного времени, оставшейся оценки и общей статистики проекта. Сервис использует Entity API и Dependency Injection без прямого использования SQL.
 
-### English
-
 Created the `TaskStatService` for task and project statistics. Implemented logged hours, remaining estimate, and project statistics calculations. The service uses the Entity API and Dependency Injection without direct SQL queries.
 
 ---
