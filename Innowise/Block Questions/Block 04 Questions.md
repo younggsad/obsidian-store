@@ -29,8 +29,6 @@ Created a Plugin API for report generation. Added `ReportGeneratorInterface`, `R
 
 ## Task 4.4 — Custom Block, Field Widget and Formatter
 
-### Русский
-
 Создан `Project Statistics` Block для отображения статистики проекта, `Hours + Minutes` Widget для удобного ввода оценки времени и `Time Summary` Formatter для отображения затраченного и оставшегося времени. Добавлено автоматическое инвалидирование кеша при изменении TimeLog. Обновлена конфигурация `field_estimate` для поддержки двух знаков после запятой и экспортировано размещение блока.
 
 ### English
