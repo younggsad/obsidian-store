@@ -57,6 +57,6 @@ Created the `Project Statistics` Block for displaying project statistics, the `H
 
 Все задачи **4.1–4.4** выполнены и проверены. Проведён дополнительный рефакторинг согласно методичке. **PHPStan, PHPCS и GrumPHP прошли успешно.** Все изменения были объединены через PR сначала в `develop`, затем в `main`.
 
-###English
+### English
 
 All tasks **4.1–4.4** were completed and verified. Additional refactoring was performed according to the methodology. **PHPStan, PHPCS, and GrumPHP checks passed successfully.** All changes were merged through PRs into `develop` and then into `main`.
