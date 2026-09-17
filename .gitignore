@@ -1,0 +1,30 @@
+# Ignore all dotfiles by default (prevent unknown tools from committing)
+.*
+
+# Keep these dotfiles
+!.obsidian/
+!.gitignore
+
+# Obsidian - Device-specific files
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+
+# Plugins directory (code, config, dependencies)
+.obsidian/plugins/
+
+# Cache
+.obsidian/cache/
+
+# Trash
+.trash/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temp files
+*.tmp
+*.bak
+*.swp
+*.swo
+*~
