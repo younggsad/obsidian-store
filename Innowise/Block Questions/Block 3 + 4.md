@@ -34,7 +34,8 @@ custom-width: 80
 
 # 📊 Block 4 — Статистика, Plugin API, DI / Stats, Plugin API, DI
 
-> [!summary] RU Добавлен сервис статистики, весь код переведён на Dependency Injection, создана Plugin-система отчётов и три кастомных plugin'а (Block, Widget, Formatter) для отображения времени.
+> [!summary] RU 
+> Добавлен сервис статистики, весь код переведён на Dependency Injection, создана Plugin-система отчётов и три кастомных plugin'а (Block, Widget, Formatter) для отображения времени.
 
 > [!summary] EN Added a stats service, migrated code to Dependency Injection, built a report Plugin system, and three custom plugins (Block, Widget, Formatter) for displaying time data.
 
