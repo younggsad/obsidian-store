@@ -3,9 +3,11 @@ custom-width: 80
 ---
 # Block 3 — TimeLog & учёт времени / Time Tracking
 
-> [!summary] RU Реализована собственная **Content Entity** `time_log` для учёта затраченного времени: CRUD через Entity API, выборки через EntityQuery, форма списания времени с client- и server-side валидацией.
+> [!summary] 
+> RU Реализована собственная **Content Entity** `time_log` для учёта затраченного времени: CRUD через Entity API, выборки через EntityQuery, форма списания времени с client- и server-side валидацией.
 
-> [!summary] EN Implemented a custom **Content Entity** `time_log` for time tracking: CRUD via Entity API, queries via EntityQuery, and a time write-off form with client- and server-side validation.
+> [!summary] 
+> EN Implemented a custom **Content Entity** `time_log` for time tracking: CRUD via Entity API, queries via EntityQuery, and a time write-off form with client- and server-side validation.
 
 ## 🔧 Технологии и их роль / Technologies & their role
 
