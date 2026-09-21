@@ -131,9 +131,9 @@ The custom tag invalidates only the **statistics cache of one project**, not all
 
 ### Answer
 
-**RU:** `invalidateTags()` очищает только связанные cache entries. `drush cr` очищает кеш **намного шире**.
+`invalidateTags()` очищает только связанные cache entries. `drush cr` очищает кеш **намного шире**.
 
-**EN:** `invalidateTags()` invalidates only related cache entries. `drush cr` clears cache **much more broadly**.
+`invalidateTags()` invalidates only related cache entries. `drush cr` clears cache **much more broadly**.
 
 ---
 
@@ -143,9 +143,9 @@ The custom tag invalidates only the **statistics cache of one project**, not all
 
 ### Answer
 
-**RU:** Прогреть A и B, изменить TimeLog в A. **A пересчитывается, B остаётся закешированным.**
+Прогреть A и B, изменить TimeLog в A. **A пересчитывается, B остаётся закешированным.**
 
-**EN:** Warm A and B, then change a TimeLog in A. **A is recalculated, while B remains cached.**
+Warm A and B, then change a TimeLog in A. **A is recalculated, while B remains cached.**
 
 ---
 
@@ -155,9 +155,9 @@ The custom tag invalidates only the **statistics cache of one project**, not all
 
 ### Answer
 
-**RU:** Cache metadata дочернего Render Array **передаётся родительскому**.
+Cache metadata дочернего Render Array **передаётся родительскому**.
 
-**EN:** Cache metadata from a child Render Array is **propagated to its parent**.
+Cache metadata from a child Render Array is **propagated to its parent**.
 
 ---
 
@@ -167,9 +167,9 @@ The custom tag invalidates only the **statistics cache of one project**, not all
 
 ### Answer
 
-**RU:** Context сохраняет кеширование, но создаёт разные варианты для пользователей/ролей. `max-age: 0` **отключает кеширование**.
+Context сохраняет кеширование, но создаёт разные варианты для пользователей/ролей. `max-age: 0` **отключает кеширование**.
 
-**EN:** A context keeps caching but creates different variants for users/roles. `max-age: 0` **disables caching**.
+A context keeps caching but creates different variants for users/roles. `max-age: 0` **disables caching**.
 
 ---
 
@@ -179,9 +179,9 @@ The custom tag invalidates only the **statistics cache of one project**, not all
 
 ### Answer
 
-**RU:** Если output зависит от конкретного пользователя — `user`; только от роли — `user.roles`. Более узкий context создаёт **меньше вариантов**.
+Если output зависит от конкретного пользователя — `user`; только от роли — `user.roles`. Более узкий context создаёт **меньше вариантов**.
 
-**EN:** If output depends on the individual user, use `user`; if only on the role, use `user.roles`. A narrower context creates **fewer variants**.
+If output depends on the individual user, use `user`; if only on the role, use `user.roles`. A narrower context creates **fewer variants**.
 
 ---
 
@@ -191,9 +191,9 @@ The custom tag invalidates only the **statistics cache of one project**, not all
 
 ### Answer
 
-**RU:** Открыть один Kanban двумя пользователями. Каждый должен видеть **свои `my task`**.
+Открыть один Kanban двумя пользователями. Каждый должен видеть **свои `my task`**.
 
-**EN:** Open the same Kanban as two users. Each user should see **their own `my task`** markers.
+Open the same Kanban as two users. Each user should see **their own `my task`** markers.
 
 ---
 
@@ -203,9 +203,9 @@ The custom tag invalidates only the **statistics cache of one project**, not all
 
 ### Answer
 
-**RU:** Anonymous не имеет обычной authenticated identity, поэтому нужно проверить **отсутствие ошибок и `my task`**.
+Anonymous не имеет обычной authenticated identity, поэтому нужно проверить **отсутствие ошибок и `my task`**.
 
-**EN:** Anonymous users do not have a normal authenticated identity, so we must check for **no errors and no `my task` marker**.
+Anonymous users do not have a normal authenticated identity, so we must check for **no errors and no `my task` marker**.
 
 ---
 
@@ -215,9 +215,9 @@ The custom tag invalidates only the **statistics cache of one project**, not all
 
 ### Answer
 
-**RU:** Entity hooks — простой Drupal-specific подход. Event Subscriber — **более OO-подход**, удобный для отдельного класса и нескольких событий.
+Entity hooks — простой Drupal-specific подход. Event Subscriber — **более OO-подход**, удобный для отдельного класса и нескольких событий.
 
-**EN:** Entity hooks are a simple Drupal-specific approach. An Event Subscriber is a **more object-oriented approach**, useful for a separate class and multiple events.
+Entity hooks are a simple Drupal-specific approach. An Event Subscriber is a **more object-oriented approach**, useful for a separate class and multiple events.
 
 ---
 
@@ -229,9 +229,9 @@ The custom tag invalidates only the **statistics cache of one project**, not all
 
 ### Answer
 
-**RU:** Дублировалось **форматирование**: rounding, unit suffix и сборка строки. Расчёт часов через `TaskStatService` не дублировался.
+Дублировалось **форматирование**: rounding, unit suffix и сборка строки. Расчёт часов через `TaskStatService` не дублировался.
 
-**EN:** **Formatting** was duplicated: rounding, unit suffixes, and string assembly. Hour calculation through `TaskStatService` was not duplicated.
+**Formatting** was duplicated: rounding, unit suffixes, and string assembly. Hour calculation through `TaskStatService` was not duplicated.
 
 ---
 
@@ -241,9 +241,9 @@ The custom tag invalidates only the **statistics cache of one project**, not all
 
 ### Answer
 
-**RU:** `TaskStatService` отвечает за **calculation**, `DurationFormatter` — только за **formatting**.
+`TaskStatService` отвечает за **calculation**, `DurationFormatter` — только за **formatting**.
 
-**EN:** `TaskStatService` handles **calculation**, while `DurationFormatter` handles only **formatting**.
+`TaskStatService` handles **calculation**, while `DurationFormatter` handles only **formatting**.
 
 ---
 
@@ -253,9 +253,9 @@ The custom tag invalidates only the **statistics cache of one project**, not all
 
 ### Answer
 
-**RU:** Мы объединяем **одинаковую логику**, а не создаём несколько взаимозаменяемых алгоритмов.
+Мы объединяем **одинаковую логику**, а не создаём несколько взаимозаменяемых алгоритмов.
 
-**EN:** We centralize **the same logic** instead of creating several interchangeable algorithms.
+We centralize **the same logic** instead of creating several interchangeable algorithms.
 
 ---
 
@@ -265,9 +265,9 @@ The custom tag invalidates only the **statistics cache of one project**, not all
 
 ### Answer
 
-**RU:** `formatSummary()` вызывает `format()` для каждого значения. Это оставляет правила форматирования **в одном месте**.
+`formatSummary()` вызывает `format()` для каждого значения. Это оставляет правила форматирования **в одном месте**.
 
-**EN:** `formatSummary()` calls `format()` for each value. This keeps formatting rules **in one place**.
+`formatSummary()` calls `format()` for each value. This keeps formatting rules **in one place**.
 
 ---
 
@@ -277,9 +277,9 @@ The custom tag invalidates only the **statistics cache of one project**, not all
 
 ### Answer
 
-**RU:** `DurationFormatter` зарегистрирован; `format()` содержит formatting logic; `formatSummary()` использует `format()`; Field Formatter и preprocess используют сервис.
+`DurationFormatter` зарегистрирован; `format()` содержит formatting logic; `formatSummary()` использует `format()`; Field Formatter и preprocess используют сервис.
 
-**EN:** `DurationFormatter` is registered; `format()` contains the formatting logic; `formatSummary()` uses `format()`; the Field Formatter and preprocess use the service.
+`DurationFormatter` is registered; `format()` contains the formatting logic; `formatSummary()` uses `format()`; the Field Formatter and preprocess use the service.
 
 ---
 
@@ -289,6 +289,6 @@ The custom tag invalidates only the **statistics cache of one project**, not all
 
 ### Answer
 
-**RU:** Это **refactoring, а не изменение функциональности**. Проверяем одинаковые входные данные и сравниваем полученные строки.
+Это **refactoring, а не изменение функциональности**. Проверяем одинаковые входные данные и сравниваем полученные строки.
 
-**EN:** It is a **refactoring, not a functional change**. We use the same inputs and compare the resulting strings.
+It is a **refactoring, not a functional change**. We use the same inputs and compare the resulting strings.
