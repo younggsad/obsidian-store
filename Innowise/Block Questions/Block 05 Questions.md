@@ -401,10 +401,6 @@ We should check that:
 
 ### Answer
 
-Потому что это **refactoring**, а не изменение функциональности. Мы меняем внутреннюю реализацию, но результат должен остаться прежним.
+Потому что это **refactoring**, а не изменение функциональности. Мы меняем внутреннюю реализацию, но результат должен остаться прежним. Это можно проверить одинаковыми входными данными и сравнением возвращаемых строк, например для `2.5`, `1.0` и `1.5`, а также повторным запуском тестов Field Formatter и Project Statistics.
 
-Это можно проверить одинаковыми входными данными и сравнением возвращаемых строк, например для `2.5`, `1.0` и `1.5`, а также повторным запуском тестов Field Formatter и Project Statistics.
-
-Because this is a **refactoring**, not a functional change. We change the internal implementation, but the result must remain the same.
-
-We can check this by using the same input values and comparing the returned strings, for example for `2.5`, `1.0`, and `1.5`, and by running the existing Field Formatter and Project Statistics tests again.
+Because this is a **refactoring**, not a functional change. We change the internal implementation, but the result must remain the same. We can check this by using the same input values and comparing the returned strings, for example for `2.5`, `1.0`, and `1.5`, and by running the existing Field Formatter and Project Statistics tests again.
