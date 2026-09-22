@@ -57,9 +57,9 @@ The module registers the template through `hook_theme()`, and the active theme c
 
 ### Answer
 
-Preprocess готовит данные**, Twig только отображает их. Расчёты и сервисы должны оставаться в PHP.
+**Preprocess готовит данные**, Twig только отображает их. Расчёты и сервисы должны оставаться в PHP.
 
-Preprocess prepares data**, while Twig only displays it. Calculations and services should stay in PHP.
+**Preprocess prepares data**, while Twig only displays it. Calculations and services should stay in PHP.
 
 ---
 
