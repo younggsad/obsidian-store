@@ -713,33 +713,243 @@ CRUD stands for Create, Read, Update, and Delete.
 
 The HTTP method alone does not provide access control or CSRF protection. State-changing routes still need appropriate security checks.
 
+## Block 5 — Render API, Twig, and Cacheability
+
+### 37. What is the difference between a Drupal render array and an HTML string?
+
+**Answer:**
+
+A render array describes what Drupal should display on a page. It can contain data, rendering settings, cacheability metadata, and other information needed to render content.
+
+An HTML string is a string containing HTML markup. Drupal generally prefers render arrays because they support caching, access checks, attachments, and other rendering features.
+
+**Explanation:**
+
+A render array is a structured PHP array that describes how Drupal should render content. Drupal can process it before generating the final HTML.
+
+Example of a render array:
+
+```php
+$build['title'] = [
+  '#type' => 'html_tag',
+  '#tag' => 'h2',
+  '#value' => 'My Project',
+];
+```
+
+An HTML string contains markup directly:
+
+```php
+$html = '<h2>My Project</h2>';
+```
+
+Render arrays allow Drupal to manage rendering metadata more effectively. However, developers must still handle untrusted data safely and use appropriate output escaping.
+
+**Key terms:**
+
+- Render array — a structured PHP array that describes content to render.
+    
+- HTML string — a string containing HTML markup.
+    
+- Rendering — the process of converting structured data into output.
+    
+- Cacheability metadata — information Drupal uses to manage cached output.
+    
+- Attachments — additional assets or libraries associated with rendered output.
+    
+
+### 38. What is the difference between a Drupal render array and a Twig template?
+
+**Answer:**
+
+A render array describes what Drupal should display and can contain data, rendering settings, and cacheability metadata. A Twig template defines how the HTML should be structured and formatted.
+
+Twig is mainly responsible for the presentation layer, while business logic should generally be handled in PHP services, controllers, and other application components.
+
+**Explanation:**
+
+Render arrays and Twig templates have different responsibilities.
+
+A render array describes the content and rendering configuration:
+
+```php
+$build['content'] = [
+  '#theme' => 'item_list',
+  '#items' => [
+    'Task One',
+    'Task Two',
+  ],
+];
+```
+
+A Twig template defines the HTML structure:
+
+```php
+<article class="project">
+  <h2>{{ title }}</h2>
+  <p>{{ description }}</p>
+</article>
+```
+
+Twig also supports presentation logic, including conditions, loops, and filters. However, complex business logic and data processing should not be placed in templates.
+
+**Key terms:**
+
+- Presentation layer — the part of an application responsible for displaying information.
+    
+- Semantic HTML — HTML elements that describe the meaning of their content.
+    
+- Business logic — rules that define how an application works.
+    
+- Template — a file that defines the structure of rendered output.
+    
+
+### 39. What is cacheability metadata in Drupal, and what are cache contexts, cache tags, and max-age?
+
+**Answer:**
+
+Cacheability metadata helps Drupal manage cached content. It consists of three main components: cache contexts, cache tags, and max-age.
+
+Cache contexts determine when cached content varies depending on the request or user. Cache tags identify the data that cached content depends on, allowing Drupal to invalidate the cache when that data changes. Max-age defines how long cached content can be considered valid, in seconds.
+
+**Explanation:**
+
+Drupal uses cacheability metadata to improve performance while keeping cached content relevant.
+
+**Cache contexts**
+
+Cache contexts determine when Drupal needs separate cache variations.
+
+For example, `user.roles` allows cached output to vary according to the current user's roles.
+
+```php
+'#cache' => [
+  'contexts' => ['user.roles'],
+],
+```
+
+**Cache tags**
+
+Cache tags associate cached content with data that can change.
+
+For example, `node:42` identifies a dependency on the Drupal node with ID 42.
+
+```php
+'#cache' => [
+  'tags' => ['node:42'],
+],
+```
+
+When that node changes, Drupal can invalidate cached content associated with this tag.
+
+**Max-age**
+
+Max-age defines the maximum period, in seconds, for which cached content is considered valid.
+
+```php
+'#cache' => [
+  'max-age' => 3600,
+],
+```
+
+Here, `3600` means one hour. A value of `0` means the corresponding render result must not be cached, while `-1` (`Cache::PERMANENT`) means there is no time-based expiration.
+
+**Key terms:**
+
+- Cacheability metadata — information Drupal uses to manage cached output.
+    
+- Cache context — a condition that determines which cache variation to use.
+    
+- Cache tag — an identifier used to invalidate related cached content.
+    
+- Max-age — the maximum cache lifetime in seconds.
+    
+- Cache invalidation — making cached content no longer valid so it can be regenerated.
+    
+
+### 40. What is the difference between cache contexts and cache tags in Drupal?
+
+**Answer:**
+
+Cache contexts are used to store different cache variations for different users or request conditions. Cache tags are used to invalidate cached content when the underlying data changes.
+
+For example, the `user.roles` cache context allows content to vary according to the user's roles. The `node:42` cache tag associates cached content with a Drupal node whose ID is 42, allowing Drupal to invalidate related cached content when the node changes.
+
+**Explanation:**
+
+Cache contexts and cache tags solve two different problems.
+
+- Cache contexts determine whether Drupal needs different cached output for different conditions.
+    
+- Cache tags identify which cached results should be invalidated when related data changes.
+    
+
+Consider a task management application such as DrupalJira.
+
+A project page might display different controls depending on the user's role. The output must account for the relevant cache contexts and access checks.
+
+At the same time, the page might display a project title. If that project changes, cache tags can help Drupal invalidate cached output that depends on the project.
+
+**Important:** Cache contexts do not replace access checks. Drupal must still verify whether the current user is allowed to view or modify content. Incorrect cacheability metadata can cause information to be displayed incorrectly, so access control and cache configuration must work together.
+
+**Key terms:**
+
+- Cache variation — a separate cached version of the same general output.
+    
+- Cache invalidation — marking cached output as invalid.
+    
+- Underlying data — the original data on which rendered output depends.
+    
+- Access control — rules that determine which operations a user can perform.
+    
+
+## Useful English Phrases
+
+| English                               | Russian                                   |
+| ------------------------------------- | ----------------------------------------- |
+| To describe what Drupal should render | Описывать, что Drupal должен отобразить   |
+| To define the HTML structure          | Определять структуру HTML                 |
+| To vary depending on the user         | Различаться в зависимости от пользователя |
+| To invalidate cached content          | Инвалидировать кешированное содержимое    |
+| Underlying data changes               | Исходные данные изменяются                |
+| To be associated with an entity       | Быть связанным с сущностью                |
+| To enforce access checks              | Обеспечивать выполнение проверок доступа  |
+| To be considered valid                | Считаться действительным                  |
 ## Quick Revision
 
-|Concept|Meaning|
-|---|---|
-|Drupal Core|The main Drupal codebase|
-|Module|Adds or changes functionality|
-|Theme|Controls presentation|
-|Node|An individual content item|
-|Content type|Defines the structure of a type of node|
-|Field|Stores a specific piece of data|
-|Entity|A structured object in Drupal|
-|Content entity|Represents content or application data|
-|Configuration entity|Represents a configurable object|
-|Route|Maps a URL to a request handler|
-|Controller|Handles a request and returns a response|
-|Service|Provides reusable functionality|
-|Dependency injection|Passes dependencies into a class|
-|Hook|Lets a module react to a Drupal process|
-|Plugin|Implements a specific type of extensible behavior|
-|View|Queries and displays data through configuration|
-|Entity reference|Links one entity to another|
-|Widget|Defines how a field is entered|
-|Formatter|Defines how a field is displayed|
-|Authentication|Verifies identity|
-|Authorization|Determines allowed actions|
-|Permission|Defines a general capability|
-|Entity access|Checks access to a specific entity operation|
-|CSRF protection|Helps prevent forged requests|
-|GET|Retrieves data; should not change application state|
-|POST|Commonly submits data or performs state-changing operations|
+| Concept               | Meaning                                                     |
+| --------------------- | ----------------------------------------------------------- |
+| Drupal Core           | The main Drupal codebase                                    |
+| Module                | Adds or changes functionality                               |
+| Theme                 | Controls presentation                                       |
+| Node                  | An individual content item                                  |
+| Content type          | Defines the structure of a type of node                     |
+| Field                 | Stores a specific piece of data                             |
+| Entity                | A structured object in Drupal                               |
+| Content entity        | Represents content or application data                      |
+| Configuration entity  | Represents a configurable object                            |
+| Route                 | Maps a URL to a request handler                             |
+| Controller            | Handles a request and returns a response                    |
+| Service               | Provides reusable functionality                             |
+| Dependency injection  | Passes dependencies into a class                            |
+| Hook                  | Lets a module react to a Drupal process                     |
+| Plugin                | Implements a specific type of extensible behavior           |
+| View                  | Queries and displays data through configuration             |
+| Entity reference      | Links one entity to another                                 |
+| Widget                | Defines how a field is entered                              |
+| Formatter             | Defines how a field is displayed                            |
+| Authentication        | Verifies identity                                           |
+| Authorization         | Determines allowed actions                                  |
+| Permission            | Defines a general capability                                |
+| Entity access         | Checks access to a specific entity operation                |
+| CSRF protection       | Helps prevent forged requests                               |
+| GET                   | Retrieves data; should not change application state         |
+| POST                  | Commonly submits data or performs state-changing operations |
+| Render array          | Describes what Drupal should render                         |
+| Twig template         | Defines the HTML structure and presentation                 |
+| Rendering             | Converts structured data into output                        |
+| Cacheability metadata | Controls how rendered output is cached                      |
+| Cache context         | Determines when cached output varies                        |
+| Cache tag             | Identifies cached output for invalidation                   |
+| Max-age               | Defines the maximum cache lifetime in seconds               |
+| Cache invalidation    | Makes cached output no longer valid                         |
