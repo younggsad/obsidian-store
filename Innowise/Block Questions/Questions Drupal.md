@@ -167,7 +167,7 @@ A route connects a URL to the code responsible for handling the request.
 
 Example:
 
-```
+```php
 drupaljira_board.project_board:
   path: '/project/{node}/board'
   defaults:
@@ -191,7 +191,7 @@ A controller coordinates request handling. It can retrieve route parameters, cal
 
 Example:
 
-```
+```php
 public function build(): array {
   return [
     '#markup' => 'Hello, Drupal!',
@@ -236,7 +236,7 @@ A dependency is an object or service that a class needs to perform its work.
 
 Example:
 
-```
+```php
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 
 final class TaskManager {
@@ -262,7 +262,7 @@ Hooks provide extension points that let modules interact with Drupal's existing 
 
 Example:
 
-```
+```php
 function mymodule_entity_presave(
   \Drupal\Core\Entity\EntityInterface $entity,
 ): void {
@@ -539,7 +539,7 @@ A module's `.info.yml` file contains metadata about the module, such as its name
 
 Example `drupaljira_board.info.yml`:
 
-```
+```php
 name: DrupalJira Board
 type: module
 description: Provides task board functionality.
@@ -560,7 +560,7 @@ A `.services.yml` file defines services that can be used throughout a Drupal pro
 
 Example `drupaljira_board.services.yml`:
 
-```
+```php
 services:
   drupaljira_board.task_manager:
     class: Drupal\drupaljira_board\Service\TaskManager
@@ -582,7 +582,7 @@ Instead of creating or retrieving dependencies inside a class, provide them from
 
 Example:
 
-```
+```php
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 
 final class TaskManager {
@@ -606,7 +606,7 @@ Calling `\Drupal::service()` directly accesses a service through Drupal's global
 
 Direct service lookup:
 
-```
+```php
 $entityTypeManager = \Drupal::service('entity_type.manager');
 ```
 
@@ -654,7 +654,7 @@ A permission defines which actions a user is generally allowed to perform. Entit
 
 Check a general permission:
 
-```
+```php
 if ($account->hasPermission('access content')) {
   // The account has this permission.
 }
@@ -662,7 +662,7 @@ if ($account->hasPermission('access content')) {
 
 Check access to a specific task:
 
-```
+```php
 $access = $task->access('update', $account);
 
 if ($access->isAllowed()) {
@@ -743,7 +743,3 @@ The HTTP method alone does not provide access control or CSRF protection. State-
 |CSRF protection|Helps prevent forged requests|
 |GET|Retrieves data; should not change application state|
 |POST|Commonly submits data or performs state-changing operations|
-
-## Next Question
-
-**37. What is the difference between a Drupal render array and an HTML string?**
