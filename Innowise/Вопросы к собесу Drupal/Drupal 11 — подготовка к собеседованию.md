@@ -3853,4 +3853,1203 @@ This makes the worker easier to test and prevents business logic from depending 
 | Retry considerations | Operations                                         |                                      |                                                         |
 
 ---
+## 13.1. What is the Migration API?
 
+The Migration API is Drupal's system for transferring data from one source to another.
+
+It is commonly used when:
+
+- Migrating content from an older Drupal website to a newer version.
+    
+- Importing data from CSV or XML files.
+    
+- Transferring content from another CMS.
+    
+- Importing users, taxonomy terms, files, or media.
+    
+- Transforming legacy data into a new data model.
+    
+- Repeating an import while preserving the relationship between source and destination records.
+    
+
+A migration is more than a database copy. The source data may have a different structure from the destination. The Migration API allows developers to read, transform, validate, and map data into Drupal entities.
+
+For example, a legacy project-management system might use these statuses:
+
+```php
+todo       → backlog
+working    → in_progress
+qa         → review
+completed  → done
+```
+
+A migration can transform the old status values into the new values before saving the destination entities.
+
+## 13.2. How the Migration API works
+
+A migration generally consists of three main stages:
+
+1. **Source** — reads the original data.
+    
+2. **Process** — transforms and maps the source properties.
+    
+3. **Destination** — creates or updates the destination records.
+    
+
+Conceptually:
+
+```php
+Legacy database / CSV / API
+            |
+            v
+       Source plugin
+            |
+            v
+      Process plugins
+            |
+            v
+     Destination plugin
+            |
+            v
+ Drupal entities / records
+```
+
+The migration system also tracks imported records and migration messages, making it possible to identify failures and manage repeated imports.
+
+## 13.3. Source plugins
+
+A source plugin describes where migration data comes from and how it is read.
+
+Examples include:
+
+- SQL tables.
+    
+- CSV files, using suitable contributed modules or custom plugins.
+    
+- Drupal content from another installation.
+    
+- XML or JSON sources.
+    
+- Custom APIs.
+    
+
+Drupal core provides migration source plugins for common migration scenarios, including migrations from older Drupal installations. Support for particular file formats or external systems may require contributed modules or custom plugins.
+
+A source plugin provides source rows with identifiers and properties that later stages can process.
+
+For example, a source row might contain:
+
+```php
+legacy_id: 17
+title: "Implement login"
+status: "working"
+project_id: 5
+```
+
+The source identifiers are important because Drupal needs to track which destination record corresponds to each source record.
+
+## 13.4. Process plugins
+
+Process plugins transform source properties into destination properties.
+
+Examples include:
+
+- `get` — retrieves a source property.
+    
+- `default_value` — provides a default value.
+    
+- `static_map` — maps values according to a predefined mapping.
+    
+- `concat` — combines multiple values.
+    
+- `skip_on_empty` — skips processing or a row when a value is empty, depending on configuration.
+    
+- `migration_lookup` — finds a destination entity created by another migration.
+    
+
+The exact behavior depends on the process plugin and its configuration.
+
+For example, a status transformation can be written as:
+
+```php
+process:
+  field_status:
+    plugin: static_map
+    source: status
+    map:
+      todo: backlog
+      working: in_progress
+      qa: review
+      completed: done
+    default_value: backlog
+```
+
+This example maps legacy status values to new field values.
+
+The mapping must match the actual allowed values of the destination field. A default value should be chosen deliberately: silently assigning an incorrect status can corrupt business data.
+
+## 13.5. Destination plugins
+
+A destination plugin defines where migrated records are written.
+
+Common examples include:
+
+- `entity:node`
+    
+- `entity:user`
+    
+- `entity:taxonomy_term`
+    
+- Other entity destinations supported by Drupal core or contributed modules.
+    
+
+A destination plugin takes processed properties and creates or updates the destination entity.
+
+For example, a node migration can use:
+
+```php
+destination:
+  plugin: entity:node
+  default_bundle: task
+```
+
+Here, the destination entity type is `node`, and the bundle is `task`.
+
+The destination field names must exist on the destination bundle, and the processed values must match the field's expected data structure.
+
+## 13.6. A complete migration definition
+
+Migration definitions are commonly written as YAML files inside a module's `migrations` or `config/install` directory, depending on how the migration is provided and managed.
+
+A simplified example:
+
+```php
+id: legacy_task
+label: 'Import legacy tasks'
+migration_group: drupaljira
+source:
+  plugin: embedded_data
+  data_rows:
+    - legacy_id: 17
+      title: 'Implement login'
+      status: 'working'
+    - legacy_id: 18
+      title: 'Write tests'
+      status: 'qa'
+  ids:
+    legacy_id:
+      type: integer
+
+process:
+  title: title
+  field_status:
+    plugin: static_map
+    source: status
+    map:
+      todo: backlog
+      working: in_progress
+      qa: review
+      completed: done
+    default_value: backlog
+
+destination:
+  plugin: 'entity:node'
+  default_bundle: task
+```
+
+This example uses `embedded_data`, which is useful for illustrating the migration structure. It is not intended as a replacement for a production source plugin.
+
+In a real project, the source may be a legacy database, a file, or an external API. The destination field and status values must match the actual Task content type.
+
+Depending on the migration configuration, the source plugin may also need a database connection, source table, query, or other settings.
+
+## 13.7. Migration dependencies
+
+Some migrations depend on records created by other migrations.
+
+For example, a Task may reference a Project. The Project should generally be migrated before the Task if the Task's project reference must point to the newly created Project entity.
+
+A migration dependency can be declared like this:
+
+```php
+migration_dependencies:
+  required:
+    - legacy_project
+```
+
+This indicates that `legacy_project` is a required dependency.
+
+Dependencies help Drupal understand the intended order of migrations. They do not automatically solve every reference problem; the process stage must still map source IDs to destination IDs correctly.
+
+## 13.8. The `migration_lookup` process plugin
+
+Suppose the legacy system stores a project ID of `5`, but the destination Project node has a different node ID.
+
+Copying the legacy ID directly into `field_project` would be incorrect.
+
+Use `migration_lookup` to resolve the legacy ID through the Project migration's ID map:
+
+```php
+process:
+  field_project:
+    plugin: migration_lookup
+    migration: legacy_project
+    source: project_id
+```
+
+This example assumes that `legacy_project` has already migrated the relevant source project and recorded its mapping.
+
+The result can then be used as the destination entity reference value.
+
+If the referenced Project has not been migrated, the lookup may not produce a usable destination ID. The migration must decide how to handle that situation, for example by ordering dependencies correctly, skipping the row, or applying a deliberate fallback.
+
+## 13.9. Migration ID maps
+
+The migration system tracks the relationship between source records and destination records.
+
+For example:
+
+|Source ID|Destination ID|
+|---|---|
+|17|42|
+|18|43|
+|19|44|
+
+The source IDs identify the original records, while the destination IDs identify the imported Drupal entities.
+
+This mapping is important because:
+
+- A migration can identify records already imported.
+    
+- Referencing migrations can look up destination entity IDs.
+    
+- Repeated imports can update previously migrated records.
+    
+- Rollback can identify destination records created by a migration.
+    
+
+The map is not a general replacement for application data. It is migration bookkeeping used by the migration system.
+
+## 13.10. Migration status and execution
+
+The Migrate system tracks migration status and results.
+
+Depending on the migration and command, you can inspect migrations, import records, roll back imported data, or reset migration status.
+
+Common Drush commands include:
+
+```php
+drush migrate:status
+drush migrate:import legacy_task
+drush migrate:rollback legacy_task
+drush migrate:reset-status legacy_task
+```
+
+The exact command availability depends on the installed Drush and migration tooling.
+
+- `migrate:status` displays migration status.
+    
+- `migrate:import` runs a migration.
+    
+- `migrate:rollback` removes destination records tracked by a migration, subject to the migration's destination and rollback behavior.
+    
+- `migrate:reset-status` resets a stuck or otherwise incorrect migration status.
+    
+
+**Important:** Rollback can delete destination entities created by a migration. Review the migration and its effects before running it, especially on a production site.
+
+Resetting migration status is not the same as rolling back imported data.
+
+## 13.11. Updating a migration
+
+During development, the source data or migration definition may change.
+
+Drupal's migration system can track previously imported records and, where supported by the source and destination, reprocess them.
+
+The appropriate approach depends on whether the change affects:
+
+- New source rows.
+    
+- Previously imported rows.
+    
+- Source identifiers.
+    
+- Process mappings.
+    
+- Destination entity structure.
+    
+- Previously created entity references.
+    
+
+If the source IDs change, Drupal may no longer recognize a source record as the same record. This can lead to duplicate destination entities or incorrect updates.
+
+Before rerunning a migration, understand the ID map and the intended update strategy.
+
+## 13.12. High-water marks
+
+Some source plugins support a high-water property.
+
+A high-water mark records a value representing how far the migration has progressed, often a timestamp or increasing identifier.
+
+For example, a migration may process only source records whose modification time is newer than the last recorded value.
+
+This can make repeated imports more efficient when new or updated records are added continuously.
+
+However, high-water behavior depends on the source plugin and migration configuration. A high-water mark is not a universal substitute for source IDs or a full synchronization strategy.
+
+## 13.13. Migration messages and error handling
+
+Migration failures can occur because of:
+
+- Missing required fields.
+    
+- Invalid field values.
+    
+- Missing referenced entities.
+    
+- Incorrect source data.
+    
+- Permission or connection problems.
+    
+- Destination validation failures.
+    
+- Incompatible process mappings.
+    
+
+Drupal's migration system records messages for failed or problematic rows, allowing developers to investigate the cause.
+
+A reliable migration process should include:
+
+1. Testing with a representative sample.
+    
+2. Reviewing migration status and messages.
+    
+3. Verifying entity counts.
+    
+4. Checking entity references.
+    
+5. Comparing important field values.
+    
+6. Testing rollback or recovery where appropriate.
+    
+7. Keeping backups before production migration.
+    
+
+Do not assume that a command's successful exit means every field and relationship has been migrated correctly.
+
+## 13.14. Custom migration plugins
+
+Developers can create custom source, process, or destination plugins when the built-in plugins do not satisfy the requirements.
+
+For example, a custom process plugin might normalize legacy status names or parse a proprietary date format.
+
+A custom process plugin typically extends `ProcessPluginBase` and implements its processing method. Its plugin definition must follow the discovery conventions for process plugins in the target Drupal version.
+
+Before writing a custom plugin, check whether an existing core or contributed process plugin can perform the same transformation. Built-in plugins are often easier to maintain and test.
+
+## 13.15. Migration versus synchronization
+
+Migration and ongoing synchronization are related but different tasks.
+
+- **Migration** moves data into a new system, often during a transition.
+    
+- **Synchronization** keeps two systems aligned over time.
+    
+
+A one-time migration may be sufficient when the legacy system is retired after import.
+
+If both systems continue to receive updates, the solution needs additional decisions about:
+
+- Which system is authoritative.
+    
+- How changes are detected.
+    
+- How conflicts are resolved.
+    
+- How deletions are propagated.
+    
+- How duplicates are prevented.
+    
+- How failed updates are retried.
+    
+
+The Migration API can support repeatable imports, but a complete bidirectional synchronization system requires more than a basic migration definition.
+
+## 13.16. Common Migration API mistakes
+
+- Using legacy entity IDs directly as destination IDs.
+    
+- Forgetting migration dependencies.
+    
+- Migrating referenced entities in the wrong order.
+    
+- Mapping values that do not exist in the destination field.
+    
+- Assuming every source plugin is provided by Drupal core.
+    
+- Changing source identifiers without reviewing the ID map.
+    
+- Running rollback without understanding its effect.
+    
+- Ignoring migration messages.
+    
+- Treating a successful import as proof of complete data integrity.
+    
+- Using the Migration API as if it automatically solved ongoing synchronization.
+    
+
+---
+
+# Block 14 — Field API
+
+## 14.1. What is the Field API?
+
+The Field API allows Drupal entities to store structured properties in a consistent and extensible way.
+
+Examples include:
+
+- Text.
+    
+- Numbers.
+    
+- Dates.
+    
+- Boolean values.
+    
+- Entity references.
+    
+- Files and images.
+    
+- Lists of allowed values.
+    
+- Email addresses.
+    
+- Other structured data.
+    
+
+A Task content type might have these fields:
+
+```php
+title
+field_project
+field_status
+field_assignee
+field_estimate
+```
+
+The Field API makes it possible to define the fields, store their values, validate them, display them, and provide editing interfaces without implementing every part from scratch.
+
+## 14.2. Field storage and field instances
+
+Two important concepts are **field storage** and **field configuration**.
+
+### Field storage
+
+Field storage defines the underlying field structure and storage behavior.
+
+It includes information such as:
+
+- Field name.
+    
+- Field type.
+    
+- Storage settings.
+    
+- Cardinality.
+    
+- The entity type that uses the field.
+    
+
+### Field configuration
+
+Field configuration defines how a field is used on a particular bundle.
+
+It can include:
+
+- Label.
+    
+- Required status.
+    
+- Default value.
+    
+- Help text.
+    
+- Bundle-specific settings.
+    
+- Translatability.
+    
+
+For example, `field_status` may be stored as a list-string field, while its configuration on the Task bundle defines the allowed values and default.
+
+A field can be used on multiple bundles when its storage definition supports that usage.
+
+## 14.3. Field types
+
+The field type determines the kind of data a field stores.
+
+Examples:
+
+|Field type|Typical use|
+|---|---|
+|`string`|Short text|
+|`string_long`|Longer plain text|
+|`text`|Formatted text with text-format support|
+|`integer`|Whole numbers|
+|`decimal`|Decimal numbers|
+|`boolean`|True/false values|
+|`datetime`|Date and time|
+|`entity_reference`|Reference to another entity|
+|`file`|Reference to a managed file|
+|`image`|Image file reference with image-specific behavior|
+
+The field type influences validation, storage, widgets, formatters, and the data available through the typed data API.
+
+## 14.4. Cardinality
+
+Cardinality determines how many values a field can contain.
+
+Examples:
+
+- Cardinality `1` — one value.
+    
+- Cardinality `3` — up to three values.
+    
+- Cardinality `-1` — unlimited values.
+    
+
+A Project reference field on a Task might have cardinality `1`, because each task belongs to one project.
+
+An attachment field might allow multiple files.
+
+Choose cardinality based on the actual data model. An unlimited field is not automatically better; it can make validation, display, and business logic more complicated.
+
+## 14.5. Field definitions in configuration
+
+Drupal field storage and field configuration are usually represented by configuration entities.
+
+For example, a field storage definition may be exported to a YAML file similar to:
+
+```php
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+id: node.field_estimate
+field_name: field_estimate
+entity_type: node
+type: decimal
+settings:
+  precision: 10
+  scale: 2
+cardinality: 1
+translatable: false
+```
+
+This is an illustrative fragment. A real exported field storage definition may contain additional keys and dependencies depending on the Drupal version and field type.
+
+A corresponding bundle-specific field configuration defines how the field is used on the Task bundle.
+
+When changing a field's storage definition, consider existing data, schema updates, and whether the change is supported safely by Drupal. Some storage changes cannot be applied like ordinary configuration edits and may require a migration or a carefully planned update process.
+
+## 14.6. Widgets and formatters
+
+The Field API separates data storage from its editing and display interfaces.
+
+### Widgets
+
+A widget controls how users enter or edit field values.
+
+Examples:
+
+- A text input.
+    
+- A select list.
+    
+- A date picker.
+    
+- An entity autocomplete field.
+    
+- A file upload widget.
+    
+
+### Formatters
+
+A formatter controls how a field is displayed.
+
+Examples:
+
+- A plain text formatter.
+    
+- A date formatter.
+    
+- An image formatter.
+    
+- An entity reference label formatter.
+    
+
+The same field can use different widgets and formatters on different forms and displays.
+
+For example, an entity reference field might use an autocomplete widget on the edit form and display the referenced entity's label on the rendered page.
+
+## 14.7. Reading field values
+
+For a simple field:
+
+```php
+$status = $task->get('field_status')->value;
+```
+
+For an entity reference field:
+
+```php
+$project = $task->get('field_project')->entity;
+```
+
+For a multivalue field:
+
+```php
+$values = $task->get('field_tags')->getValue();
+```
+
+A multivalue field returns an array of item values. Each item may contain one or more properties, depending on the field type.
+
+Do not assume every field exposes a simple `value` property. For an entity reference, the stored value commonly uses `target_id`; for other types, the property names differ.
+
+## 14.8. Setting field values
+
+Set a simple field:
+
+```php
+$task->set('field_status', 'review');
+```
+
+Set an entity reference:
+
+```php
+$task->set('field_project', [
+  'target_id' => $projectId,
+]);
+```
+
+Set multiple values:
+
+```php
+$task->set('field_tags', [
+  ['target_id' => 4],
+  ['target_id' => 7],
+]);
+```
+
+The last example assumes `field_tags` is an entity reference field. Its values must correspond to valid target entities and the field's cardinality.
+
+After setting values, save the entity when the change should be persisted:
+
+```
+$task->save();
+```
+
+Remember that field assignment does not automatically prove that the current user is allowed to make the change.
+
+## 14.9. Field validation and constraints
+
+Fields can have validation constraints.
+
+Examples include:
+
+- Required values.
+    
+- Allowed values.
+    
+- Numeric ranges.
+    
+- Maximum string lengths.
+    
+- Valid email addresses.
+    
+- Valid entity references.
+    
+
+For example, a decimal estimate field might require a non-negative value.
+
+Field validation can be part of entity validation:
+
+```
+$violations = $task->validate();
+
+if ($violations->count() > 0) {
+  // Handle the validation errors.
+}
+```
+
+Drupal uses its Typed Data and validation systems to represent values and validate them against applicable constraints.
+
+Validation requirements should be implemented at the data-model level where appropriate, not only in the form interface. This helps ensure that data created through APIs or custom code is also checked.
+
+## 14.10. Field access
+
+Drupal supports field-level access checks in addition to entity-level access.
+
+For example:
+
+```
+$access = $task->get('field_estimate')->access(
+  'edit',
+  $account,
+);
+```
+
+This asks whether the account can edit the field according to the field's access implementation.
+
+Field access is useful when some properties require stricter permissions than others. However, field access behavior depends on the field type, entity, and installed modules.
+
+A secure form or custom endpoint should respect the relevant access checks and should not assume that access to the entity means unrestricted access to every field.
+
+## 14.11. Field API and render arrays
+
+Fields are commonly rendered through Drupal's entity view system.
+
+For example:
+
+```
+$build = $task->toRenderable('full');
+```
+
+This builds a render array for the entity's configured view mode, assuming the entity supports the relevant rendering behavior.
+
+The rendered output uses the field display configuration, including field formatters and display settings.
+
+When building custom output, prefer render arrays and existing entity view builders where appropriate. They integrate with Drupal's render pipeline and cacheability system.
+
+## 14.12. Computed fields
+
+A computed field derives its value from other data instead of storing an ordinary value directly.
+
+For example, a custom field could calculate a value from another property or a related entity.
+
+Computed fields are useful when a value should be derived rather than independently stored.
+
+However, computation can be expensive, especially when it loads referenced entities or performs database queries. Consider caching and performance carefully.
+
+A computed field's behavior and configuration depend on how it is implemented. Not every derived value needs a custom field type; sometimes a service or a render-time calculation is simpler.
+
+## 14.13. Creating a custom field type
+
+A custom field type is appropriate when the required data structure or field behavior is not covered by existing field types.
+
+A custom field type may need:
+
+- A field item class.
+    
+- Field type metadata.
+    
+- Property definitions.
+    
+- Storage behavior.
+    
+- Validation constraints.
+    
+- A widget.
+    
+- A formatter.
+    
+
+Not every custom field type needs a completely custom widget and formatter, but the implementation must support the intended editing and display workflows.
+
+Before creating one, check whether an existing field type can represent the data correctly.
+
+For example, a decimal field is usually preferable to a custom field type when storing a numeric estimate. A custom field type becomes more appropriate when the value has a genuinely different structure or behavior.
+
+## 14.14. Field API and configuration management
+
+Fields are generally configured through Drupal's configuration system.
+
+A field storage definition and a bundle-specific field configuration are separate configuration entities. The display configuration for forms and views is also separate.
+
+This separation makes it possible to deploy field definitions and display settings between environments.
+
+However, changing configuration does not automatically migrate old values into a new structure. If a field's meaning or storage format changes, the deployment may need a data migration or update hook.
+
+For example, changing a status field's allowed values requires reviewing existing content that contains values no longer allowed by the new definition.
+
+## 14.15. Common Field API mistakes
+
+- Confusing field storage with bundle-specific field configuration.
+    
+- Assuming a field has only one value.
+    
+- Assuming every field has a `value` property.
+    
+- Forgetting the difference between `target_id` and a referenced entity object.
+    
+- Changing storage definitions without considering existing data.
+    
+- Relying only on form validation.
+    
+- Ignoring field access requirements.
+    
+- Loading referenced entities repeatedly in large loops.
+    
+- Creating custom field types when built-in types are sufficient.
+    
+- Forgetting cacheability when computed fields depend on user-specific or changing data.
+    
+
+---
+
+# Block 15 — Authentication API
+
+## 15.1. What is the Authentication API?
+
+The Authentication API provides mechanisms for Drupal to identify a user or client making an HTTP request.
+
+Authentication answers the question:
+
+**Who is making this request?**
+
+It does not, by itself, answer:
+
+**Is this user allowed to perform the requested operation?**
+
+That second question belongs to authorization and access checking.
+
+Drupal supports different authentication mechanisms depending on whether the request comes from a browser session, an API client, or an external integration.
+
+Common examples include:
+
+- Session-based authentication.
+    
+- HTTP Basic authentication.
+    
+- Token-based authentication provided by suitable modules.
+    
+- External identity providers through compatible authentication integrations.
+    
+
+The appropriate mechanism depends on the client, security requirements, and Drupal's enabled modules and configuration.
+
+## 15.2. Authentication versus authorization
+
+These concepts must remain separate.
+
+|Concept|Purpose|Example|
+|---|---|---|
+|Authentication|Identifies the requester|An API client presents valid credentials|
+|Authorization|Determines allowed actions|The authenticated user has permission to edit tasks|
+|Access checking|Evaluates a specific operation or resource|The user can edit this particular task|
+|CSRF protection|Helps prevent unwanted browser-originated requests|A session-authenticated request includes the required token|
+
+A successful login does not automatically grant permission to edit all content.
+
+Likewise, a valid API token does not automatically mean that the associated user can access every endpoint.
+
+## 15.3. Session-based authentication
+
+Drupal commonly authenticates browser users through sessions.
+
+A simplified flow:
+
+1. The user submits login credentials.
+    
+2. Drupal verifies the credentials.
+    
+3. Drupal establishes an authenticated session.
+    
+4. The browser sends the session cookie with subsequent requests.
+    
+5. Drupal identifies the current user from the session.
+    
+
+The current account is available through Drupal's current user service.
+
+Example using dependency injection:
+
+```
+use Drupal\Core\Session\AccountProxyInterface;
+
+final class TaskAccessService {
+
+  public function __construct(
+    private readonly AccountProxyInterface $currentUser,
+  ) {}
+
+  public function isAuthenticated(): bool {
+    return $this->currentUser->isAuthenticated();
+  }
+
+}
+```
+
+Session-based authentication is convenient for browser interfaces, but cookie-authenticated state-changing requests must be protected against CSRF where applicable.
+
+Do not assume that session authentication and token-based API authentication have identical CSRF requirements.
+
+## 15.4. Current user and user accounts
+
+Drupal distinguishes the current account from the stored user entity.
+
+The current user service represents the account associated with the request. It exposes account-level information and permission checks.
+
+For example:
+
+```
+if ($this->currentUser->hasPermission('manage project tasks')) {
+  // The current account has this permission.
+}
+```
+
+The user entity is the stored user record, which can contain profile fields and other persistent data.
+
+When you need the full user entity, load it through the entity storage system or another suitable API. Do not assume that the current account proxy is identical to a fully loaded user entity.
+
+## 15.5. HTTP Basic authentication
+
+HTTP Basic authentication sends a username and password in an HTTP header encoded using Base64.
+
+Base64 is encoding, not encryption. Basic authentication must be used over HTTPS to protect credentials in transit.
+
+Drupal provides Basic Auth support through the `basic_auth` module. It must be enabled and configured appropriately for the relevant endpoints.
+
+A simplified HTTP request may look like:
+
+```
+GET /entity/node/42?_format=json HTTP/1.1
+Host: example.com
+Authorization: Basic BASE64_ENCODED_CREDENTIALS
+Accept: application/json
+```
+
+`BASE64_ENCODED_CREDENTIALS` is a placeholder, not a real credential. The encoded value represents the username and password joined by a colon.
+
+Do not place real credentials in source code, logs, screenshots, or public documentation.
+
+Basic authentication is relatively simple, but it requires careful credential handling and is not necessarily the best choice for every API integration.
+
+## 15.6. Token-based authentication
+
+Token-based authentication uses a token or another credential that the server can validate.
+
+A request might include:
+
+```
+Authorization: Bearer ACCESS_TOKEN
+```
+
+The exact token format, issuance process, validation rules, expiration behavior, and permissions depend on the authentication provider.
+
+Drupal core does not provide every possible token-based authentication system out of the box. Depending on the requirements, a contributed module or an external identity provider may be necessary.
+
+Do not assume that installing Drupal automatically enables OAuth 2.0, JWT, or arbitrary bearer-token authentication.
+
+A secure token-based system should consider:
+
+- Token expiration.
+    
+- Revocation.
+    
+- Scope or permission restrictions.
+    
+- Secure storage on the client.
+    
+- HTTPS.
+    
+- Logging and monitoring.
+    
+- Rotation and recovery after a token is compromised.
+    
+
+## 15.7. Authentication providers
+
+Drupal's HTTP request handling can use authentication providers to identify the requester from the incoming request.
+
+An authentication provider is responsible for interpreting a supported credential mechanism and, where successful, identifying the associated account.
+
+Different providers can support different request types and authentication schemes.
+
+For example, a request may use a browser session or an HTTP Basic credential. The authentication configuration determines which mechanisms are available and how they are applied.
+
+Authentication is separate from the endpoint's access requirements. Even if a provider successfully identifies a user, the route or resource must still enforce authorization.
+
+## 15.8. Authentication and REST endpoints
+
+REST endpoints need both authentication and access control.
+
+A typical request flow is:
+
+```
+HTTP request
+     |
+     v
+Authentication provider
+     |
+     v
+Identify current account
+     |
+     v
+Route / resource access check
+     |
+     v
+Validate request and permissions
+     |
+     v
+Perform operation
+     |
+     v
+Return response
+```
+
+The precise flow depends on the endpoint type and enabled modules, but the key principle remains: identifying the requester is not the same as granting access.
+
+For example, an authenticated user may be allowed to view a task but not delete it.
+
+## 15.9. REST resource configuration
+
+Drupal REST resources can be configured to use specific authentication providers and HTTP methods.
+
+A simplified example of REST resource configuration might include:
+
+```
+id: entity:node
+plugin_id: 'entity:node'
+granularity: resource
+configuration:
+  GET:
+    supported_formats:
+      - json
+    supported_auth:
+      - cookie
+  POST:
+    supported_formats:
+      - json
+    supported_auth:
+      - cookie
+```
+
+This is an illustrative fragment, not a complete standalone REST configuration file. A real resource configuration must follow the exact structure expected by the installed Drupal version and resource plugin.
+
+The `supported_auth` setting specifies which authentication providers can be used for the configured methods. It does not independently grant users permission to create or update nodes.
+
+The REST module, the required resource plugin, serialization formats, authentication providers, and permissions must all be configured correctly.
+
+## 15.10. Access control for authenticated requests
+
+After authentication, Drupal can use permissions and entity access rules to determine whether the request should proceed.
+
+A route can require a permission:
+
+```
+drupaljira_board.task_api:
+  path: '/api/tasks'
+  defaults:
+    _controller: '\Drupal\drupaljira_board\Controller\TaskApiController::list'
+  requirements:
+    _permission: 'access content'
+```
+
+This is only an illustrative route. The permission `access content` may be too broad for a protected task-management API. A real endpoint should use permissions appropriate to its operation and perform entity-specific checks where necessary.
+
+Do not rely on the fact that a request is authenticated as proof that it is authorized.
+
+## 15.11. CSRF and authentication
+
+CSRF protection is particularly important when a browser automatically sends authentication cookies with requests.
+
+For example, a malicious website may try to cause a logged-in browser to submit an unwanted request to another site.
+
+Drupal's CSRF protections vary according to the endpoint, route requirements, and authentication method.
+
+When designing an API:
+
+- Determine whether authentication uses browser cookies or explicit credentials.
+    
+- Use the correct CSRF protection for that mechanism.
+    
+- Avoid changing data through GET requests.
+    
+- Do not disable CSRF checks merely to make an API call easier.
+    
+- Test the actual request flow, including rejected requests.
+    
+
+Token-based authentication that requires an explicit authorization header often has a different CSRF risk profile from cookie-based authentication. However, that does not remove the need for authorization, secure token handling, or transport security.
+
+## 15.12. Password storage
+
+Passwords should never be stored as plain text.
+
+Drupal uses its password-handling APIs and password hashing mechanisms to store password hashes.
+
+Do not implement your own password storage by concatenating strings or using a general-purpose hash without an appropriate password-hashing scheme.
+
+When building custom authentication, use Drupal's established user authentication and password APIs where appropriate rather than reimplementing credential verification.
+
+## 15.13. External identity providers
+
+An application may delegate authentication to an external identity provider, such as an organizational single sign-on service.
+
+Depending on the integration, the system may use protocols such as OAuth 2.0 or OpenID Connect.
+
+These protocols serve different purposes:
+
+- OAuth 2.0 is an authorization framework.
+    
+- OpenID Connect adds an identity layer on top of OAuth 2.0.
+    
+
+A Drupal integration typically requires a compatible module or custom integration, along with configuration of the identity provider, client credentials, redirect URLs, and account-mapping rules.
+
+Do not assume that OAuth 2.0 by itself defines how a user logs into Drupal or that every OAuth integration provides the same identity behavior.
+
+## 15.14. Testing authentication and authorization
+
+A robust API test suite should cover more than successful requests.
+
+Useful scenarios include:
+
+- An anonymous request is rejected where authentication is required.
+    
+- Invalid credentials are rejected.
+    
+- A valid authenticated user can perform permitted operations.
+    
+- A user without the required permission is denied.
+    
+- A user cannot access another user's restricted entity.
+    
+- A request with invalid input is rejected.
+    
+- CSRF-protected operations reject requests without the required protection.
+    
+- Expired or revoked tokens are handled correctly when the provider supports them.
+    
+- Error responses do not reveal credentials or sensitive internal details.
+    
+
+The exact expected status code depends on the endpoint and authentication provider. For example, an unauthenticated request and an authenticated request that lacks permission represent different failure conditions.
+
+## 15.15. Common Authentication API mistakes
+
+- Confusing authentication with authorization.
+    
+- Assuming an authenticated user can access every entity.
+    
+- Using Basic authentication without HTTPS.
+    
+- Treating Base64 as encryption.
+    
+- Assuming core Drupal provides every token or OAuth implementation.
+    
+- Forgetting to configure authentication providers for REST endpoints.
+    
+- Assuming `supported_auth` grants permissions.
+    
+- Ignoring CSRF requirements for session-authenticated requests.
+    
+- Storing passwords or tokens in source code.
+    
+- Implementing custom password verification instead of using Drupal's APIs.
+    
+- Testing only successful authentication and not unauthorized requests.
+    
+
+**Core principle:** Authentication identifies the requester; authorization determines what the requester is allowed to do; access checking enforces that decision for the requested operation or resource.
