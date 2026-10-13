@@ -1561,760 +1561,520 @@ Regression testing проверяет, что существующая функ�
 ---
 # Block 7 — Drupal Security
 
-## 7.1. Why security matters in Drupal
+## 1. Основные принципы безопасности в Drupal
 
-Drupal is a CMS that manages users, content, files, configuration, and business logic. Security is important because different users must have different levels of access to this data.
+Безопасность в Drupal строится на нескольких уровнях: проверке прав доступа, защите от CSRF и XSS, безопасной обработке пользовательского ввода, использовании подготовленных запросов и правильной настройке ролей.
 
-Drupal provides several built-in security mechanisms:
+Основное правило: **нельзя доверять пользовательским данным**, даже если они пришли из формы Drupal или от авторизованного пользователя.
 
-- **Authentication** — identifies the user.
-    
-- **Authorization** — determines what the user is allowed to do.
-    
-- **Access checking** — checks whether a specific operation is permitted.
-    
-- **CSRF protection** — helps prevent unwanted requests made on behalf of an authenticated user.
-    
-- **Input validation** — verifies that submitted data is valid.
-    
-- **Output escaping** — prevents user-controlled content from being interpreted as executable code.
-    
-- **Database API** — helps protect database queries from SQL injection.
-    
-- **Security updates** — fix known vulnerabilities in Drupal core and contributed modules.
-    
+Основные механизмы безопасности:
 
-Security should be implemented at the appropriate layers. Hiding a button in the interface is not enough: the underlying route, controller, entity operation, or API endpoint must also enforce access rules.
-
-## 7.2. Authentication and authorization
-
-Authentication and authorization are different concepts.
-
-| Concept         | Meaning                                                | Example                                     |
-| --------------- | ------------------------------------------------------ | ------------------------------------------- |
-| Authentication  | Identifies a user                                      | A user logs in with a username and password |
-| Authorization   | Determines allowed operations                          | A project manager can edit a project        |
-| Access checking | Evaluates access to a particular operation or resource | A user can view a task but cannot edit it   |
-
-Drupal users have roles, and roles contain permissions. A user can have multiple roles.
-
-For example, a DrupalJira project might have the following roles:
-
-- Administrator — can administer the site.
+- **Authentication** — проверка личности пользователя.
     
-- Project manager — can manage projects and tasks.
+- **Authorization** — проверка того, разрешено ли пользователю выполнять действие.
     
-- Authenticated user — can perform limited operations.
+- **Access control** — управление доступом к сущностям, маршрутам и операциям.
     
-- Anonymous user — has no authenticated account.
+- **Input validation** — проверка корректности входных данных.
+    
+- **Output escaping** — безопасный вывод данных, предотвращающий XSS.
+    
+- **CSRF protection** — защита от подделки межсайтовых запросов.
+    
+- **SQL injection protection** — защита от внедрения SQL-кода.
     
 
-Roles are a convenient way to group permissions, but a role alone does not always determine whether a user can access a particular entity. Access may also depend on ownership, entity relationships, publication status, or custom business rules.
+## 2. Permissions и Roles
 
-## 7.3. Permissions and route access
+Permission определяет, какое действие разрешено выполнять пользователю. Role — это набор разрешений.
 
-Permissions define which operations a user may perform.
+Например, в DrupalJira можно создать роли:
 
-A custom module can declare permissions in `drupaljira_board.permissions.yml`:
+- Project Manager — создание и редактирование проектов и задач.
+    
+- Authenticated User — просмотр доступных проектов и работа с собственными задачами.
+    
+- Administrator — управление всеми аспектами сайта.
+    
 
-```php
+Разрешения определяются в административном интерфейсе Drupal или в файле `*.permissions.yml`.
+
+Пример `drupaljira_board.permissions.yml`:
+
+```
 manage project tasks:
   title: 'Manage project tasks'
-  description: 'Create and update tasks belonging to projects.'
+  description: 'Create and manage tasks in projects.'
   restrict access: true
 ```
 
-The permission can then be assigned to appropriate roles through Drupal's permissions administration page.
+Проверить разрешение в коде можно через сервис `current_user`:
 
-A route can require this permission:
+```
+$current_user = \Drupal::currentUser();
 
-```php
+if ($current_user->hasPermission('manage project tasks')) {
+  // Пользователю разрешено управлять задачами.
+}
+```
+
+В классе предпочтительнее использовать Dependency Injection, а не статический вызов `\Drupal`.
+
+Важно: наличие разрешения на действие не означает автоматического доступа ко всем сущностям. Например, пользователь может иметь право редактировать задачи, но не иметь права редактировать конкретную задачу из чужого проекта.
+
+## 3. Access Control
+
+Drupal предоставляет несколько уровней проверки доступа.
+
+### Доступ к маршрутам
+
+Маршрут может требовать определённое разрешение:
+
+```
 drupaljira_board.task_list:
-  path: '/tasks/manage'
+  path: '/tasks'
   defaults:
     _controller: '\Drupal\drupaljira_board\Controller\TaskController::list'
-    _title: 'Manage tasks'
+    _title: 'Tasks'
   requirements:
-    _permission: 'manage project tasks'
+    _permission: 'access content'
 ```
 
-Drupal checks the permission before allowing access to the route.
+Drupal проверяет разрешение до вызова контроллера.
 
-The `restrict access: true` setting marks the permission as sensitive in the administrative interface. It does not replace route access checking or grant access by itself.
+Для более сложной проверки можно использовать собственный access checker или требование `_custom_access`.
 
-### Entity-specific access
+### Доступ к сущностям
 
-Sometimes access depends on the actual entity, not only on a general permission.
+Entity Access API позволяет проверить, может ли пользователь просматривать, редактировать или удалять конкретную сущность.
 
-For example, a user may be allowed to edit tasks only when they belong to a project the user manages.
+```
+$access = $node->access('update', NULL, TRUE);
 
-Drupal supports entity access checks:
-
-```php
-$access = $task->access('update', $account);
-
-if (!$access) {
-  throw new \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException();
+if ($access->isAllowed()) {
+  // Пользователю разрешено редактировать материал.
 }
 ```
 
-The `$account` argument is the account whose access should be evaluated. If it is omitted, Drupal generally uses the current user.
+Третий аргумент `TRUE` просит вернуть объект `AccessResultInterface`, а не простое логическое значение. Такой объект может содержать информацию о cacheability.
 
-For a custom controller, checking entity access is important even when the route itself requires a permission.
+Это важно, поскольку результат доступа иногда зависит от пользователя, ролей, состояния сущности или других условий.
 
-Access results can contain cacheability metadata. When returning an access result as part of a renderable response, preserve its cache contexts, tags, and max-age when relevant.
+### Почему нельзя полагаться только на интерфейс
 
-### Access result objects
+Если кнопка редактирования скрыта в интерфейсе, это не гарантирует защиту. Пользователь может напрямую отправить HTTP-запрос на соответствующий маршрут.
 
-For more advanced access logic, Drupal provides `AccessResult`:
+Поэтому проверка должна выполняться на сервере — на уровне маршрута, сущности или бизнес-логики.
 
-```php
-use Drupal\Core\Access\AccessResult;
+## 4. CSRF Protection
 
-public function access($entity, $operation, $account) {
-  if ($account->hasPermission('administer nodes')) {
-    return AccessResult::allowed();
-  }
+CSRF (Cross-Site Request Forgery) — атака, при которой злоумышленник пытается заставить браузер авторизованного пользователя отправить нежелательный запрос.
 
-  return AccessResult::forbidden();
-}
+Drupal предоставляет механизмы защиты для форм и маршрутов.
+
+Например, для пользовательского маршрута, изменяющего данные, можно потребовать CSRF-токен:
+
 ```
-
-This is a simplified illustration of an access-checking method. The exact method signature depends on the access hook or class in which the code is implemented.
-
-You can also use cacheable access results:
-
-```php
-return AccessResult::allowedIf(
-  $entity->getOwnerId() === $account->id()
-)->addCacheableDependency($entity);
-```
-
-The example grants access when the current account owns the entity and adds the entity as a cacheable dependency.
-
-In production, also consider anonymous users, entities without owners, administrative overrides, and whether the result varies by user permissions.
-
-## 7.4. Never rely only on the interface
-
-Suppose a task card displays an Edit button only to project managers.
-
-This improves the user interface, but it does not provide security on its own. A user could manually send a request to the edit URL or invoke an endpoint directly.
-
-A secure implementation checks access on the server:
-
-1. The interface decides whether to display the button.
-    
-2. The route checks its access requirements.
-    
-3. The controller or entity operation checks access to the specific task.
-    
-4. The business logic validates that the operation is allowed.
-    
-
-These checks complement each other.
-
-**Important:** Access restrictions must be enforced on every path that performs the protected operation, including custom controllers, forms, REST resources, and background operations where applicable.
-
-## 7.5. CSRF protection
-
-CSRF means Cross-Site Request Forgery.
-
-It occurs when a browser is tricked into sending an unwanted request to a site where the user is already authenticated.
-
-For example, a malicious page might attempt to trigger an action on another site using the victim's existing session.
-
-Drupal uses different CSRF protection mechanisms depending on the request type and authentication method.
-
-For state-changing routes, use appropriate protection, such as:
-
-- CSRF tokens for custom routes that use session-based authentication.
-    
-- Drupal's built-in form token validation for forms.
-    
-- The appropriate authentication and CSRF mechanisms for REST endpoints.
-    
-
-Example of a custom route using Drupal's route-level CSRF protection:
-
-```php
-drupaljira_board.update_task_status:
+drupaljira_board.update_status:
   path: '/task/{node}/status'
   defaults:
     _controller: '\Drupal\drupaljira_board\Controller\TaskController::updateStatus'
-  methods: [POST]
   requirements:
-    _entity_access: 'node.update'
+    _permission: 'access content'
     _csrf_token: 'TRUE'
+  methods: [POST]
   options:
     parameters:
       node:
         type: entity:node
 ```
 
-This is an illustrative configuration. The exact access requirement must match the intended operation. For example, if the endpoint only changes a task's status, you may need a dedicated access check rather than granting every user who can update the node the same capability.
+При таком подходе клиент должен передать корректный токен в соответствии с механизмом Drupal для данного маршрута.
 
-The `_csrf_token: 'TRUE'` route requirement is intended for routes using Drupal's session-based CSRF protection. Do not assume that the same mechanism applies identically to every API authentication method.
+Для стандартных Drupal Form API-форм защита от CSRF обычно реализуется автоматически. Для пользовательских AJAX- и REST-подобных маршрутов необходимо отдельно проверить подходящий механизм защиты.
 
-For JavaScript requests, use the protection mechanism required by the endpoint and authentication method.
+**Важно:** CSRF-токен не заменяет проверку разрешений. Нужно одновременно убедиться, что запрос легитимен и что пользователь имеет право выполнять действие.
 
-**Never use GET requests for operations that change data.** GET should be safe and should not create, delete, or update resources.
+## 5. XSS Protection
 
-## 7.6. SQL injection and the Database API
+XSS (Cross-Site Scripting) возникает, когда пользовательские данные выводятся как исполняемый HTML или JavaScript.
 
-SQL injection occurs when untrusted input is inserted into an SQL query as executable SQL.
+Например, пользователь вводит:
 
-Unsafe example:
-
-```php
-$query = "SELECT * FROM {node_field_data}
-  WHERE title = '$title'";
+```
+<script>alert('XSS')</script>
 ```
 
-If `$title` contains malicious SQL, the query may behave differently from what the developer intended.
+Если вывести эту строку как доверенный HTML, браузер может выполнить скрипт.
 
-Use Drupal's Database API and placeholders instead:
+В Twig нужно использовать автоматическое экранирование:
 
-```php
-$database = \Drupal::database();
-
-$result = $database->select('node_field_data', 'n')
-  ->fields('n', ['nid', 'title'])
-  ->condition('title', $title)
-  ->execute();
 ```
-
-Drupal safely handles the value as a query condition.
-
-For custom queries, prefer structured query builders where possible. When using `db_query()` or a similar placeholder-based query API, bind user-provided values instead of concatenating them into SQL strings.
-
-Example:
-
-```php
-$result = \Drupal::database()->query(
-  'SELECT nid, title
-   FROM {node_field_data}
-   WHERE title = :title',
-  [':title' => $title],
-);
-```
-
-The table name uses Drupal's table-prefix syntax. Query placeholders are for values, not arbitrary table names, column names, or SQL keywords.
-
-## 7.7. Cross-Site Scripting (XSS)
-
-XSS occurs when untrusted content is interpreted by a browser as executable HTML or JavaScript.
-
-Imagine a user submits this text as a task description:
-
-```php
-<script>alert('XSS');</script>
-```
-
-If the application outputs it as executable markup, it may run in another user's browser.
-
-Drupal helps prevent XSS through Twig autoescaping, render arrays, and its sanitization APIs.
-
-### Twig autoescaping
-
-Normally, Twig escapes variables automatically:
-
-```php
-<div class="task-description">
-  {{ description }}
+<div class="task-title">
+  {{ task_title }}
 </div>
 ```
 
-Do not disable escaping without a clear reason.
+Twig автоматически экранирует обычные строковые значения в HTML-контексте.
 
-This is dangerous for untrusted input:
+Не следует без необходимости отключать экранирование:
 
-```php
-{{ description|raw }}
+```
+{{ task_title|raw }}
 ```
 
-The `raw` filter disables normal escaping. Use it only when the content is known to be safe and has been processed appropriately.
+Фильтр `raw` допустим только для содержимого, безопасность которого гарантирована отдельным способом.
 
-### Render arrays
+В PHP для обычного HTML-вывода можно использовать:
 
-Prefer render arrays when building Drupal output:
+```
+use Drupal\Component\Utility\Html;
 
-```php
-$build['description'] = [
-  '#type' => 'item',
-  '#title' => $this->t('Description'),
-  '#markup' => $description,
-];
+$safe_title = Html::escape($title);
 ```
 
-Be careful: `#markup` is not a universal sanitizer for arbitrary HTML. Drupal's markup system applies its own safety handling, but developers must still choose the correct output mechanism for the data.
+В Drupal предпочтительно использовать Render API и корректные render arrays, чтобы система могла правильно обработать вывод, экранирование и кэширование.
 
-For plain text, a `#plain_text` property or a Twig variable is often more appropriate than allowing arbitrary HTML.
+## 6. SQL Injection
 
-If rich HTML is required, use an appropriate text format with defined HTML restrictions instead of trusting user-provided markup.
+SQL injection — внедрение SQL-кода через данные, которые приложение использует в запросе.
 
-## 7.8. Input validation and sanitization
+Опасный подход — конкатенация пользовательского значения в SQL:
 
-Validation checks whether input meets the application's requirements.
-
-For example, a task estimate might need to be a non-negative number.
-
-```php
-if (!is_numeric($estimate) || $estimate < 0) {
-  throw new \InvalidArgumentException(
-    'The estimate must be a non-negative number.'
-  );
-}
+```
+// Не делайте так.
+$query = "SELECT uid FROM users_field_data WHERE name = '$username'";
 ```
 
-This is a simplified example. In Drupal forms, use Form API validation; in entity workflows, use entity validation and field constraints where appropriate.
+Безопасный подход — параметризованные запросы:
 
-Validation and output escaping solve different problems:
+```
+$connection = \Drupal::database();
 
-- **Validation** checks whether input is acceptable.
-    
-- **Escaping** ensures output is interpreted safely in its destination context.
-    
-- **Authorization** determines whether the user is allowed to submit or change the data.
-    
+$result = $connection->select('users_field_data', 'u')
+  ->fields('u', ['uid'])
+  ->condition('name', $username)
+  ->execute()
+  ->fetchField();
+```
 
-All three may be needed for the same operation.
+Значение передаётся как параметр условия, а не вставляется непосредственно в SQL-код.
 
-## 7.9. File upload security
+В обычном Drupal-приложении для работы с контентом и пользователями следует по возможности использовать Entity API, а не обращаться напрямую к таблицам базы данных.
 
-File uploads require special care because files may contain malicious content or executable code.
+## 7. Security Best Practices
 
-Important precautions include:
-
-- Restrict permitted file extensions and MIME types.
+- Применять принцип наименьших привилегий: выдавать только необходимые permissions.
     
-- Limit file sizes.
+- Проверять доступ к каждой сущности и операции.
     
-- Store private files outside the publicly accessible web root when required.
+- Не доверять значениям из URL, форм, API и JavaScript.
     
-- Check access before serving private files.
+- Использовать Entity API и Database API вместо ручной работы с SQL.
     
-- Avoid trusting the original filename or client-provided MIME type.
+- Не выводить пользовательский ввод как доверенный HTML.
     
-- Use Drupal's file and managed-file APIs instead of implementing storage from scratch.
+- Использовать HTTPS.
     
-
-A file extension alone does not prove that a file is safe. Validation should follow the risk profile of the application.
-
-## 7.10. Secrets and sensitive configuration
-
-Never commit passwords, API keys, private keys, or production credentials to Git.
-
-Avoid hardcoding secrets in:
-
-- PHP source code.
+- Не хранить пароли в открытом виде.
     
-- Public configuration exports.
+- Не оставлять отладочные маршруты и диагностические данные в production.
     
-- Example files containing real credentials.
+- Регулярно обновлять Drupal core и contrib-модули.
     
-- Logs and exception messages.
+- Добавлять тесты на разрешённые и запрещённые операции.
     
 
-Use environment-specific configuration, environment variables, or a suitable secrets-management solution.
+## 8. Когда это применяется в DrupalJira
 
-Drupal configuration can contain settings that are not inherently secret, but the exported configuration directory is usually version-controlled. Review configuration before committing it.
+Предположим, обычный пользователь пытается изменить статус чужой задачи через `/task/123/status`.
 
-## 7.11. Security updates
+Безопасная реализация должна проверить:
 
-Drupal core and contributed modules can have security advisories.
-
-A responsible maintenance process includes:
-
-1. Monitor Drupal security advisories.
+1. Что HTTP-метод соответствует операции, например `POST`.
     
-2. Update vulnerable dependencies.
+2. Что запрос прошёл требуемую CSRF-проверку.
     
-3. Review release notes and compatibility.
+3. Что пользователь авторизован.
     
-4. Run automated tests and static analysis.
+4. Что пользователь имеет право изменять именно эту задачу.
     
-5. Test the changes in a development or staging environment.
+5. Что новый статус допустим для текущего workflow.
     
-6. Deploy through a controlled release process.
-    
-7. Apply required database updates and configuration imports.
+6. Что изменение сохраняется через корректный API Drupal.
     
 
-Updating dependencies without running tests can introduce regressions. However, a known security vulnerability should not be ignored merely because the update requires additional testing.
-
-## 7.12. Common security mistakes
-
-- Hiding a button instead of checking server-side access.
-    
-- Assuming a role automatically grants access to every entity.
-    
-- Using GET for state-changing operations.
-    
-- Disabling CSRF protection without understanding the authentication model.
-    
-- Concatenating untrusted values into SQL.
-    
-- Printing user input as raw HTML.
-    
-- Trusting filenames or MIME types during file uploads.
-    
-- Storing secrets in exported configuration.
-    
-- Forgetting cache metadata on user-specific access results.
-    
-- Granting broad permissions when a narrow custom permission would be safer.
-    
-
-The central principle is **least privilege**: users and application components should receive only the permissions necessary to perform their tasks.
+Нельзя считать запрос безопасным только потому, что кнопка смены статуса отображается в интерфейсе лишь для менеджера.
 
 ---
 
 # Block 8 — Drupal Multisite
 
-## 8.1. What is Multisite?
+## 1. Что такое Multisite
 
-Drupal Multisite allows several Drupal sites to use a shared codebase while keeping their site-specific configuration and data separate.
+Drupal Multisite — это архитектура, которая позволяет обслуживать несколько отдельных Drupal-сайтов из одной кодовой базы.
 
-For example, a company might run:
+Например, компания может иметь:
 
-- `example.com` — the main website.
+- `company.example.com` — основной сайт;
     
-- `support.example.com` — a support portal.
+- `docs.example.com` — документацию;
     
-- `partners.example.com` — a partner portal.
+- `support.example.com` — поддержку.
     
 
-These sites may use the same Drupal core and shared custom modules but have different databases, settings, files, themes, and configuration.
+Эти сайты могут использовать общие версии Drupal core и модулей, но иметь разные настройки, контент, пользователей и базу данных.
 
-Multisite is useful when multiple sites share much of their implementation but need to remain separate applications.
+Multisite не означает, что все сайты автоматически используют одну базу данных или один набор пользователей. Это зависит от конфигурации.
 
-## 8.2. How Multisite works
+## 2. Как устроена структура Multisite
 
-A simplified directory structure looks like this:
+Типичная структура проекта:
 
-```php
-drupal/
-├── core/
-├── modules/
-│   └── custom/
-├── themes/
-│   └── custom/
-├── sites/
-│   ├── sites.php
-│   ├── default/
-│   │   ├── settings.php
-│   │   └── files/
-│   ├── example.com/
-│   │   ├── settings.php
-│   │   └── files/
-│   └── support.example.com/
-│       ├── settings.php
-│       └── files/
-└── index.php
+```
+web/
+  core/
+  modules/
+  themes/
+  sites/
+    default/
+      settings.php
+    company.example.com/
+      settings.php
+    docs.example.com/
+      settings.php
+    support.example.com/
+      settings.php
 ```
 
-The exact directory contents depend on the installation. A site's directory can contain its settings, site-specific service overrides, and files directory.
+Каждый каталог сайта может содержать собственный `settings.php`, настройки подключения к базе данных и другие специфичные параметры.
 
-The shared `core`, `modules`, and `themes` directories contain code available to sites that use the shared codebase.
+При обработке запроса Drupal определяет, к какому сайту он относится, и загружает соответствующие настройки.
 
-Each site's `settings.php` defines its database connection and other site-specific settings.
+Например, сайт `docs.example.com` может использовать базу данных `docs_db`, а `support.example.com` — `support_db`.
 
-## 8.3. How Drupal selects a site
+При этом оба сайта могут использовать одни и те же файлы Drupal core и общие модули.
 
-When a request arrives, Drupal uses the request's host and directory information to determine which site directory should be used.
+## 3. Что может быть общим, а что отдельным
 
-The `sites/sites.php` file can define aliases that map hostnames to site directory names.
+|Компонент|Возможность совместного использования|
+|---|---|
+|Drupal core|Обычно общий|
+|Установленные модули|Файлы могут быть общими|
+|Темы|Файлы могут быть общими|
+|Конфигурация сайта|Обычно отдельная|
+|Контент|Обычно отдельный при разных БД|
+|Пользователи|Зависит от структуры хранения и подключения|
+|Файлы и загрузки|Зависит от настроек|
+|Кэш|Зависит от конфигурации инфраструктуры|
 
-Example:
+Общая кодовая база упрощает обновление зависимостей, но повышает требования к тестированию: изменение общего модуля может повлиять на все сайты.
 
-```php
-<?php
+## 4. Настройка Multisite
 
-$sites['www.example.com'] = 'example.com';
-$sites['example.com'] = 'example.com';
+В общих чертах процесс выглядит так:
 
-$sites['support.example.com'] = 'support.example.com';
+1. Установить общую кодовую базу Drupal.
+    
+2. Создать каталоги для отдельных сайтов в `sites/`.
+    
+3. Настроить для каждого сайта `settings.php`.
+    
+4. Указать корректные подключения к базам данных.
+    
+5. Настроить веб-сервер так, чтобы домены направляли запросы в общий Drupal document root.
+    
+6. Установить каждый сайт и проверить работу модулей, тем и конфигурации.
+    
+
+Пример фрагмента `settings.php`:
+
 ```
-
-This is an illustrative mapping. The corresponding directories must exist and contain valid site configuration.
-
-Drupal's site-discovery process uses the incoming request information and the configured mappings to select the appropriate site.
-
-## 8.4. Database separation
-
-Each site can use its own database.
-
-For example, `sites/example.com/settings.php` may contain:
-
-```php
 $databases['default']['default'] = [
-  'database' => 'main_site',
-  'username' => 'main_user',
-  'password' => getenv('MAIN_DB_PASSWORD'),
+  'database' => 'docs_db',
+  'username' => 'drupal_user',
+  'password' => 'secret',
   'host' => 'database',
-  'port' => '3306',
   'driver' => 'mysql',
   'prefix' => '',
 ];
 ```
 
-The support site can use a different database connection.
+Это лишь пример структуры настройки. Реальные секреты подключения не следует хранить в публичном репозитории.
 
-This provides logical separation between the sites' content and configuration stored in the database.
+## 5. Преимущества Multisite
 
-The connection values above are examples; actual hostnames and credentials depend on the deployment environment. Avoid placing real production secrets in version-controlled files.
-
-## 8.5. What is shared and what is separate?
-
-| Component            | Typical behavior                                                        |
-| -------------------- | ----------------------------------------------------------------------- |
-| Drupal core code     | Shared                                                                  |
-| Custom modules       | Shared when stored in common module directories                         |
-| Contributed modules  | Usually shared                                                          |
-| Site database        | Separate per site when configured that way                              |
-| Active configuration | Separate per site                                                       |
-| Uploaded files       | Separate site-specific files directories                                |
-| Users and content    | Stored per site's database unless additional architecture is introduced |
-| Themes               | Code may be shared; each site can select its own theme                  |
-| Cache data           | Depends on the configured cache backend and cache-bin separation        |
-
-Multisite does not automatically synchronize users, content, or configuration between sites. Sharing those things requires additional design or integration.
-
-## 8.6. Advantages of Multisite
-
-- One codebase can serve several websites.
+- Общая кодовая база.
     
-- Shared modules and bug fixes can be maintained centrally.
+- Меньше дублирования модулей и тем.
     
-- Sites can have separate databases and content.
+- Возможность централизованно обновлять Drupal core.
     
-- Common functionality can be reused.
-    
-- Deployment of shared code can be standardized.
+- Удобство для группы связанных сайтов с похожим функционалом.
     
 
-## 8.7. Disadvantages and risks
+## 6. Недостатки и риски
 
-### Shared deployment risk
-
-A code deployment may affect every site using the codebase. A compatibility issue in a shared module can break multiple sites simultaneously.
-
-### Version coupling
-
-Sites generally share the same Drupal core and shared module code. It can be difficult to upgrade one site independently when the others depend on the same code.
-
-### Configuration management
-
-Active configuration belongs to each site. A configuration export or import must be run in the correct site context.
-
-Importing configuration into the wrong site can cause unintended changes.
-
-### Security isolation
-
-Separate databases do not make the sites completely independent from a security perspective. A vulnerability in shared code may affect all sites. Incorrect file permissions, settings, or infrastructure configuration can also undermine isolation.
-
-### Operational complexity
-
-Backups, deployments, cache clearing, database updates, monitoring, and testing must account for all sites.
-
-## 8.8. Multisite versus multiple independent installations
-
-With separate installations, each site has its own codebase and deployment lifecycle.
-
-With Multisite, sites share a codebase but can have separate databases and configuration.
-
-Choose Multisite when:
-
-- The sites share most of their functionality.
+- Обновление общего кода может затронуть все сайты.
     
-- The same core and module versions are appropriate.
+- Требуется тщательно тестировать совместимость модулей.
     
-- Centralized code maintenance is beneficial.
+- Возможны конфликты требований разных сайтов.
     
-- The team can safely manage shared deployments.
+- Нужно отдельно планировать резервное копирование и восстановление.
+    
+- Ошибки в общей кодовой базе могут иметь большой радиус воздействия.
+    
+- Изоляция данных зависит от конфигурации и инфраструктуры.
     
 
-Choose independent installations when:
+Multisite не всегда является лучшим выбором. Если сайты имеют совершенно разные жизненные циклы, зависимости и требования безопасности, отдельные установки могут оказаться проще в сопровождении.
 
-- Sites need different Drupal versions.
+## 7. Multisite и Configuration Management
+
+Каждый сайт может иметь собственный активный набор конфигурации. Например, на одном сайте используется одна тема и определённые типы материалов, а на другом — другая тема и другие настройки.
+
+Нельзя предполагать, что экспорт конфигурации одного сайта автоматически подходит для всех остальных.
+
+Перед импортом конфигурации нужно учитывать:
+
+- наличие необходимых модулей;
     
-- Release schedules must be independent.
+- соответствие UUID сайта и конфигурационных объектов;
     
-- Sites require strong operational isolation.
+- зависимости между конфигурационными сущностями;
     
-- They have substantially different dependencies or architectures.
+- различия между окружениями и отдельными сайтами.
     
 
-Neither approach is always better. The decision depends on maintenance costs, isolation requirements, and how much code the sites actually share.
+## 8. Когда выбирать Multisite
 
-## 8.9. Common Multisite mistakes
+Multisite подходит, когда несколько сайтов используют общую кодовую базу и имеют похожие требования к поддержке.
 
-- Assuming separate sites share content automatically.
-    
-- Putting site-specific settings into a shared configuration file without understanding the consequences.
-    
-- Importing configuration into the wrong site's database.
-    
-- Updating shared code without testing all affected sites.
-    
-- Treating separate databases as complete security isolation.
-    
-- Forgetting to back up each site's database and files.
-    
-- Assuming a module enabled on one site is automatically enabled on every site.
-    
+Если сайты должны независимо обновляться, использовать несовместимые версии модулей или иметь существенно разные процессы разработки, отдельные установки часто удобнее.
 
 ---
 
 # Block 9 — Events API
 
-## 9.1. What is the Events API?
+## 1. Что такое Events API
 
-The Events API allows one part of an application to announce that something has happened so that other parts can react to it.
+Events API — механизм, который позволяет одному компоненту Drupal сообщать о событии, а другим компонентам реагировать на него.
 
-For example:
+Например, приложение может сообщить, что:
 
-- An entity is inserted or updated.
+- сущность была загружена;
     
-- A request is about to be processed.
+- пользователь вошёл в систему;
     
-- A response is being prepared.
+- произошла операция, на которую подписан обработчик;
     
-- A custom business event occurs.
-    
-
-The component that dispatches an event does not need to know every component that will respond to it.
-
-This reduces direct coupling between parts of the application.
-
-Drupal uses Symfony's EventDispatcher component for event dispatching and event subscribers.
-
-## 9.2. How events work
-
-An event-based workflow generally contains three parts:
-
-1. **Event dispatcher** — sends or dispatches an event.
-    
-2. **Event** — carries information about what happened and may expose related data.
-    
-3. **Event subscriber or listener** — reacts to the event.
+- система выполнила определённое действие.
     
 
-Conceptually:
+Компонент, который сообщает о событии, не обязан знать, какие другие компоненты на него реагируют.
 
-```php
-Application code
-      |
-      v
-Event dispatcher
-      |
-      v
-Event: "something happened"
-      |
-      +------> Subscriber A
-      |
-      +------> Subscriber B
-      |
-      +------> Subscriber C
+Это уменьшает связанность между компонентами.
+
+## 2. Основные понятия
+
+- **Event** — объект, содержащий информацию о произошедшем событии.
+    
+- **Event dispatcher** — механизм, который отправляет событие обработчикам.
+    
+- **Event subscriber** — класс, подписанный на одно или несколько событий.
+    
+- **Event listener** — обработчик конкретного события.
+    
+- **Event name** — идентификатор события, по которому Drupal находит подписчиков.
+    
+
+В Drupal обработчики событий часто реализуются через сервисы.
+
+## 3. Создание Event Subscriber
+
+Допустим, модуль `drupaljira_board` должен реагировать на определённое событие.
+
+Создадим файл:
+
+`web/modules/custom/drupaljira_board/src/EventSubscriber/ExampleSubscriber.php`
+
 ```
-
-The dispatcher knows which subscribers are registered, but the original business logic does not need to call each subscriber directly.
-
-## 9.3. Event subscribers
-
-In Drupal, an event subscriber is typically a service implementing `EventSubscriberInterface`.
-
-A subscriber declares which events it listens to and which methods should handle them.
-
-Create a file such as:
-
-`modules/custom/drupaljira_board/src/EventSubscriber/RequestSubscriber.php`
-
-```php
 <?php
 
 namespace Drupal\drupaljira_board\EventSubscriber;
 
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
-use Symfony\Component\HttpKernel\Event\RequestEvent;
-use Symfony\Component\HttpKernel\KernelEvents;
 
-final class RequestSubscriber implements EventSubscriberInterface {
+final class ExampleSubscriber implements EventSubscriberInterface {
 
+  /**
+   * {@inheritdoc}
+   */
   public static function getSubscribedEvents(): array {
     return [
-      KernelEvents::REQUEST => ['onRequest', 0],
+      'example.event' => 'onExampleEvent',
     ];
   }
 
-  public function onRequest(RequestEvent $event): void {
-    // React to the incoming request.
+  /**
+   * Handles the example event.
+   */
+  public function onExampleEvent(): void {
+    // Выполнить нужную логику.
   }
 
 }
 ```
 
-The `KernelEvents::REQUEST` event is dispatched as Symfony's HTTP kernel processes a request.
+Метод `getSubscribedEvents()` сообщает диспетчеру, на какие события подписан класс и какие методы следует вызвать.
 
-The method receives a `RequestEvent`, which exposes request-related information. The exact behavior depends on the stage of request processing and whether the event is the main request or a subrequest.
+В реальном проекте сигнатура обработчика должна соответствовать объекту события, который отправляет соответствующий код.
 
-A subscriber should not assume every request is a main request. When the distinction matters, use the appropriate check, such as `isMainRequest()`.
+## 4. Регистрация подписчика как сервиса
 
-## 9.4. Registering a subscriber
+Drupal должен знать о классе-подписчике. Для этого добавим описание в файл `drupaljira_board.services.yml`:
 
-Register the class as a service and tag it with `event_subscriber`.
-
-In `drupaljira_board.services.yml`:
-
-```php
+```
 services:
-  drupaljira_board.request_subscriber:
-    class: Drupal\drupaljira_board\EventSubscriber\RequestSubscriber
+  drupaljira_board.example_subscriber:
+    class: Drupal\drupaljira_board\EventSubscriber\ExampleSubscriber
     tags:
       - { name: event_subscriber }
 ```
 
-Drupal's service container discovers the subscriber through this service definition.
+Тег `event_subscriber` позволяет Drupal обнаружить подписчика при сборке контейнера сервисов.
 
-After adding or changing service definitions, rebuild Drupal's cache so that the container is rebuilt:
+После добавления нового сервиса необходимо обновить кэш Drupal, чтобы изменения в определениях сервисов были обнаружены.
 
-```php
-drush cr
+## 5. Отправка собственного события
+
+Чтобы подписчик сработал, кто-то должен отправить соответствующее событие.
+
+Для этого используется сервис `event_dispatcher`.
+
+Упрощённый пример:
+
+```
+use Drupal\Component\EventDispatcher\Event;
+
+$event = new Event();
+
+\Drupal::service('event_dispatcher')
+  ->dispatch($event, 'example.event');
 ```
 
-The example subscriber is intentionally minimal. A real subscriber should implement a specific requirement rather than doing expensive work for every request.
+Этот пример иллюстрирует сам механизм, но в настоящем модуле обычно создают собственный класс события с нужными данными и используют Dependency Injection вместо глобального вызова `\Drupal`.
 
-## 9.5. Event priorities
+Например, собственное событие может содержать объект задачи, старый статус и новый статус.
 
-Subscribers can specify a priority:
+## 6. Передача данных через объект события
 
-```php
-public static function getSubscribedEvents(): array {
-  return [
-    KernelEvents::REQUEST => ['onRequest', 100],
-  ];
-}
+Если обработчику нужны дополнительные данные, их можно передать через собственный класс события.
+
+Упрощённая структура:
+
 ```
-
-The priority affects the order in which listeners for the same event are executed.
-
-In Symfony's event dispatcher, higher priorities execute before lower priorities. The default priority is `0`.
-
-Use priorities only when execution order is meaningful. Unnecessary priority dependencies can make event-driven code difficult to maintain.
-
-## 9.6. Creating a custom event
-
-Drupal modules can define their own events for business operations.
-
-For example, a project-management module may want to announce that a task has moved to a new status.
-
-Create an event class:
-
-`modules/custom/drupaljira_board/src/Event/TaskStatusChangedEvent.php`
-
-```php
-<?php
-
 namespace Drupal\drupaljira_board\Event;
 
 use Drupal\node\NodeInterface;
@@ -2343,2713 +2103,59 @@ final class TaskStatusChangedEvent extends Event {
 }
 ```
 
-The event carries the task entity and the old and new status values.
+Теперь подписчик может получить задачу и сравнить предыдущий и новый статусы.
 
-In this example, the event extends Symfony's `Event` class. It is a notification object; defining it does not automatically change the task or validate whether the status transition is allowed.
+При использовании событий важно выбрать правильный момент отправки. Например, событие об изменении статуса после успешного сохранения не должно отправляться до того, как изменение действительно состоялось.
 
-## 9.7. Dispatching a custom event
+## 7. Events API и Hooks
 
-Inject the event dispatcher into the service that performs the task operation.
+Events API и Hooks позволяют расширять поведение Drupal, но работают по-разному.
 
-Example service:
+|Events API|Hooks|
+|---|---|
+|Использует диспетчеризацию событий|Использует систему хуков Drupal|
+|Часто реализуется через сервисы и подписчиков|Часто реализуется функциями с именами `hook_*`|
+|Удобен для событийно-ориентированной архитектуры|Широко используется в существующем API Drupal|
+|Событие обычно представлено объектом|Передача данных определяется сигнатурой конкретного хука|
 
-```php
-<?php
+Например, `hook_entity_presave()` позволяет модулю реагировать перед сохранением сущности.
 
-namespace Drupal\drupaljira_board;
-
-use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\drupaljira_board\Event\TaskStatusChangedEvent;
-use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
-
-final class TaskStatusManager {
-
-  public function __construct(
-    private readonly EventDispatcherInterface $eventDispatcher,
-    private readonly EntityTypeManagerInterface $entityTypeManager,
-  ) {}
-
-  public function changeStatus(
-    int $taskId,
-    string $newStatus,
-  ): void {
-    $task = $this->entityTypeManager
-      ->getStorage('node')
-      ->load($taskId);
-
-    if (!$task) {
-      throw new \InvalidArgumentException('Task not found.');
-    }
-
-    $oldStatus = $task->get('field_status')->value;
-
-    // The example assumes this operation has already been authorized
-    // and that the new status has been validated.
-    $task->set('field_status', $newStatus);
-    $task->save();
-
-    $this->eventDispatcher->dispatch(
-      new TaskStatusChangedEvent($task, $oldStatus, $newStatus),
-      'drupaljira_board.task_status_changed',
-    );
-  }
-
-}
 ```
-
-Register the service in `drupaljira_board.services.yml`:
-
-```php
-services:
-  drupaljira_board.task_status_manager:
-    class: Drupal\drupaljira_board\TaskStatusManager
-    arguments:
-      - '@event_dispatcher'
-      - '@entity_type.manager'
-```
-
-This is an illustrative implementation. A production status manager should use the application's real workflow rules, check access, validate transitions, and handle persistence failures appropriately. If the status is managed by Drupal Content Moderation or another workflow system, use its transition mechanisms instead of directly changing a field.
-
-Notice that the event is dispatched after saving the entity. Subscribers therefore receive a notification that the operation has completed successfully at the application level. Dispatching an event before saving would represent a different lifecycle point.
-
-## 9.8. Subscribing to a custom event
-
-Another module or service can react to the custom event.
-
-For example:
-
-`modules/custom/drupaljira_board/src/EventSubscriber/TaskStatusSubscriber.php`
-
-```php
-<?php
-
-namespace Drupal\drupaljira_board\EventSubscriber;
-
-use Drupal\drupaljira_board\Event\TaskStatusChangedEvent;
-use Symfony\Component\EventDispatcher\EventSubscriberInterface;
-
-final class TaskStatusSubscriber implements EventSubscriberInterface {
-
-  public static function getSubscribedEvents(): array {
-    return [
-      'drupaljira_board.task_status_changed' => 'onStatusChanged',
-    ];
-  }
-
-  public function onStatusChanged(
-    TaskStatusChangedEvent $event,
-  ): void {
-    $task = $event->getTask();
-    $oldStatus = $event->getOldStatus();
-    $newStatus = $event->getNewStatus();
-
-    // React to the completed status change.
-  }
-
-}
-```
-
-Register it in the service file:
-
-```php
-services:
-  drupaljira_board.task_status_subscriber:
-    class: Drupal\drupaljira_board\EventSubscriber\TaskStatusSubscriber
-    tags:
-      - { name: event_subscriber }
-```
-
-This subscriber can be extended to trigger a notification, record an audit event, or update another integration.
-
-Do not assume that every side effect belongs in a subscriber. If an operation is mandatory for the correctness of the main business transaction, it may be better to keep it in the business service. Event subscribers are particularly useful for independent reactions.
-
-## 9.9. Events versus hooks
-
-Drupal also has a long-standing hook system.
-
-Hooks and events can both allow one part of Drupal to react to behavior in another part, but they are not identical.
-
-| Feature                | Hooks                                                         | Events                                            |
-| ---------------------- | ------------------------------------------------------------- | ------------------------------------------------- |
-| Typical implementation | Procedural functions following hook naming conventions        | Event subscribers or listeners                    |
-| Registration           | Drupal discovers hook implementations                         | Services are registered with the event dispatcher |
-| Main use               | Drupal extension points, including entity and form operations | Notifications and reactions to dispatched events  |
-| Data exchange          | Depends on the hook's arguments and return contract           | Often an event object                             |
-| Execution order        | Depends on the hook and module ordering mechanisms            | Listener priority                                 |
-| Typical style          | Procedural or function-oriented                               | Object-oriented                                   |
-
-Use the extension point that fits the task. Many Drupal features are still based on hooks, so the Events API does not replace the hook system.
-
-## 9.10. Events versus entity hooks and lifecycle methods
-
-When working with entities, developers may encounter hooks such as:
-
-- `hook_entity_presave()`
-    
-- `hook_entity_insert()`
-    
-- `hook_entity_update()`
-    
-- `hook_entity_delete()`
-    
-
-These hooks run during particular entity lifecycle operations.
-
-A custom event is different: the module defines when it is dispatched and what it means.
-
-For example, `hook_entity_update()` can react to a node update in general. A custom `task_status_changed` event communicates a narrower business fact: the task's status changed through the operation that dispatches that event.
-
-A custom event will not automatically be dispatched for every possible status change in Drupal. All relevant code paths must use the event-producing operation, or the event must be integrated at a more general lifecycle extension point.
-
-## 9.11. Events and dependency injection
-
-Event subscribers are services, so they can use dependency injection.
-
-For example, a subscriber might need a logger:
-
-```php
-use Psr\Log\LoggerInterface;
-
-final class TaskStatusSubscriber implements EventSubscriberInterface {
-
-  public function __construct(
-    private readonly LoggerInterface $logger,
-  ) {}
-
-  public static function getSubscribedEvents(): array {
-    return [
-      'drupaljira_board.task_status_changed' => 'onStatusChanged',
-    ];
-  }
-
-  public function onStatusChanged(
-    TaskStatusChangedEvent $event,
-  ): void {
-    $this->logger->info(
-      'Task status changed from @old to @new.',
-      [
-        '@old' => $event->getOldStatus(),
-        '@new' => $event->getNewStatus(),
-      ],
-    );
-  }
-
-}
-```
-
-Register the logger service in YAML:
-
-```php
-services:
-  drupaljira_board.task_status_subscriber:
-    class: Drupal\drupaljira_board\EventSubscriber\TaskStatusSubscriber
-    arguments:
-      - '@logger.channel.drupaljira_board'
-    tags:
-      - { name: event_subscriber }
-
-  logger.channel.drupaljira_board:
-    parent: logger.channel_base
-    arguments: ['drupaljira_board']
-```
-
-Dependency injection keeps the subscriber testable and avoids direct calls to global service accessors.
-
-## 9.12. Common Events API mistakes
-
-- Creating a subscriber class but forgetting its service definition.
-    
-- Forgetting the `event_subscriber` service tag.
-    
-- Dispatching an event with a name different from the name the subscriber listens for.
-    
-- Assuming a custom event is dispatched automatically by Drupal.
-    
-- Performing expensive work on every HTTP request.
-    
-- Ignoring main-request versus subrequest behavior.
-    
-- Using events for mandatory business logic that must always run.
-    
-- Assuming event dispatch automatically makes asynchronous processing happen.
-    
-- Forgetting to rebuild the service container after changing service definitions.
-    
-
-**Important:** Drupal events are normally dispatched synchronously. If a subscriber sends an email or performs a slow API request, that work may delay the original operation. For work that should be processed later, consider Drupal's Queue API or a suitable asynchronous processing system.
-
----
-## 10.1. What is the Entity API?
-
-The Entity API is one of the central parts of Drupal. It provides a consistent way to represent, store, load, modify, validate, and delete structured data.
-
-An entity is an object that represents a particular piece of data in Drupal.
-
-Examples include:
-
-- A content node representing a project or task.
-    
-- A user account.
-    
-- A taxonomy term.
-    
-- A media item.
-    
-- A content type or another configuration object.
-    
-- A custom record managed by a custom entity type.
-    
-
-Instead of writing SQL queries for every operation, developers can use Drupal's Entity API to work with data through a consistent object-oriented interface.
-
-For example:
-
-```php
-$node = \Drupal\node\Entity\Node::load(42);
-
-if ($node) {
-  $title = $node->label();
-}
-```
-
-This loads a node with ID `42` and retrieves its label. The entity might not exist, so the result must be checked.
-
-## 10.2. Content entities and configuration entities
-
-Drupal has two major entity categories.
-
-### Content entities
-
-Content entities represent operational or user-generated data.
-
-Examples:
-
-- Nodes.
-    
-- Users.
-    
-- Taxonomy terms.
-    
-- Media.
-    
-- Comments.
-    
-- Custom records such as time logs.
-    
-
-Content entities typically have entity IDs, fields, and storage handlers. Depending on their definition, they may also support revisions, translations, and bundles.
-
-A content entity is often stored in one or more database tables.
-
-### Configuration entities
-
-Configuration entities represent configuration that defines how the site behaves.
-
-Examples:
-
-- Content types.
-    
-- Taxonomy vocabularies.
-    
-- Views.
-    
-- Image styles.
-    
-- User roles.
-    
-- Custom configuration entities defined by modules.
-    
-
-Configuration entities are commonly exported as YAML configuration.
-
-For example, a content type configuration file might be stored in:
-
-```php
-config/install/node.type.task.yml
-```
-
-This file defines the `task` content type. Individual task nodes are content entities and are not stored as one YAML file per task.
-
-### Comparison
-
-| Feature              | Content entities                                      | Configuration entities                                                            |
-| -------------------- | ----------------------------------------------------- | --------------------------------------------------------------------------------- |
-| Purpose              | Store content or operational records                  | Define site configuration                                                         |
-| Examples             | Node, User, Media                                     | Content type, View, Role                                                          |
-| Typical storage      | Database tables                                       | Active configuration storage                                                      |
-| Configuration export | Entity data is not normally exported as configuration | Usually exported as YAML                                                          |
-| Revisions            | Supported by appropriate entity types                 | Not the usual content revision model                                              |
-| Translation          | Supported when the entity and fields are translatable | Configuration translation is handled through configuration translation mechanisms |
-
-Do not confuse a content type with the nodes that belong to it. The content type is configuration; each node is content.
-
-## 10.3. Entity types and bundles
-
-An **entity type** defines a general kind of entity. A **bundle** is a subtype or category within an entity type.
-
-For example:
-
-- Entity type: `node`
-    
-- Bundles: `project`, `task`, `article`, `page`
-    
-
-Both a Project node and a Task node are nodes, but they may have different fields and form displays.
-
-Another example is the User entity type. User accounts normally use the same entity type rather than separate entity types for every user role.
-
-Bundles allow different structures to share the same underlying entity type.
-
-## 10.4. Entity IDs, UUIDs, and labels
-
-Entities commonly expose several identifiers.
-
-- **ID** — the entity's storage identifier, such as a node ID.
-    
-- **UUID** — a globally unique identifier intended to identify the entity across environments or systems.
-    
-- **Label** — the human-readable name of the entity.
-    
-
-Example:
-
-```php
-$node = \Drupal\node\Entity\Node::load(42);
-
-if ($node) {
-  $id = $node->id();
-  $uuid = $node->uuid();
-  $label = $node->label();
-}
-```
-
-The numeric ID may differ between development and production. UUIDs are useful when identifying entities across systems, but they do not replace entity access checks or validation.
-
-Not every entity type exposes exactly the same identifier methods or storage behavior.
-
-## 10.5. Loading entities
-
-Drupal provides entity storage handlers to load entities.
-
-A simple example:
-
-```php
-$node = \Drupal\node\Entity\Node::load(42);
-```
-
-This is convenient for short examples, but production code in controllers, forms, plugins, and services should generally use dependency injection.
-
-Example with the entity type manager:
-
-```php
-use Drupal\Core\Entity\EntityTypeManagerInterface;
-
-final class TaskManager {
-
-  public function __construct(
-    private readonly EntityTypeManagerInterface $entityTypeManager,
-  ) {}
-
-  public function loadTask(int $taskId) {
-    return $this->entityTypeManager
-      ->getStorage('node')
-      ->load($taskId);
-  }
-
-}
-```
-
-The `node` argument identifies the entity type. The returned object may be `NULL` when no entity with that ID exists.
-
-For reusable code, add a suitable return type, such as `?NodeInterface`, when the method is specifically expected to return a node or `NULL`.
-
-### Loading multiple entities
-
-```php
-$storage = $this->entityTypeManager->getStorage('node');
-
-$tasks = $storage->loadMultiple([12, 13, 14]);
-```
-
-This loads the entities with the specified IDs that exist in storage.
-
-When processing a large collection, avoid repeatedly loading entities one at a time if you can use `loadMultiple()` or an appropriate query.
-
-## 10.6. Entity queries
-
-Entity queries allow you to find entities matching conditions without writing SQL directly.
-
-Example:
-
-```php
-$storage = $this->entityTypeManager->getStorage('node');
-
-$query = $storage->getQuery()
-  ->condition('type', 'task')
-  ->condition('status', 1)
-  ->accessCheck(TRUE);
-
-$ids = $query->execute();
-```
-
-This example finds published task nodes that the current user is permitted to access according to the entity query's access checking.
-
-The `status` condition refers to the node's publication status, not a custom workflow field such as `field_status`.
-
-**Important:** In modern Drupal versions, explicitly specify `accessCheck(TRUE)` or `accessCheck(FALSE)` for entity queries. Do not leave the intended access behavior implicit.
-
-Use `accessCheck(TRUE)` when the results should be restricted by entity query access rules. Use `accessCheck(FALSE)` only when bypassing query-level access checking is intentional and justified, such as in a trusted administrative or system-level operation.
-
-Even with `accessCheck(TRUE)`, you may need additional checks for custom business rules or access to each entity.
-
-### Loading the matching entities
-
-```php
-$ids = $storage->getQuery()
-  ->condition('type', 'task')
-  ->accessCheck(TRUE)
-  ->execute();
-
-$tasks = $storage->loadMultiple($ids);
-```
-
-The query returns IDs, not fully loaded entity objects. `loadMultiple()` retrieves the entities.
-
-## 10.7. Creating and saving entities
-
-Drupal allows developers to create entities programmatically.
-
-Example:
-
-```php
-use Drupal\node\Entity\Node;
-
-$task = Node::create([
-  'type' => 'task',
-  'title' => 'Implement task validation',
-  'status' => 1,
-]);
-
-$task->save();
-```
-
-This creates and saves a node of type `task`.
-
-If the content type contains required fields, the entity must satisfy their requirements before it can be used successfully in the intended workflow.
-
-A more complete example:
-
-```php
-$task = Node::create([
-  'type' => 'task',
-  'title' => 'Implement task validation',
-  'field_status' => 'backlog',
-  'field_estimate' => '3.5',
-]);
-
-$task->save();
-```
-
-The field names and allowed values must match the actual content type configuration. A field can have different storage and validation requirements depending on its field type.
-
-For custom code, consider calling entity validation when you need to report validation violations explicitly:
-
-```php
-$violations = $task->validate();
-
-if ($violations->count() > 0) {
-  // Handle the validation violations.
-}
-else {
-  $task->save();
-}
-```
-
-Validation does not replace access checks. Before creating or modifying an entity on behalf of a user, verify that the operation is authorized.
-
-## 10.8. Updating and deleting entities
-
-Load an entity, modify it, and save it:
-
-```php
-$task = $storage->load($taskId);
-
-if ($task) {
-  $task->setTitle('Updated task title');
-  $task->save();
-}
-```
-
-Delete an entity:
-
-```php
-$task = $storage->load($taskId);
-
-if ($task) {
-  $task->delete();
-}
-```
-
-Deleting an entity can have wider consequences, depending on the entity type and its relationships. Review dependent records, references, revisions, files, and business rules before deleting entities programmatically.
-
-Do not accept an entity ID from a request and immediately delete the entity without checking access and validating the operation.
-
-## 10.9. Working with fields
-
-Fields store structured properties of an entity.
-
-For a Task content type, fields might include:
-
-- `field_project`
-    
-- `field_status`
-    
-- `field_assignee`
-    
-- `field_estimate`
-    
-
-Read a field:
-
-```php
-$status = $task->get('field_status')->value;
-```
-
-Read an entity reference:
-
-```php
-$project = $task->get('field_project')->entity;
-```
-
-An entity reference may be empty, so check the result before using it.
-
-Set a field value:
-
-```php
-$task->set('field_status', 'in_progress');
-$task->save();
-```
-
-For an entity reference, you can set the target entity ID:
-
-```php
-$task->set('field_project', [
-  'target_id' => $projectId,
-]);
-```
-
-Field APIs expose typed data. The `value` property is common for simple fields, but reference fields and other complex field types may expose different properties and behavior.
-
-## 10.10. Entity references
-
-An entity reference connects one entity to another.
-
-For example, a task can reference a project through `field_project`.
-
-```php
-$project = $task->get('field_project')->entity;
-
-if ($project) {
-  $projectTitle = $project->label();
-}
-```
-
-This is convenient, but accessing referenced entities in a loop can create an N+1 performance problem if each reference triggers an additional database query.
-
-For lists of many entities, consider loading referenced entities efficiently or using an appropriate query and view configuration.
-
-Entity references also introduce access considerations. The fact that a user can access a task does not necessarily mean that the user can access its referenced project.
-
-## 10.11. Entity access
-
-Entities provide access methods for operations such as viewing, updating, and deleting.
-
-```php
-if ($task->access('update', $account)) {
-  // The account is allowed to update the task.
-}
-```
-
-The available operations depend on the entity type and its access implementation.
-
-You can also request an access result object:
-
-```php
-$access = $task->access('view', $account, TRUE);
-
-if ($access->isAllowed()) {
-  // Continue with the view operation.
-}
-```
-
-Passing `TRUE` requests an access result object rather than only a boolean.
-
-When access results are used in cacheable responses, preserve their cacheability metadata where applicable. Access decisions can depend on user permissions, entity ownership, or other conditions.
-
-## 10.12. Entity revisions
-
-Some entity types support revisions. Nodes can have revisions when revision support is enabled for the relevant bundle and configuration.
-
-A revision stores a particular version of an entity.
-
-Revisions are useful for:
-
-- Content moderation.
-    
-- Reviewing changes.
-    
-- Restoring previous content.
-    
-- Maintaining an audit trail of content changes.
-    
-
-Example:
-
-```php
-$task->setNewRevision(TRUE);
-$task->setRevisionLogMessage('Updated task status.');
-$task->save();
-```
-
-This illustrates creating a new revision for an entity type that supports revisions.
-
-Creating a revision is not the same as performing a Content Moderation transition. If a content type uses workflows, follow the workflow APIs and permitted transitions rather than assuming that a new revision alone enforces the business rules.
-
-## 10.13. Entity translations
-
-Drupal can store language-specific translations of translatable entities and fields.
-
-Example:
-
-```php
-if ($node->hasTranslation('fr')) {
-  $translation = $node->getTranslation('fr');
-  $title = $translation->label();
-}
-```
-
-Before requesting a translation, check that it exists or handle the case where it does not.
-
-A field must be configured as translatable for its values to differ between translations. Entity translation support alone does not automatically make every field translatable.
-
-## 10.14. Entity type definitions and custom entities
-
-Modules can define custom entity types when the data needs do not fit naturally into nodes or other existing entities.
-
-For example, a TimeLog record might be modeled as a custom content entity if it requires structured storage, fields, access control, queries, and entity lifecycle behavior.
-
-A custom entity type definition specifies metadata such as:
-
-- Entity type ID.
-    
-- Label.
-    
-- Base table.
-    
-- Entity keys.
-    
-- Storage and access handlers.
-    
-- Field definitions or fieldability.
-    
-- Revision or translation support, when applicable.
-    
-
-A custom entity can require several classes and configuration elements. Use Drupal's entity annotation or attribute-based definition mechanisms appropriate to the entity type and Drupal version.
-
-Do not create a custom entity type simply because a feature has a database table. If the data is configuration, use a configuration entity; if it is a small internal record with simple requirements, another storage approach may be more appropriate.
-
-## 10.15. Common Entity API mistakes
-
-- Confusing a content type with a content entity.
-    
-- Assuming an entity always exists after loading it.
-    
-- Forgetting `accessCheck()` in entity queries.
-    
-- Using `accessCheck(FALSE)` without a clear reason.
-    
-- Treating entity IDs as security tokens.
-    
-- Assuming access to one entity implies access to referenced entities.
-    
-- Loading related entities individually inside large loops.
-    
-- Updating a workflow field directly when a workflow transition is required.
-    
-- Assuming every field has a simple `value` property.
-    
-- Forgetting validation and access checks before saving.
-    
-- Using static service access throughout production code instead of dependency injection.
-    
-
----
-
-# Block 11 — Plugin API
-
-## 11.1. What is the Plugin API?
-
-The Plugin API allows Drupal to discover and instantiate interchangeable components that implement a particular type of functionality.
-
-A plugin is an object that follows a defined contract and is managed by a plugin manager.
-
-Examples of Drupal plugins include:
-
-- Blocks.
-    
-- Field formatters.
-    
-- Field widgets.
-    
-- Views plugins.
-    
-- Queue workers.
-    
-- Image effects.
-    
-- Conditions and actions.
-    
-- Many other extension points.
-    
-
-Plugins allow modules to provide additional functionality without changing the code of the component that uses them.
-
-For example, Drupal's Block system can discover block plugins from core and contributed modules. A site builder can then place compatible blocks through the administration interface.
-
-## 11.2. How the Plugin API works
-
-The main components are:
-
-1. **Plugin definition** — metadata describing the plugin.
-    
-2. **Plugin discovery** — finds available plugin definitions.
-    
-3. **Plugin manager** — discovers definitions and creates plugin instances.
-    
-4. **Plugin factory** — constructs a plugin object.
-    
-5. **Plugin instance** — performs the actual work.
-    
-
-Conceptually:
-
-```php
-Plugin definition
-       |
-       v
-Plugin discovery
-       |
-       v
-Plugin manager
-       |
-       v
-Plugin factory
-       |
-       v
-Plugin instance
-       |
-       v
-Plugin behavior
-```
-
-The precise implementation varies by plugin type. Some plugin managers use attributes, annotations, YAML, or other discovery mechanisms.
-
-## 11.3. Plugin definitions
-
-A plugin definition describes properties such as:
-
-- Plugin ID.
-    
-- Human-readable label.
-    
-- Description.
-    
-- Category.
-    
-- Supported options.
-    
-- Other plugin-type-specific metadata.
-    
-
-For example, a block plugin may define its ID and administrative label.
-
-The plugin ID is usually a stable machine-readable identifier. Other code can refer to the plugin by that ID.
-
-Changing a plugin ID can affect configuration and references to that plugin, so IDs should be chosen carefully.
-
-## 11.4. Creating a custom block plugin
-
-A block is a common example of a Drupal plugin.
-
-Create a class in:
-
-```php
-modules/custom/drupaljira_board/src/Plugin/Block/ProjectSummaryBlock.php
-```
-
-Example for Drupal versions supporting plugin attributes:
-
-```php
-<?php
-
-namespace Drupal\drupaljira_board\Plugin\Block;
-
-use Drupal\Core\Block\Attribute\Block;
-use Drupal\Core\Block\BlockBase;
-use Drupal\Core\StringTranslation\TranslatableMarkup;
-
-/**
- * Provides a project summary block.
- */
-#[Block(
-  id: 'drupaljira_board_project_summary',
-  admin_label: new TranslatableMarkup('Project summary'),
-  category: new TranslatableMarkup('DrupalJira'),
-)]
-final class ProjectSummaryBlock extends BlockBase {
-
-  public function build(): array {
-    return [
-      '#markup' => $this->t('Project summary'),
-    ];
-  }
-
-}
-```
-
-The attribute provides the block plugin's definition. `BlockBase` supplies common block functionality, while `build()` returns a render array.
-
-This block is intentionally minimal. A real implementation could retrieve project statistics through an injected service.
-
-After adding a plugin, rebuild Drupal's cache so that plugin discovery can find it:
-
-```php
-drush cr
-```
-
-You can then look for the block in the block layout administration interface.
-
-## 11.5. Why plugins are useful
-
-Suppose a task-management application needs different ways to display a task's status:
-
-- A colored label.
-    
-- An icon.
-    
-- A progress indicator.
-    
-
-A plugin-based design can allow each formatter to implement the same contract while providing different output.
-
-The system that uses the formatter does not need to know the internal implementation of every formatter. It relies on the plugin type's contract.
-
-This makes the system extensible: new modules can provide additional implementations without modifying the original consumer.
-
-## 11.6. Plugin managers
-
-A plugin manager coordinates plugin discovery and creation.
-
-Drupal provides plugin managers for built-in plugin types. For example, the block manager manages block plugins.
-
-A plugin manager can be retrieved from the relevant service, often through a service such as `plugin.manager.block`.
-
-Example:
-
-```php
-$blockManager = \Drupal::service('plugin.manager.block');
-
-$definitions = $blockManager->getDefinitions();
-```
-
-This example retrieves block plugin definitions. In production code, inject the required plugin manager or a more specific service when appropriate.
-
-A plugin definition is not the same as a plugin instance. Definitions describe available plugins; instances are created for use.
-
-## 11.7. Creating a plugin instance
-
-Plugin managers can create plugin instances using the factory appropriate to the plugin type.
-
-For a block plugin, the instance may require configuration and a plugin ID:
-
-```php
-$block = $blockManager->createInstance(
-  'drupaljira_board_project_summary',
-  [],
-);
-
-$build = $block->build();
-```
-
-This is an illustrative example of creating a block plugin. In normal Drupal page rendering, the Block system handles placement, configuration, access, and rendering. Manually creating a block does not automatically reproduce the entire block placement workflow.
-
-## 11.8. Dependency injection in plugins
-
-Plugins often need services such as:
-
-- Entity type managers.
-    
-- Current user services.
-    
-- Time services.
-    
-- Database connections.
-    
-- Custom business services.
-    
-
-Plugins that need services commonly implement `ContainerFactoryPluginInterface` and provide a `create()` factory method.
-
-Example:
-
-```php
-<?php
-
-namespace Drupal\drupaljira_board\Plugin\Block;
-
-use Drupal\Core\Block\Attribute\Block;
-use Drupal\Core\Block\BlockBase;
-use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
-use Drupal\Core\StringTranslation\TranslatableMarkup;
-use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Symfony\Component\DependencyInjection\ContainerInterface;
-
-#[Block(
-  id: 'drupaljira_board_task_count',
-  admin_label: new TranslatableMarkup('Task count'),
-  category: new TranslatableMarkup('DrupalJira'),
-)]
-final class TaskCountBlock extends BlockBase implements ContainerFactoryPluginInterface {
-
-  public function __construct(
-    array $configuration,
-    $plugin_id,
-    $plugin_definition,
-    private readonly EntityTypeManagerInterface $entityTypeManager,
-  ) {
-    parent::__construct(
-      $configuration,
-      $plugin_id,
-      $plugin_definition,
-    );
-  }
-
-  public static function create(
-    ContainerInterface $container,
-    array $configuration,
-    $plugin_id,
-    $plugin_definition,
-  ): static {
-    return new static(
-      $configuration,
-      $plugin_id,
-      $plugin_definition,
-      $container->get('entity_type.manager'),
-    );
-  }
-
-  public function build(): array {
-    $count = $this->entityTypeManager
-      ->getStorage('node')
-      ->getQuery()
-      ->condition('type', 'task')
-      ->accessCheck(FALSE)
-      ->count()
-      ->execute();
-
-    return [
-      '#markup' => $this->t('Tasks: @count', [
-        '@count' => $count,
-      ]),
-    ];
-  }
-
-}
-```
-
-This example illustrates plugin dependency injection and entity counting. The access check is disabled because the example counts all task nodes at the storage-query level. That choice may be appropriate for a trusted administrative summary, but it is not automatically suitable for a block displayed to every user.
-
-For a public block, consider whether the count should be restricted to accessible tasks, whether the count reveals sensitive information, and how the result should be cached.
-
-Also, a block that displays data depending on permissions or the current user needs appropriate cache contexts. The example omits that production detail for clarity.
-
-## 11.9. Plugin configuration
-
-Some plugin types accept configuration.
-
-For example, a block instance can have configuration specific to its placement. A field formatter can have settings such as a date format or a number of displayed items.
-
-Plugin configuration is not always the same as the plugin definition:
-
-- **Plugin definition** describes the implementation.
-    
-- **Plugin configuration** describes how a particular instance is configured.
-    
-
-A block plugin may be implemented once but placed several times with different settings.
-
-## 11.10. Attributes and annotations
-
-Drupal's plugin system has traditionally used annotations in PHP docblocks for plugin discovery. Modern Drupal versions also support PHP attributes for many plugin types.
-
-Annotation-style example:
-
-```php
-/**
- * Provides an example block.
- *
- * @Block(
- *   id = "example_block",
- *   admin_label = @Translation("Example block")
- * )
- */
-```
-
-Attribute-style example:
-
-```php
-#[Block(
-  id: 'example_block',
-  admin_label: new TranslatableMarkup('Example block'),
-)]
-```
-
-Use the discovery mechanism supported by the plugin type and Drupal version. Do not assume every plugin type uses the same definition format.
-
-When maintaining an existing module, follow its established conventions unless there is a specific reason to migrate.
-
-## 11.11. Plugins versus services
-
-Services and plugins solve related but different problems.
-
-| Feature          | Services                                               | Plugins                                                  |
-| ---------------- | ------------------------------------------------------ | -------------------------------------------------------- |
-| Main purpose     | Provide reusable application functionality             | Provide interchangeable implementations of a plugin type |
-| Discovery        | Usually registered in service definitions              | Discovered by a plugin manager                           |
-| Typical examples | Logger, entity type manager, custom business service   | Block, formatter, queue worker                           |
-| Creation         | Managed by the service container                       | Usually managed by a plugin manager and factory          |
-| Configuration    | Service definitions and service-specific configuration | Plugin definitions and often per-instance configuration  |
-
-A plugin can depend on services. The two systems complement each other rather than replace one another.
-
-## 11.12. When to create a plugin
-
-Consider creating a plugin when:
-
-- A system needs multiple interchangeable implementations.
-    
-- New modules should be able to extend a feature.
-    
-- Each implementation follows a shared contract.
-    
-- Drupal already provides a suitable plugin type.
-    
-
-A normal service or class may be more appropriate when there is only one implementation and no need for plugin discovery or interchangeable behavior.
-
-## 11.13. Common Plugin API mistakes
-
-- Forgetting the plugin namespace or expected directory structure.
-    
-- Using a plugin ID that conflicts with another implementation.
-    
-- Assuming a plugin definition is a plugin instance.
-    
-- Forgetting to rebuild caches after adding a plugin.
-    
-- Accessing services globally when dependency injection is appropriate.
-    
-- Implementing `ContainerFactoryPluginInterface` without a correct factory method.
-    
-- Assuming a custom plugin is automatically placed or executed.
-    
-- Forgetting access control and cache metadata in plugin output.
-    
-- Creating a plugin type when a simple service would be sufficient.
-    
-
----
-
-# Block 12 — Batch API, Cron API, and Queue API
-
-## 12.1. Why Drupal provides these APIs
-
-Some operations take too long or require too much processing to execute comfortably during a single normal page request.
-
-Examples include:
-
-- Importing thousands of records.
-    
-- Recalculating project statistics.
-    
-- Processing uploaded files.
-    
-- Sending a large number of notifications.
-    
-- Synchronizing data with an external API.
-    
-- Cleaning up old records.
-    
-- Performing scheduled maintenance.
-    
-
-Drupal provides different mechanisms for these workloads.
-
-- **Batch API** — divides a long operation into steps and reports progress to the user.
-    
-- **Cron API** — executes scheduled maintenance tasks.
-    
-- **Queue API** — stores work items so that they can be processed separately from the original operation.
-    
-
-They solve different problems and are often used together.
-
-## 12.2. Batch API
-
-The Batch API breaks a long operation into smaller steps.
-
-Instead of processing every record in one request, Drupal processes a number of operations and displays progress between steps.
-
-Typical use cases include:
-
-- Bulk updating content.
-    
-- Importing many records.
-    
-- Rebuilding data structures.
-    
-- Performing an administrative cleanup.
-    
-
-A batch definition contains operations, callbacks, and optionally a finished callback.
-
-## 12.3. Creating a batch
-
-For example, suppose an administrator needs to process many task IDs.
-
-```php
-$operations = [];
-
-foreach ($taskIds as $taskId) {
-  $operations[] = [
-    '\Drupal\drupaljira_board\Batch\TaskBatch::processTask',
-    [$taskId],
-  ];
-}
-
-$batch = [
-  'title' => t('Processing tasks'),
-  'operations' => $operations,
-  'finished' => '\Drupal\drupaljira_board\Batch\TaskBatch::finished',
-];
-
-batch_set($batch);
-```
-
-This example assumes that `$taskIds` contains the IDs that should be processed.
-
-The operation callback receives the arguments supplied in the operation definition, followed by the batch context parameter.
-
-## 12.4. Batch operation callback
-
-A simplified callback:
-
-```php
-<?php
-
-namespace Drupal\drupaljira_board\Batch;
-
-final class TaskBatch {
-
-  public static function processTask(
-    int $taskId,
-    array &$context,
-  ): void {
-    $context['results']['processed'][] = $taskId;
-
-    // Load and process the task here.
-    // Keep each operation small and safe to retry.
-  }
-
-  public static function finished(
-    bool $success,
-    array $results,
-    array $operations,
-  ): void {
-    if ($success) {
-      // Report successful completion.
-    }
-    else {
-      // Report that the batch did not complete successfully.
-    }
-  }
-
-}
-```
-
-This is an illustrative callback structure. The actual implementation should load the required entities or services, perform the operation, and handle errors appropriately.
-
-Batch context can store shared information between operations:
-
-- `results` — results collected during processing.
-    
-- `message` — the current progress message.
-    
-- `sandbox` — persistent intermediate state for a long-running operation callback.
-    
-
-The Batch API manages the sequence of operations. A single operation can also use sandbox state to divide its own work into smaller chunks.
-
-## 12.5. Batch sandbox
-
-Sometimes a single operation needs to process many records. Rather than creating one operation for every record, the callback can process a small chunk and store its progress in `$context['sandbox']`.
-
-Conceptually:
-
-```php
-public static function processLargeDataset(
-  array &$context,
+function example_entity_presave(
+  \Drupal\Core\Entity\EntityInterface $entity,
 ): void {
-  if (!isset($context['sandbox']['offset'])) {
-    $context['sandbox']['offset'] = 0;
-  }
-
-  // Process a limited number of records.
-  // Update the offset and progress information.
-  // Set $context['finished'] when the work is complete.
+  // Выполнить проверку или подготовку данных.
 }
 ```
 
-For sandbox-based operations, `$context['finished']` communicates completion progress. A value below `1` indicates that the operation has more work to do; `1` indicates completion.
+Не нужно заменять все хуки событиями. Следует использовать тот механизм, который предоставляет нужную точку расширения в Drupal.
 
-This is only a structural illustration. A complete callback must fetch the next chunk, process it, update its progress, and ensure that the operation eventually finishes.
+## 8. Events API и Queue API
 
-## 12.6. Batch API limitations
+Events API подходит для реакции на событие в процессе выполнения приложения.
 
-Batch API is useful for user-triggered work that can be processed through Drupal's request and response lifecycle.
+Queue API предназначен для постановки задач в очередь и их обработки отдельно, обычно через cron или другой worker.
 
-However, it is not a universal background job system.
+Например, при изменении статуса задачи можно:
 
-For very large or time-consuming workloads, consider the Queue API, a dedicated worker, or another asynchronous processing mechanism.
+1. Сохранить новый статус.
+    
+2. Отправить событие об изменении.
+    
+3. Подписчику поставить в очередь задачу отправки уведомления.
+    
+4. Отдельный worker отправит уведомление позднее.
+    
 
-The Batch API also does not automatically make an operation safe to repeat. Callbacks should be designed with partial failures and retries in mind.
+Так основной запрос не обязан выполнять всю тяжёлую работу синхронно.
+
+## 9. Когда применять Events API
+
+Events API полезен, когда несколько компонентов должны реагировать на одно действие, а основной код не должен напрямую зависеть от всех этих компонентов.
+
+Например, при изменении задачи в DrupalJira можно уведомлять подписчиков, записывать аудит или инициировать интеграцию с внешней системой.
+
+Однако не стоит создавать собственное событие для каждого простого вызова. События наиболее полезны, когда они создают понятную точку расширения и действительно уменьшают связанность кода.
 
 ---
 
-## 12.7. Cron API
-
-Cron is used for scheduled maintenance and periodic tasks.
-
-Typical examples include:
-
-- Removing expired data.
-    
-- Cleaning up temporary files.
-    
-- Processing scheduled maintenance.
-    
-- Running periodic module tasks.
-    
-- Initiating queue processing.
-    
-- Performing other recurring operations.
-    
-
-Drupal's cron system runs registered maintenance work. The exact execution frequency depends on how cron is triggered and the site's configuration.
-
-Cron is not a real-time scheduler. A task configured to run during cron processing may execute later than its intended interval if cron is not triggered frequently enough.
-
-## 12.8. Implementing `hook_cron()`
-
-A custom module can implement `hook_cron()` in its `.module` file.
-
-For example, in `drupaljira_board.module`:
-
-```php
-/**
- * Implements hook_cron().
- */
-function drupaljira_board_cron(): void {
-  // Perform a small amount of scheduled maintenance.
-}
-```
-
-Drupal invokes this hook during cron processing.
-
-Keep cron hooks efficient. A long-running loop inside `hook_cron()` can make the entire cron run slow or cause timeouts.
-
-For larger workloads, enqueue work and process it separately.
-
-## 12.9. Triggering cron
-
-Cron can be triggered through Drupal's administration interface, Drush, or an external scheduler.
-
-For example:
-
-```php
-drush cron
-```
-
-In a DDEV environment, the command may be run through:
-
-```php
-ddev drush cron
-```
-
-For a production site, cron is commonly triggered by a server scheduler or an appropriate external mechanism. The configuration should match the deployment environment and required execution frequency.
-
-A reliable production setup should monitor whether cron is actually running, rather than merely assuming it is configured.
-
-## 12.10. Queue API
-
-The Queue API stores individual units of work that can be processed independently.
-
-A queue is useful when the system needs to accept work quickly and process it later.
-
-For example, when a task changes status, the application might enqueue a notification job instead of sending a slow email during the status-change request.
-
-Conceptually:
-
-```php
-User changes task status
-          |
-          v
-Validate and save the task
-          |
-          v
-Create a queue item
-          |
-          v
-Worker processes the item later
-          |
-          v
-Send notification
-```
-
-This helps separate the primary business operation from secondary work.
-
-## 12.11. Creating a queue item
-
-Drupal provides the `queue` service.
-
-```php
-$queue = \Drupal::queue('drupaljira_board_notifications');
-
-$queue->createItem([
-  'task_id' => 42,
-  'event' => 'status_changed',
-]);
-```
-
-This is a simplified example. In production code, inject the queue factory or another appropriate dependency instead of calling `\Drupal::queue()` directly.
-
-Queue items should contain the minimum information required to perform the work. Storing an entity ID and loading the current entity later is often preferable to serializing a complex entity object into the queue item.
-
-Remember that the entity may have changed or been deleted by the time the item is processed. The worker must handle such cases.
-
-## 12.12. Queue workers
-
-A QueueWorker plugin defines how queue items are processed.
-
-Create a class in:
-
-```php
-modules/custom/drupaljira_board/src/Plugin/QueueWorker/TaskNotificationWorker.php
-```
-
-Example using the traditional annotation-based plugin definition:
-
-```php
-<?php
-
-namespace Drupal\drupaljira_board\Plugin\QueueWorker;
-
-use Drupal\Core\Queue\QueueWorkerBase;
-
-/**
- * Processes task notification queue items.
- *
- * @QueueWorker(
- *   id = "drupaljira_board_notifications",
- *   title = @Translation("Task notifications"),
- *   cron = {"time" = 60}
- * )
- */
-final class TaskNotificationWorker extends QueueWorkerBase {
-
-  public function processItem($data): void {
-    $taskId = $data['task_id'] ?? NULL;
-
-    if (!$taskId) {
-      return;
-    }
-
-    // Load the task and process the notification.
-    // Handle deleted tasks and temporary failures appropriately.
-  }
-
-}
-```
-
-The plugin ID must match the queue name used when creating the item.
-
-The `cron` setting indicates that Drupal's cron queue processing can allocate time to this worker. The value is a time budget in seconds, not a guarantee that every item will be processed within that period.
-
-This example is intentionally minimal. A production worker should inject its dependencies, validate queue item data, and implement its actual business logic.
-
-## 12.13. Processing queue items
-
-Drupal's queue system typically follows a lifecycle:
-
-1. An item is created.
-    
-2. A worker claims an available item.
-    
-3. The worker processes it.
-    
-4. The item is deleted after successful processing by the queue processing mechanism.
-    
-5. If processing fails or the item is not completed, it may become available for later processing depending on the queue backend and processing behavior.
-    
-
-A queue item may be processed more than once. Therefore, queue workers should ideally be **idempotent**.
-
-An operation is idempotent when repeating it does not cause unintended additional effects.
-
-For example, sending a payment twice because a queue item was retried is dangerous. A robust system needs a way to recognize that the payment operation has already been completed.
-
-Likewise, sending a notification may require a unique operation ID or another mechanism to avoid duplicate messages.
-
-## 12.14. Queue backends
-
-Drupal provides queue abstractions that can be implemented by different backends.
-
-The database queue is a common default. Other backends may provide different performance or reliability characteristics.
-
-A queue abstraction allows application code to work with queue items without directly implementing storage and claiming behavior.
-
-However, the queue backend influences operational details such as concurrency, recovery, and scalability. Choose a backend that matches the application's reliability and throughput requirements.
-
-## 12.15. Dependency injection in queue workers
-
-Queue workers are plugins and can use dependency injection.
-
-For example, a worker might need the entity type manager and a notification service.
-
-A production implementation can use `ContainerFactoryPluginInterface` and a `create()` factory method, just as other Drupal plugins do.
-
-This makes the worker easier to test and prevents business logic from depending directly on global service access.
-
-## 12.16. Cron versus Queue versus Batch
-
-| Feature              | Batch API                                          | Cron API                             | Queue API                                               |
-| -------------------- | -------------------------------------------------- | ------------------------------------ | ------------------------------------------------------- |
-| Primary purpose      | Long-running operations with user-visible progress | Scheduled maintenance                | Deferred units of work                                  |
-| Typical trigger      | User or administrator starts an operation          | Scheduler or manual trigger          | Items are enqueued; a worker processes them             |
-| Progress UI          | Usually available                                  | Usually not user-facing              | Usually not user-facing                                 |
-| Processing model     | Operations processed through the batch workflow    | Scheduled callbacks and maintenance  | Independent queue items                                 |
-| Best for             | Bulk updates and imports started by a user         | Periodic cleanup and scheduled tasks | Notifications, synchronization, and deferred processing |
-| Retry considerations | Operations                                         |                                      |                                                         |
-
----
-## 13.1. What is the Migration API?
-
-The Migration API is Drupal's system for transferring data from one source to another.
-
-It is commonly used when:
-
-- Migrating content from an older Drupal website to a newer version.
-    
-- Importing data from CSV or XML files.
-    
-- Transferring content from another CMS.
-    
-- Importing users, taxonomy terms, files, or media.
-    
-- Transforming legacy data into a new data model.
-    
-- Repeating an import while preserving the relationship between source and destination records.
-    
-
-A migration is more than a database copy. The source data may have a different structure from the destination. The Migration API allows developers to read, transform, validate, and map data into Drupal entities.
-
-For example, a legacy project-management system might use these statuses:
-
-```php
-todo       → backlog
-working    → in_progress
-qa         → review
-completed  → done
-```
-
-A migration can transform the old status values into the new values before saving the destination entities.
-
-## 13.2. How the Migration API works
-
-A migration generally consists of three main stages:
-
-1. **Source** — reads the original data.
-    
-2. **Process** — transforms and maps the source properties.
-    
-3. **Destination** — creates or updates the destination records.
-    
-
-Conceptually:
-
-```php
-Legacy database / CSV / API
-            |
-            v
-       Source plugin
-            |
-            v
-      Process plugins
-            |
-            v
-     Destination plugin
-            |
-            v
- Drupal entities / records
-```
-
-The migration system also tracks imported records and migration messages, making it possible to identify failures and manage repeated imports.
-
-## 13.3. Source plugins
-
-A source plugin describes where migration data comes from and how it is read.
-
-Examples include:
-
-- SQL tables.
-    
-- CSV files, using suitable contributed modules or custom plugins.
-    
-- Drupal content from another installation.
-    
-- XML or JSON sources.
-    
-- Custom APIs.
-    
-
-Drupal core provides migration source plugins for common migration scenarios, including migrations from older Drupal installations. Support for particular file formats or external systems may require contributed modules or custom plugins.
-
-A source plugin provides source rows with identifiers and properties that later stages can process.
-
-For example, a source row might contain:
-
-```php
-legacy_id: 17
-title: "Implement login"
-status: "working"
-project_id: 5
-```
-
-The source identifiers are important because Drupal needs to track which destination record corresponds to each source record.
-
-## 13.4. Process plugins
-
-Process plugins transform source properties into destination properties.
-
-Examples include:
-
-- `get` — retrieves a source property.
-    
-- `default_value` — provides a default value.
-    
-- `static_map` — maps values according to a predefined mapping.
-    
-- `concat` — combines multiple values.
-    
-- `skip_on_empty` — skips processing or a row when a value is empty, depending on configuration.
-    
-- `migration_lookup` — finds a destination entity created by another migration.
-    
-
-The exact behavior depends on the process plugin and its configuration.
-
-For example, a status transformation can be written as:
-
-```php
-process:
-  field_status:
-    plugin: static_map
-    source: status
-    map:
-      todo: backlog
-      working: in_progress
-      qa: review
-      completed: done
-    default_value: backlog
-```
-
-This example maps legacy status values to new field values.
-
-The mapping must match the actual allowed values of the destination field. A default value should be chosen deliberately: silently assigning an incorrect status can corrupt business data.
-
-## 13.5. Destination plugins
-
-A destination plugin defines where migrated records are written.
-
-Common examples include:
-
-- `entity:node`
-    
-- `entity:user`
-    
-- `entity:taxonomy_term`
-    
-- Other entity destinations supported by Drupal core or contributed modules.
-    
-
-A destination plugin takes processed properties and creates or updates the destination entity.
-
-For example, a node migration can use:
-
-```php
-destination:
-  plugin: entity:node
-  default_bundle: task
-```
-
-Here, the destination entity type is `node`, and the bundle is `task`.
-
-The destination field names must exist on the destination bundle, and the processed values must match the field's expected data structure.
-
-## 13.6. A complete migration definition
-
-Migration definitions are commonly written as YAML files inside a module's `migrations` or `config/install` directory, depending on how the migration is provided and managed.
-
-A simplified example:
-
-```php
-id: legacy_task
-label: 'Import legacy tasks'
-migration_group: drupaljira
-source:
-  plugin: embedded_data
-  data_rows:
-    - legacy_id: 17
-      title: 'Implement login'
-      status: 'working'
-    - legacy_id: 18
-      title: 'Write tests'
-      status: 'qa'
-  ids:
-    legacy_id:
-      type: integer
-
-process:
-  title: title
-  field_status:
-    plugin: static_map
-    source: status
-    map:
-      todo: backlog
-      working: in_progress
-      qa: review
-      completed: done
-    default_value: backlog
-
-destination:
-  plugin: 'entity:node'
-  default_bundle: task
-```
-
-This example uses `embedded_data`, which is useful for illustrating the migration structure. It is not intended as a replacement for a production source plugin.
-
-In a real project, the source may be a legacy database, a file, or an external API. The destination field and status values must match the actual Task content type.
-
-Depending on the migration configuration, the source plugin may also need a database connection, source table, query, or other settings.
-
-## 13.7. Migration dependencies
-
-Some migrations depend on records created by other migrations.
-
-For example, a Task may reference a Project. The Project should generally be migrated before the Task if the Task's project reference must point to the newly created Project entity.
-
-A migration dependency can be declared like this:
-
-```php
-migration_dependencies:
-  required:
-    - legacy_project
-```
-
-This indicates that `legacy_project` is a required dependency.
-
-Dependencies help Drupal understand the intended order of migrations. They do not automatically solve every reference problem; the process stage must still map source IDs to destination IDs correctly.
-
-## 13.8. The `migration_lookup` process plugin
-
-Suppose the legacy system stores a project ID of `5`, but the destination Project node has a different node ID.
-
-Copying the legacy ID directly into `field_project` would be incorrect.
-
-Use `migration_lookup` to resolve the legacy ID through the Project migration's ID map:
-
-```php
-process:
-  field_project:
-    plugin: migration_lookup
-    migration: legacy_project
-    source: project_id
-```
-
-This example assumes that `legacy_project` has already migrated the relevant source project and recorded its mapping.
-
-The result can then be used as the destination entity reference value.
-
-If the referenced Project has not been migrated, the lookup may not produce a usable destination ID. The migration must decide how to handle that situation, for example by ordering dependencies correctly, skipping the row, or applying a deliberate fallback.
-
-## 13.9. Migration ID maps
-
-The migration system tracks the relationship between source records and destination records.
-
-For example:
-
-|Source ID|Destination ID|
-|---|---|
-|17|42|
-|18|43|
-|19|44|
-
-The source IDs identify the original records, while the destination IDs identify the imported Drupal entities.
-
-This mapping is important because:
-
-- A migration can identify records already imported.
-    
-- Referencing migrations can look up destination entity IDs.
-    
-- Repeated imports can update previously migrated records.
-    
-- Rollback can identify destination records created by a migration.
-    
-
-The map is not a general replacement for application data. It is migration bookkeeping used by the migration system.
-
-## 13.10. Migration status and execution
-
-The Migrate system tracks migration status and results.
-
-Depending on the migration and command, you can inspect migrations, import records, roll back imported data, or reset migration status.
-
-Common Drush commands include:
-
-```php
-drush migrate:status
-drush migrate:import legacy_task
-drush migrate:rollback legacy_task
-drush migrate:reset-status legacy_task
-```
-
-The exact command availability depends on the installed Drush and migration tooling.
-
-- `migrate:status` displays migration status.
-    
-- `migrate:import` runs a migration.
-    
-- `migrate:rollback` removes destination records tracked by a migration, subject to the migration's destination and rollback behavior.
-    
-- `migrate:reset-status` resets a stuck or otherwise incorrect migration status.
-    
-
-**Important:** Rollback can delete destination entities created by a migration. Review the migration and its effects before running it, especially on a production site.
-
-Resetting migration status is not the same as rolling back imported data.
-
-## 13.11. Updating a migration
-
-During development, the source data or migration definition may change.
-
-Drupal's migration system can track previously imported records and, where supported by the source and destination, reprocess them.
-
-The appropriate approach depends on whether the change affects:
-
-- New source rows.
-    
-- Previously imported rows.
-    
-- Source identifiers.
-    
-- Process mappings.
-    
-- Destination entity structure.
-    
-- Previously created entity references.
-    
-
-If the source IDs change, Drupal may no longer recognize a source record as the same record. This can lead to duplicate destination entities or incorrect updates.
-
-Before rerunning a migration, understand the ID map and the intended update strategy.
-
-## 13.12. High-water marks
-
-Some source plugins support a high-water property.
-
-A high-water mark records a value representing how far the migration has progressed, often a timestamp or increasing identifier.
-
-For example, a migration may process only source records whose modification time is newer than the last recorded value.
-
-This can make repeated imports more efficient when new or updated records are added continuously.
-
-However, high-water behavior depends on the source plugin and migration configuration. A high-water mark is not a universal substitute for source IDs or a full synchronization strategy.
-
-## 13.13. Migration messages and error handling
-
-Migration failures can occur because of:
-
-- Missing required fields.
-    
-- Invalid field values.
-    
-- Missing referenced entities.
-    
-- Incorrect source data.
-    
-- Permission or connection problems.
-    
-- Destination validation failures.
-    
-- Incompatible process mappings.
-    
-
-Drupal's migration system records messages for failed or problematic rows, allowing developers to investigate the cause.
-
-A reliable migration process should include:
-
-1. Testing with a representative sample.
-    
-2. Reviewing migration status and messages.
-    
-3. Verifying entity counts.
-    
-4. Checking entity references.
-    
-5. Comparing important field values.
-    
-6. Testing rollback or recovery where appropriate.
-    
-7. Keeping backups before production migration.
-    
-
-Do not assume that a command's successful exit means every field and relationship has been migrated correctly.
-
-## 13.14. Custom migration plugins
-
-Developers can create custom source, process, or destination plugins when the built-in plugins do not satisfy the requirements.
-
-For example, a custom process plugin might normalize legacy status names or parse a proprietary date format.
-
-A custom process plugin typically extends `ProcessPluginBase` and implements its processing method. Its plugin definition must follow the discovery conventions for process plugins in the target Drupal version.
-
-Before writing a custom plugin, check whether an existing core or contributed process plugin can perform the same transformation. Built-in plugins are often easier to maintain and test.
-
-## 13.15. Migration versus synchronization
-
-Migration and ongoing synchronization are related but different tasks.
-
-- **Migration** moves data into a new system, often during a transition.
-    
-- **Synchronization** keeps two systems aligned over time.
-    
-
-A one-time migration may be sufficient when the legacy system is retired after import.
-
-If both systems continue to receive updates, the solution needs additional decisions about:
-
-- Which system is authoritative.
-    
-- How changes are detected.
-    
-- How conflicts are resolved.
-    
-- How deletions are propagated.
-    
-- How duplicates are prevented.
-    
-- How failed updates are retried.
-    
-
-The Migration API can support repeatable imports, but a complete bidirectional synchronization system requires more than a basic migration definition.
-
-## 13.16. Common Migration API mistakes
-
-- Using legacy entity IDs directly as destination IDs.
-    
-- Forgetting migration dependencies.
-    
-- Migrating referenced entities in the wrong order.
-    
-- Mapping values that do not exist in the destination field.
-    
-- Assuming every source plugin is provided by Drupal core.
-    
-- Changing source identifiers without reviewing the ID map.
-    
-- Running rollback without understanding its effect.
-    
-- Ignoring migration messages.
-    
-- Treating a successful import as proof of complete data integrity.
-    
-- Using the Migration API as if it automatically solved ongoing synchronization.
-    
-
----
-
-# Block 14 — Field API
-
-## 14.1. What is the Field API?
-
-The Field API allows Drupal entities to store structured properties in a consistent and extensible way.
-
-Examples include:
-
-- Text.
-    
-- Numbers.
-    
-- Dates.
-    
-- Boolean values.
-    
-- Entity references.
-    
-- Files and images.
-    
-- Lists of allowed values.
-    
-- Email addresses.
-    
-- Other structured data.
-    
-
-A Task content type might have these fields:
-
-```php
-title
-field_project
-field_status
-field_assignee
-field_estimate
-```
-
-The Field API makes it possible to define the fields, store their values, validate them, display them, and provide editing interfaces without implementing every part from scratch.
-
-## 14.2. Field storage and field instances
-
-Two important concepts are **field storage** and **field configuration**.
-
-### Field storage
-
-Field storage defines the underlying field structure and storage behavior.
-
-It includes information such as:
-
-- Field name.
-    
-- Field type.
-    
-- Storage settings.
-    
-- Cardinality.
-    
-- The entity type that uses the field.
-    
-
-### Field configuration
-
-Field configuration defines how a field is used on a particular bundle.
-
-It can include:
-
-- Label.
-    
-- Required status.
-    
-- Default value.
-    
-- Help text.
-    
-- Bundle-specific settings.
-    
-- Translatability.
-    
-
-For example, `field_status` may be stored as a list-string field, while its configuration on the Task bundle defines the allowed values and default.
-
-A field can be used on multiple bundles when its storage definition supports that usage.
-
-## 14.3. Field types
-
-The field type determines the kind of data a field stores.
-
-Examples:
-
-|Field type|Typical use|
-|---|---|
-|`string`|Short text|
-|`string_long`|Longer plain text|
-|`text`|Formatted text with text-format support|
-|`integer`|Whole numbers|
-|`decimal`|Decimal numbers|
-|`boolean`|True/false values|
-|`datetime`|Date and time|
-|`entity_reference`|Reference to another entity|
-|`file`|Reference to a managed file|
-|`image`|Image file reference with image-specific behavior|
-
-The field type influences validation, storage, widgets, formatters, and the data available through the typed data API.
-
-## 14.4. Cardinality
-
-Cardinality determines how many values a field can contain.
-
-Examples:
-
-- Cardinality `1` — one value.
-    
-- Cardinality `3` — up to three values.
-    
-- Cardinality `-1` — unlimited values.
-    
-
-A Project reference field on a Task might have cardinality `1`, because each task belongs to one project.
-
-An attachment field might allow multiple files.
-
-Choose cardinality based on the actual data model. An unlimited field is not automatically better; it can make validation, display, and business logic more complicated.
-
-## 14.5. Field definitions in configuration
-
-Drupal field storage and field configuration are usually represented by configuration entities.
-
-For example, a field storage definition may be exported to a YAML file similar to:
-
-```php
-langcode: en
-status: true
-dependencies:
-  module:
-    - node
-id: node.field_estimate
-field_name: field_estimate
-entity_type: node
-type: decimal
-settings:
-  precision: 10
-  scale: 2
-cardinality: 1
-translatable: false
-```
-
-This is an illustrative fragment. A real exported field storage definition may contain additional keys and dependencies depending on the Drupal version and field type.
-
-A corresponding bundle-specific field configuration defines how the field is used on the Task bundle.
-
-When changing a field's storage definition, consider existing data, schema updates, and whether the change is supported safely by Drupal. Some storage changes cannot be applied like ordinary configuration edits and may require a migration or a carefully planned update process.
-
-## 14.6. Widgets and formatters
-
-The Field API separates data storage from its editing and display interfaces.
-
-### Widgets
-
-A widget controls how users enter or edit field values.
-
-Examples:
-
-- A text input.
-    
-- A select list.
-    
-- A date picker.
-    
-- An entity autocomplete field.
-    
-- A file upload widget.
-    
-
-### Formatters
-
-A formatter controls how a field is displayed.
-
-Examples:
-
-- A plain text formatter.
-    
-- A date formatter.
-    
-- An image formatter.
-    
-- An entity reference label formatter.
-    
-
-The same field can use different widgets and formatters on different forms and displays.
-
-For example, an entity reference field might use an autocomplete widget on the edit form and display the referenced entity's label on the rendered page.
-
-## 14.7. Reading field values
-
-For a simple field:
-
-```php
-$status = $task->get('field_status')->value;
-```
-
-For an entity reference field:
-
-```php
-$project = $task->get('field_project')->entity;
-```
-
-For a multivalue field:
-
-```php
-$values = $task->get('field_tags')->getValue();
-```
-
-A multivalue field returns an array of item values. Each item may contain one or more properties, depending on the field type.
-
-Do not assume every field exposes a simple `value` property. For an entity reference, the stored value commonly uses `target_id`; for other types, the property names differ.
-
-## 14.8. Setting field values
-
-Set a simple field:
-
-```php
-$task->set('field_status', 'review');
-```
-
-Set an entity reference:
-
-```php
-$task->set('field_project', [
-  'target_id' => $projectId,
-]);
-```
-
-Set multiple values:
-
-```php
-$task->set('field_tags', [
-  ['target_id' => 4],
-  ['target_id' => 7],
-]);
-```
-
-The last example assumes `field_tags` is an entity reference field. Its values must correspond to valid target entities and the field's cardinality.
-
-After setting values, save the entity when the change should be persisted:
-
-```
-$task->save();
-```
-
-Remember that field assignment does not automatically prove that the current user is allowed to make the change.
-
-## 14.9. Field validation and constraints
-
-Fields can have validation constraints.
-
-Examples include:
-
-- Required values.
-    
-- Allowed values.
-    
-- Numeric ranges.
-    
-- Maximum string lengths.
-    
-- Valid email addresses.
-    
-- Valid entity references.
-    
-
-For example, a decimal estimate field might require a non-negative value.
-
-Field validation can be part of entity validation:
-
-```
-$violations = $task->validate();
-
-if ($violations->count() > 0) {
-  // Handle the validation errors.
-}
-```
-
-Drupal uses its Typed Data and validation systems to represent values and validate them against applicable constraints.
-
-Validation requirements should be implemented at the data-model level where appropriate, not only in the form interface. This helps ensure that data created through APIs or custom code is also checked.
-
-## 14.10. Field access
-
-Drupal supports field-level access checks in addition to entity-level access.
-
-For example:
-
-```
-$access = $task->get('field_estimate')->access(
-  'edit',
-  $account,
-);
-```
-
-This asks whether the account can edit the field according to the field's access implementation.
-
-Field access is useful when some properties require stricter permissions than others. However, field access behavior depends on the field type, entity, and installed modules.
-
-A secure form or custom endpoint should respect the relevant access checks and should not assume that access to the entity means unrestricted access to every field.
-
-## 14.11. Field API and render arrays
-
-Fields are commonly rendered through Drupal's entity view system.
-
-For example:
-
-```
-$build = $task->toRenderable('full');
-```
-
-This builds a render array for the entity's configured view mode, assuming the entity supports the relevant rendering behavior.
-
-The rendered output uses the field display configuration, including field formatters and display settings.
-
-When building custom output, prefer render arrays and existing entity view builders where appropriate. They integrate with Drupal's render pipeline and cacheability system.
-
-## 14.12. Computed fields
-
-A computed field derives its value from other data instead of storing an ordinary value directly.
-
-For example, a custom field could calculate a value from another property or a related entity.
-
-Computed fields are useful when a value should be derived rather than independently stored.
-
-However, computation can be expensive, especially when it loads referenced entities or performs database queries. Consider caching and performance carefully.
-
-A computed field's behavior and configuration depend on how it is implemented. Not every derived value needs a custom field type; sometimes a service or a render-time calculation is simpler.
-
-## 14.13. Creating a custom field type
-
-A custom field type is appropriate when the required data structure or field behavior is not covered by existing field types.
-
-A custom field type may need:
-
-- A field item class.
-    
-- Field type metadata.
-    
-- Property definitions.
-    
-- Storage behavior.
-    
-- Validation constraints.
-    
-- A widget.
-    
-- A formatter.
-    
-
-Not every custom field type needs a completely custom widget and formatter, but the implementation must support the intended editing and display workflows.
-
-Before creating one, check whether an existing field type can represent the data correctly.
-
-For example, a decimal field is usually preferable to a custom field type when storing a numeric estimate. A custom field type becomes more appropriate when the value has a genuinely different structure or behavior.
-
-## 14.14. Field API and configuration management
-
-Fields are generally configured through Drupal's configuration system.
-
-A field storage definition and a bundle-specific field configuration are separate configuration entities. The display configuration for forms and views is also separate.
-
-This separation makes it possible to deploy field definitions and display settings between environments.
-
-However, changing configuration does not automatically migrate old values into a new structure. If a field's meaning or storage format changes, the deployment may need a data migration or update hook.
-
-For example, changing a status field's allowed values requires reviewing existing content that contains values no longer allowed by the new definition.
-
-## 14.15. Common Field API mistakes
-
-- Confusing field storage with bundle-specific field configuration.
-    
-- Assuming a field has only one value.
-    
-- Assuming every field has a `value` property.
-    
-- Forgetting the difference between `target_id` and a referenced entity object.
-    
-- Changing storage definitions without considering existing data.
-    
-- Relying only on form validation.
-    
-- Ignoring field access requirements.
-    
-- Loading referenced entities repeatedly in large loops.
-    
-- Creating custom field types when built-in types are sufficient.
-    
-- Forgetting cacheability when computed fields depend on user-specific or changing data.
-    
-
----
-
-# Block 15 — Authentication API
-
-## 15.1. What is the Authentication API?
-
-The Authentication API provides mechanisms for Drupal to identify a user or client making an HTTP request.
-
-Authentication answers the question:
-
-**Who is making this request?**
-
-It does not, by itself, answer:
-
-**Is this user allowed to perform the requested operation?**
-
-That second question belongs to authorization and access checking.
-
-Drupal supports different authentication mechanisms depending on whether the request comes from a browser session, an API client, or an external integration.
-
-Common examples include:
-
-- Session-based authentication.
-    
-- HTTP Basic authentication.
-    
-- Token-based authentication provided by suitable modules.
-    
-- External identity providers through compatible authentication integrations.
-    
-
-The appropriate mechanism depends on the client, security requirements, and Drupal's enabled modules and configuration.
-
-## 15.2. Authentication versus authorization
-
-These concepts must remain separate.
-
-|Concept|Purpose|Example|
-|---|---|---|
-|Authentication|Identifies the requester|An API client presents valid credentials|
-|Authorization|Determines allowed actions|The authenticated user has permission to edit tasks|
-|Access checking|Evaluates a specific operation or resource|The user can edit this particular task|
-|CSRF protection|Helps prevent unwanted browser-originated requests|A session-authenticated request includes the required token|
-
-A successful login does not automatically grant permission to edit all content.
-
-Likewise, a valid API token does not automatically mean that the associated user can access every endpoint.
-
-## 15.3. Session-based authentication
-
-Drupal commonly authenticates browser users through sessions.
-
-A simplified flow:
-
-1. The user submits login credentials.
-    
-2. Drupal verifies the credentials.
-    
-3. Drupal establishes an authenticated session.
-    
-4. The browser sends the session cookie with subsequent requests.
-    
-5. Drupal identifies the current user from the session.
-    
-
-The current account is available through Drupal's current user service.
-
-Example using dependency injection:
-
-```
-use Drupal\Core\Session\AccountProxyInterface;
-
-final class TaskAccessService {
-
-  public function __construct(
-    private readonly AccountProxyInterface $currentUser,
-  ) {}
-
-  public function isAuthenticated(): bool {
-    return $this->currentUser->isAuthenticated();
-  }
-
-}
-```
-
-Session-based authentication is convenient for browser interfaces, but cookie-authenticated state-changing requests must be protected against CSRF where applicable.
-
-Do not assume that session authentication and token-based API authentication have identical CSRF requirements.
-
-## 15.4. Current user and user accounts
-
-Drupal distinguishes the current account from the stored user entity.
-
-The current user service represents the account associated with the request. It exposes account-level information and permission checks.
-
-For example:
-
-```
-if ($this->currentUser->hasPermission('manage project tasks')) {
-  // The current account has this permission.
-}
-```
-
-The user entity is the stored user record, which can contain profile fields and other persistent data.
-
-When you need the full user entity, load it through the entity storage system or another suitable API. Do not assume that the current account proxy is identical to a fully loaded user entity.
-
-## 15.5. HTTP Basic authentication
-
-HTTP Basic authentication sends a username and password in an HTTP header encoded using Base64.
-
-Base64 is encoding, not encryption. Basic authentication must be used over HTTPS to protect credentials in transit.
-
-Drupal provides Basic Auth support through the `basic_auth` module. It must be enabled and configured appropriately for the relevant endpoints.
-
-A simplified HTTP request may look like:
-
-```
-GET /entity/node/42?_format=json HTTP/1.1
-Host: example.com
-Authorization: Basic BASE64_ENCODED_CREDENTIALS
-Accept: application/json
-```
-
-`BASE64_ENCODED_CREDENTIALS` is a placeholder, not a real credential. The encoded value represents the username and password joined by a colon.
-
-Do not place real credentials in source code, logs, screenshots, or public documentation.
-
-Basic authentication is relatively simple, but it requires careful credential handling and is not necessarily the best choice for every API integration.
-
-## 15.6. Token-based authentication
-
-Token-based authentication uses a token or another credential that the server can validate.
-
-A request might include:
-
-```
-Authorization: Bearer ACCESS_TOKEN
-```
-
-The exact token format, issuance process, validation rules, expiration behavior, and permissions depend on the authentication provider.
-
-Drupal core does not provide every possible token-based authentication system out of the box. Depending on the requirements, a contributed module or an external identity provider may be necessary.
-
-Do not assume that installing Drupal automatically enables OAuth 2.0, JWT, or arbitrary bearer-token authentication.
-
-A secure token-based system should consider:
-
-- Token expiration.
-    
-- Revocation.
-    
-- Scope or permission restrictions.
-    
-- Secure storage on the client.
-    
-- HTTPS.
-    
-- Logging and monitoring.
-    
-- Rotation and recovery after a token is compromised.
-    
-
-## 15.7. Authentication providers
-
-Drupal's HTTP request handling can use authentication providers to identify the requester from the incoming request.
-
-An authentication provider is responsible for interpreting a supported credential mechanism and, where successful, identifying the associated account.
-
-Different providers can support different request types and authentication schemes.
-
-For example, a request may use a browser session or an HTTP Basic credential. The authentication configuration determines which mechanisms are available and how they are applied.
-
-Authentication is separate from the endpoint's access requirements. Even if a provider successfully identifies a user, the route or resource must still enforce authorization.
-
-## 15.8. Authentication and REST endpoints
-
-REST endpoints need both authentication and access control.
-
-A typical request flow is:
-
-```
-HTTP request
-     |
-     v
-Authentication provider
-     |
-     v
-Identify current account
-     |
-     v
-Route / resource access check
-     |
-     v
-Validate request and permissions
-     |
-     v
-Perform operation
-     |
-     v
-Return response
-```
-
-The precise flow depends on the endpoint type and enabled modules, but the key principle remains: identifying the requester is not the same as granting access.
-
-For example, an authenticated user may be allowed to view a task but not delete it.
-
-## 15.9. REST resource configuration
-
-Drupal REST resources can be configured to use specific authentication providers and HTTP methods.
-
-A simplified example of REST resource configuration might include:
-
-```
-id: entity:node
-plugin_id: 'entity:node'
-granularity: resource
-configuration:
-  GET:
-    supported_formats:
-      - json
-    supported_auth:
-      - cookie
-  POST:
-    supported_formats:
-      - json
-    supported_auth:
-      - cookie
-```
-
-This is an illustrative fragment, not a complete standalone REST configuration file. A real resource configuration must follow the exact structure expected by the installed Drupal version and resource plugin.
-
-The `supported_auth` setting specifies which authentication providers can be used for the configured methods. It does not independently grant users permission to create or update nodes.
-
-The REST module, the required resource plugin, serialization formats, authentication providers, and permissions must all be configured correctly.
-
-## 15.10. Access control for authenticated requests
-
-After authentication, Drupal can use permissions and entity access rules to determine whether the request should proceed.
-
-A route can require a permission:
-
-```
-drupaljira_board.task_api:
-  path: '/api/tasks'
-  defaults:
-    _controller: '\Drupal\drupaljira_board\Controller\TaskApiController::list'
-  requirements:
-    _permission: 'access content'
-```
-
-This is only an illustrative route. The permission `access content` may be too broad for a protected task-management API. A real endpoint should use permissions appropriate to its operation and perform entity-specific checks where necessary.
-
-Do not rely on the fact that a request is authenticated as proof that it is authorized.
-
-## 15.11. CSRF and authentication
-
-CSRF protection is particularly important when a browser automatically sends authentication cookies with requests.
-
-For example, a malicious website may try to cause a logged-in browser to submit an unwanted request to another site.
-
-Drupal's CSRF protections vary according to the endpoint, route requirements, and authentication method.
-
-When designing an API:
-
-- Determine whether authentication uses browser cookies or explicit credentials.
-    
-- Use the correct CSRF protection for that mechanism.
-    
-- Avoid changing data through GET requests.
-    
-- Do not disable CSRF checks merely to make an API call easier.
-    
-- Test the actual request flow, including rejected requests.
-    
-
-Token-based authentication that requires an explicit authorization header often has a different CSRF risk profile from cookie-based authentication. However, that does not remove the need for authorization, secure token handling, or transport security.
-
-## 15.12. Password storage
-
-Passwords should never be stored as plain text.
-
-Drupal uses its password-handling APIs and password hashing mechanisms to store password hashes.
-
-Do not implement your own password storage by concatenating strings or using a general-purpose hash without an appropriate password-hashing scheme.
-
-When building custom authentication, use Drupal's established user authentication and password APIs where appropriate rather than reimplementing credential verification.
-
-## 15.13. External identity providers
-
-An application may delegate authentication to an external identity provider, such as an organizational single sign-on service.
-
-Depending on the integration, the system may use protocols such as OAuth 2.0 or OpenID Connect.
-
-These protocols serve different purposes:
-
-- OAuth 2.0 is an authorization framework.
-    
-- OpenID Connect adds an identity layer on top of OAuth 2.0.
-    
-
-A Drupal integration typically requires a compatible module or custom integration, along with configuration of the identity provider, client credentials, redirect URLs, and account-mapping rules.
-
-Do not assume that OAuth 2.0 by itself defines how a user logs into Drupal or that every OAuth integration provides the same identity behavior.
-
-## 15.14. Testing authentication and authorization
-
-A robust API test suite should cover more than successful requests.
-
-Useful scenarios include:
-
-- An anonymous request is rejected where authentication is required.
-    
-- Invalid credentials are rejected.
-    
-- A valid authenticated user can perform permitted operations.
-    
-- A user without the required permission is denied.
-    
-- A user cannot access another user's restricted entity.
-    
-- A request with invalid input is rejected.
-    
-- CSRF-protected operations reject requests without the required protection.
-    
-- Expired or revoked tokens are handled correctly when the provider supports them.
-    
-- Error responses do not reveal credentials or sensitive internal details.
-    
-
-The exact expected status code depends on the endpoint and authentication provider. For example, an unauthenticated request and an authenticated request that lacks permission represent different failure conditions.
-
-## 15.15. Common Authentication API mistakes
-
-- Confusing authentication with authorization.
-    
-- Assuming an authenticated user can access every entity.
-    
-- Using Basic authentication without HTTPS.
-    
-- Treating Base64 as encryption.
-    
-- Assuming core Drupal provides every token or OAuth implementation.
-    
-- Forgetting to configure authentication providers for REST endpoints.
-    
-- Assuming `supported_auth` grants permissions.
-    
-- Ignoring CSRF requirements for session-authenticated requests.
-    
-- Storing passwords or tokens in source code.
-    
-- Implementing custom password verification instead of using Drupal's APIs.
-    
-- Testing only successful authentication and not unauthorized requests.
-    
-
-**Core principle:** Authentication identifies the requester; authorization determines what the requester is allowed to do; access checking enforces that decision for the requested operation or resource.
