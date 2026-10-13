@@ -1558,3 +1558,1025 @@ Regression testing проверяет, что существующая функ�
     
 - Не запускать тесты после изменения конфигурации или схемы сущностей.
 
+---
+# Block 7 — Drupal Security
+
+## 7.1. Why security matters in Drupal
+
+Drupal is a CMS that manages users, content, files, configuration, and business logic. Security is important because different users must have different levels of access to this data.
+
+Drupal provides several built-in security mechanisms:
+
+- **Authentication** — identifies the user.
+    
+- **Authorization** — determines what the user is allowed to do.
+    
+- **Access checking** — checks whether a specific operation is permitted.
+    
+- **CSRF protection** — helps prevent unwanted requests made on behalf of an authenticated user.
+    
+- **Input validation** — verifies that submitted data is valid.
+    
+- **Output escaping** — prevents user-controlled content from being interpreted as executable code.
+    
+- **Database API** — helps protect database queries from SQL injection.
+    
+- **Security updates** — fix known vulnerabilities in Drupal core and contributed modules.
+    
+
+Security should be implemented at the appropriate layers. Hiding a button in the interface is not enough: the underlying route, controller, entity operation, or API endpoint must also enforce access rules.
+
+## 7.2. Authentication and authorization
+
+Authentication and authorization are different concepts.
+
+| Concept         | Meaning                                                | Example                                     |
+| --------------- | ------------------------------------------------------ | ------------------------------------------- |
+| Authentication  | Identifies a user                                      | A user logs in with a username and password |
+| Authorization   | Determines allowed operations                          | A project manager can edit a project        |
+| Access checking | Evaluates access to a particular operation or resource | A user can view a task but cannot edit it   |
+
+Drupal users have roles, and roles contain permissions. A user can have multiple roles.
+
+For example, a DrupalJira project might have the following roles:
+
+- Administrator — can administer the site.
+    
+- Project manager — can manage projects and tasks.
+    
+- Authenticated user — can perform limited operations.
+    
+- Anonymous user — has no authenticated account.
+    
+
+Roles are a convenient way to group permissions, but a role alone does not always determine whether a user can access a particular entity. Access may also depend on ownership, entity relationships, publication status, or custom business rules.
+
+## 7.3. Permissions and route access
+
+Permissions define which operations a user may perform.
+
+A custom module can declare permissions in `drupaljira_board.permissions.yml`:
+
+```php
+manage project tasks:
+  title: 'Manage project tasks'
+  description: 'Create and update tasks belonging to projects.'
+  restrict access: true
+```
+
+The permission can then be assigned to appropriate roles through Drupal's permissions administration page.
+
+A route can require this permission:
+
+```php
+drupaljira_board.task_list:
+  path: '/tasks/manage'
+  defaults:
+    _controller: '\Drupal\drupaljira_board\Controller\TaskController::list'
+    _title: 'Manage tasks'
+  requirements:
+    _permission: 'manage project tasks'
+```
+
+Drupal checks the permission before allowing access to the route.
+
+The `restrict access: true` setting marks the permission as sensitive in the administrative interface. It does not replace route access checking or grant access by itself.
+
+### Entity-specific access
+
+Sometimes access depends on the actual entity, not only on a general permission.
+
+For example, a user may be allowed to edit tasks only when they belong to a project the user manages.
+
+Drupal supports entity access checks:
+
+```php
+$access = $task->access('update', $account);
+
+if (!$access) {
+  throw new \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException();
+}
+```
+
+The `$account` argument is the account whose access should be evaluated. If it is omitted, Drupal generally uses the current user.
+
+For a custom controller, checking entity access is important even when the route itself requires a permission.
+
+Access results can contain cacheability metadata. When returning an access result as part of a renderable response, preserve its cache contexts, tags, and max-age when relevant.
+
+### Access result objects
+
+For more advanced access logic, Drupal provides `AccessResult`:
+
+```php
+use Drupal\Core\Access\AccessResult;
+
+public function access($entity, $operation, $account) {
+  if ($account->hasPermission('administer nodes')) {
+    return AccessResult::allowed();
+  }
+
+  return AccessResult::forbidden();
+}
+```
+
+This is a simplified illustration of an access-checking method. The exact method signature depends on the access hook or class in which the code is implemented.
+
+You can also use cacheable access results:
+
+```php
+return AccessResult::allowedIf(
+  $entity->getOwnerId() === $account->id()
+)->addCacheableDependency($entity);
+```
+
+The example grants access when the current account owns the entity and adds the entity as a cacheable dependency.
+
+In production, also consider anonymous users, entities without owners, administrative overrides, and whether the result varies by user permissions.
+
+## 7.4. Never rely only on the interface
+
+Suppose a task card displays an Edit button only to project managers.
+
+This improves the user interface, but it does not provide security on its own. A user could manually send a request to the edit URL or invoke an endpoint directly.
+
+A secure implementation checks access on the server:
+
+1. The interface decides whether to display the button.
+    
+2. The route checks its access requirements.
+    
+3. The controller or entity operation checks access to the specific task.
+    
+4. The business logic validates that the operation is allowed.
+    
+
+These checks complement each other.
+
+**Important:** Access restrictions must be enforced on every path that performs the protected operation, including custom controllers, forms, REST resources, and background operations where applicable.
+
+## 7.5. CSRF protection
+
+CSRF means Cross-Site Request Forgery.
+
+It occurs when a browser is tricked into sending an unwanted request to a site where the user is already authenticated.
+
+For example, a malicious page might attempt to trigger an action on another site using the victim's existing session.
+
+Drupal uses different CSRF protection mechanisms depending on the request type and authentication method.
+
+For state-changing routes, use appropriate protection, such as:
+
+- CSRF tokens for custom routes that use session-based authentication.
+    
+- Drupal's built-in form token validation for forms.
+    
+- The appropriate authentication and CSRF mechanisms for REST endpoints.
+    
+
+Example of a custom route using Drupal's route-level CSRF protection:
+
+```php
+drupaljira_board.update_task_status:
+  path: '/task/{node}/status'
+  defaults:
+    _controller: '\Drupal\drupaljira_board\Controller\TaskController::updateStatus'
+  methods: [POST]
+  requirements:
+    _entity_access: 'node.update'
+    _csrf_token: 'TRUE'
+  options:
+    parameters:
+      node:
+        type: entity:node
+```
+
+This is an illustrative configuration. The exact access requirement must match the intended operation. For example, if the endpoint only changes a task's status, you may need a dedicated access check rather than granting every user who can update the node the same capability.
+
+The `_csrf_token: 'TRUE'` route requirement is intended for routes using Drupal's session-based CSRF protection. Do not assume that the same mechanism applies identically to every API authentication method.
+
+For JavaScript requests, use the protection mechanism required by the endpoint and authentication method.
+
+**Never use GET requests for operations that change data.** GET should be safe and should not create, delete, or update resources.
+
+## 7.6. SQL injection and the Database API
+
+SQL injection occurs when untrusted input is inserted into an SQL query as executable SQL.
+
+Unsafe example:
+
+```php
+$query = "SELECT * FROM {node_field_data}
+  WHERE title = '$title'";
+```
+
+If `$title` contains malicious SQL, the query may behave differently from what the developer intended.
+
+Use Drupal's Database API and placeholders instead:
+
+```php
+$database = \Drupal::database();
+
+$result = $database->select('node_field_data', 'n')
+  ->fields('n', ['nid', 'title'])
+  ->condition('title', $title)
+  ->execute();
+```
+
+Drupal safely handles the value as a query condition.
+
+For custom queries, prefer structured query builders where possible. When using `db_query()` or a similar placeholder-based query API, bind user-provided values instead of concatenating them into SQL strings.
+
+Example:
+
+```php
+$result = \Drupal::database()->query(
+  'SELECT nid, title
+   FROM {node_field_data}
+   WHERE title = :title',
+  [':title' => $title],
+);
+```
+
+The table name uses Drupal's table-prefix syntax. Query placeholders are for values, not arbitrary table names, column names, or SQL keywords.
+
+## 7.7. Cross-Site Scripting (XSS)
+
+XSS occurs when untrusted content is interpreted by a browser as executable HTML or JavaScript.
+
+Imagine a user submits this text as a task description:
+
+```php
+<script>alert('XSS');</script>
+```
+
+If the application outputs it as executable markup, it may run in another user's browser.
+
+Drupal helps prevent XSS through Twig autoescaping, render arrays, and its sanitization APIs.
+
+### Twig autoescaping
+
+Normally, Twig escapes variables automatically:
+
+```php
+<div class="task-description">
+  {{ description }}
+</div>
+```
+
+Do not disable escaping without a clear reason.
+
+This is dangerous for untrusted input:
+
+```php
+{{ description|raw }}
+```
+
+The `raw` filter disables normal escaping. Use it only when the content is known to be safe and has been processed appropriately.
+
+### Render arrays
+
+Prefer render arrays when building Drupal output:
+
+```php
+$build['description'] = [
+  '#type' => 'item',
+  '#title' => $this->t('Description'),
+  '#markup' => $description,
+];
+```
+
+Be careful: `#markup` is not a universal sanitizer for arbitrary HTML. Drupal's markup system applies its own safety handling, but developers must still choose the correct output mechanism for the data.
+
+For plain text, a `#plain_text` property or a Twig variable is often more appropriate than allowing arbitrary HTML.
+
+If rich HTML is required, use an appropriate text format with defined HTML restrictions instead of trusting user-provided markup.
+
+## 7.8. Input validation and sanitization
+
+Validation checks whether input meets the application's requirements.
+
+For example, a task estimate might need to be a non-negative number.
+
+```php
+if (!is_numeric($estimate) || $estimate < 0) {
+  throw new \InvalidArgumentException(
+    'The estimate must be a non-negative number.'
+  );
+}
+```
+
+This is a simplified example. In Drupal forms, use Form API validation; in entity workflows, use entity validation and field constraints where appropriate.
+
+Validation and output escaping solve different problems:
+
+- **Validation** checks whether input is acceptable.
+    
+- **Escaping** ensures output is interpreted safely in its destination context.
+    
+- **Authorization** determines whether the user is allowed to submit or change the data.
+    
+
+All three may be needed for the same operation.
+
+## 7.9. File upload security
+
+File uploads require special care because files may contain malicious content or executable code.
+
+Important precautions include:
+
+- Restrict permitted file extensions and MIME types.
+    
+- Limit file sizes.
+    
+- Store private files outside the publicly accessible web root when required.
+    
+- Check access before serving private files.
+    
+- Avoid trusting the original filename or client-provided MIME type.
+    
+- Use Drupal's file and managed-file APIs instead of implementing storage from scratch.
+    
+
+A file extension alone does not prove that a file is safe. Validation should follow the risk profile of the application.
+
+## 7.10. Secrets and sensitive configuration
+
+Never commit passwords, API keys, private keys, or production credentials to Git.
+
+Avoid hardcoding secrets in:
+
+- PHP source code.
+    
+- Public configuration exports.
+    
+- Example files containing real credentials.
+    
+- Logs and exception messages.
+    
+
+Use environment-specific configuration, environment variables, or a suitable secrets-management solution.
+
+Drupal configuration can contain settings that are not inherently secret, but the exported configuration directory is usually version-controlled. Review configuration before committing it.
+
+## 7.11. Security updates
+
+Drupal core and contributed modules can have security advisories.
+
+A responsible maintenance process includes:
+
+1. Monitor Drupal security advisories.
+    
+2. Update vulnerable dependencies.
+    
+3. Review release notes and compatibility.
+    
+4. Run automated tests and static analysis.
+    
+5. Test the changes in a development or staging environment.
+    
+6. Deploy through a controlled release process.
+    
+7. Apply required database updates and configuration imports.
+    
+
+Updating dependencies without running tests can introduce regressions. However, a known security vulnerability should not be ignored merely because the update requires additional testing.
+
+## 7.12. Common security mistakes
+
+- Hiding a button instead of checking server-side access.
+    
+- Assuming a role automatically grants access to every entity.
+    
+- Using GET for state-changing operations.
+    
+- Disabling CSRF protection without understanding the authentication model.
+    
+- Concatenating untrusted values into SQL.
+    
+- Printing user input as raw HTML.
+    
+- Trusting filenames or MIME types during file uploads.
+    
+- Storing secrets in exported configuration.
+    
+- Forgetting cache metadata on user-specific access results.
+    
+- Granting broad permissions when a narrow custom permission would be safer.
+    
+
+The central principle is **least privilege**: users and application components should receive only the permissions necessary to perform their tasks.
+
+---
+
+# Block 8 — Drupal Multisite
+
+## 8.1. What is Multisite?
+
+Drupal Multisite allows several Drupal sites to use a shared codebase while keeping their site-specific configuration and data separate.
+
+For example, a company might run:
+
+- `example.com` — the main website.
+    
+- `support.example.com` — a support portal.
+    
+- `partners.example.com` — a partner portal.
+    
+
+These sites may use the same Drupal core and shared custom modules but have different databases, settings, files, themes, and configuration.
+
+Multisite is useful when multiple sites share much of their implementation but need to remain separate applications.
+
+## 8.2. How Multisite works
+
+A simplified directory structure looks like this:
+
+```php
+drupal/
+├── core/
+├── modules/
+│   └── custom/
+├── themes/
+│   └── custom/
+├── sites/
+│   ├── sites.php
+│   ├── default/
+│   │   ├── settings.php
+│   │   └── files/
+│   ├── example.com/
+│   │   ├── settings.php
+│   │   └── files/
+│   └── support.example.com/
+│       ├── settings.php
+│       └── files/
+└── index.php
+```
+
+The exact directory contents depend on the installation. A site's directory can contain its settings, site-specific service overrides, and files directory.
+
+The shared `core`, `modules`, and `themes` directories contain code available to sites that use the shared codebase.
+
+Each site's `settings.php` defines its database connection and other site-specific settings.
+
+## 8.3. How Drupal selects a site
+
+When a request arrives, Drupal uses the request's host and directory information to determine which site directory should be used.
+
+The `sites/sites.php` file can define aliases that map hostnames to site directory names.
+
+Example:
+
+```php
+<?php
+
+$sites['www.example.com'] = 'example.com';
+$sites['example.com'] = 'example.com';
+
+$sites['support.example.com'] = 'support.example.com';
+```
+
+This is an illustrative mapping. The corresponding directories must exist and contain valid site configuration.
+
+Drupal's site-discovery process uses the incoming request information and the configured mappings to select the appropriate site.
+
+## 8.4. Database separation
+
+Each site can use its own database.
+
+For example, `sites/example.com/settings.php` may contain:
+
+```php
+$databases['default']['default'] = [
+  'database' => 'main_site',
+  'username' => 'main_user',
+  'password' => getenv('MAIN_DB_PASSWORD'),
+  'host' => 'database',
+  'port' => '3306',
+  'driver' => 'mysql',
+  'prefix' => '',
+];
+```
+
+The support site can use a different database connection.
+
+This provides logical separation between the sites' content and configuration stored in the database.
+
+The connection values above are examples; actual hostnames and credentials depend on the deployment environment. Avoid placing real production secrets in version-controlled files.
+
+## 8.5. What is shared and what is separate?
+
+| Component            | Typical behavior                                                        |
+| -------------------- | ----------------------------------------------------------------------- |
+| Drupal core code     | Shared                                                                  |
+| Custom modules       | Shared when stored in common module directories                         |
+| Contributed modules  | Usually shared                                                          |
+| Site database        | Separate per site when configured that way                              |
+| Active configuration | Separate per site                                                       |
+| Uploaded files       | Separate site-specific files directories                                |
+| Users and content    | Stored per site's database unless additional architecture is introduced |
+| Themes               | Code may be shared; each site can select its own theme                  |
+| Cache data           | Depends on the configured cache backend and cache-bin separation        |
+
+Multisite does not automatically synchronize users, content, or configuration between sites. Sharing those things requires additional design or integration.
+
+## 8.6. Advantages of Multisite
+
+- One codebase can serve several websites.
+    
+- Shared modules and bug fixes can be maintained centrally.
+    
+- Sites can have separate databases and content.
+    
+- Common functionality can be reused.
+    
+- Deployment of shared code can be standardized.
+    
+
+## 8.7. Disadvantages and risks
+
+### Shared deployment risk
+
+A code deployment may affect every site using the codebase. A compatibility issue in a shared module can break multiple sites simultaneously.
+
+### Version coupling
+
+Sites generally share the same Drupal core and shared module code. It can be difficult to upgrade one site independently when the others depend on the same code.
+
+### Configuration management
+
+Active configuration belongs to each site. A configuration export or import must be run in the correct site context.
+
+Importing configuration into the wrong site can cause unintended changes.
+
+### Security isolation
+
+Separate databases do not make the sites completely independent from a security perspective. A vulnerability in shared code may affect all sites. Incorrect file permissions, settings, or infrastructure configuration can also undermine isolation.
+
+### Operational complexity
+
+Backups, deployments, cache clearing, database updates, monitoring, and testing must account for all sites.
+
+## 8.8. Multisite versus multiple independent installations
+
+With separate installations, each site has its own codebase and deployment lifecycle.
+
+With Multisite, sites share a codebase but can have separate databases and configuration.
+
+Choose Multisite when:
+
+- The sites share most of their functionality.
+    
+- The same core and module versions are appropriate.
+    
+- Centralized code maintenance is beneficial.
+    
+- The team can safely manage shared deployments.
+    
+
+Choose independent installations when:
+
+- Sites need different Drupal versions.
+    
+- Release schedules must be independent.
+    
+- Sites require strong operational isolation.
+    
+- They have substantially different dependencies or architectures.
+    
+
+Neither approach is always better. The decision depends on maintenance costs, isolation requirements, and how much code the sites actually share.
+
+## 8.9. Common Multisite mistakes
+
+- Assuming separate sites share content automatically.
+    
+- Putting site-specific settings into a shared configuration file without understanding the consequences.
+    
+- Importing configuration into the wrong site's database.
+    
+- Updating shared code without testing all affected sites.
+    
+- Treating separate databases as complete security isolation.
+    
+- Forgetting to back up each site's database and files.
+    
+- Assuming a module enabled on one site is automatically enabled on every site.
+    
+
+---
+
+# Block 9 — Events API
+
+## 9.1. What is the Events API?
+
+The Events API allows one part of an application to announce that something has happened so that other parts can react to it.
+
+For example:
+
+- An entity is inserted or updated.
+    
+- A request is about to be processed.
+    
+- A response is being prepared.
+    
+- A custom business event occurs.
+    
+
+The component that dispatches an event does not need to know every component that will respond to it.
+
+This reduces direct coupling between parts of the application.
+
+Drupal uses Symfony's EventDispatcher component for event dispatching and event subscribers.
+
+## 9.2. How events work
+
+An event-based workflow generally contains three parts:
+
+1. **Event dispatcher** — sends or dispatches an event.
+    
+2. **Event** — carries information about what happened and may expose related data.
+    
+3. **Event subscriber or listener** — reacts to the event.
+    
+
+Conceptually:
+
+```php
+Application code
+      |
+      v
+Event dispatcher
+      |
+      v
+Event: "something happened"
+      |
+      +------> Subscriber A
+      |
+      +------> Subscriber B
+      |
+      +------> Subscriber C
+```
+
+The dispatcher knows which subscribers are registered, but the original business logic does not need to call each subscriber directly.
+
+## 9.3. Event subscribers
+
+In Drupal, an event subscriber is typically a service implementing `EventSubscriberInterface`.
+
+A subscriber declares which events it listens to and which methods should handle them.
+
+Create a file such as:
+
+`modules/custom/drupaljira_board/src/EventSubscriber/RequestSubscriber.php`
+
+```php
+<?php
+
+namespace Drupal\drupaljira_board\EventSubscriber;
+
+use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use Symfony\Component\HttpKernel\Event\RequestEvent;
+use Symfony\Component\HttpKernel\KernelEvents;
+
+final class RequestSubscriber implements EventSubscriberInterface {
+
+  public static function getSubscribedEvents(): array {
+    return [
+      KernelEvents::REQUEST => ['onRequest', 0],
+    ];
+  }
+
+  public function onRequest(RequestEvent $event): void {
+    // React to the incoming request.
+  }
+
+}
+```
+
+The `KernelEvents::REQUEST` event is dispatched as Symfony's HTTP kernel processes a request.
+
+The method receives a `RequestEvent`, which exposes request-related information. The exact behavior depends on the stage of request processing and whether the event is the main request or a subrequest.
+
+A subscriber should not assume every request is a main request. When the distinction matters, use the appropriate check, such as `isMainRequest()`.
+
+## 9.4. Registering a subscriber
+
+Register the class as a service and tag it with `event_subscriber`.
+
+In `drupaljira_board.services.yml`:
+
+```php
+services:
+  drupaljira_board.request_subscriber:
+    class: Drupal\drupaljira_board\EventSubscriber\RequestSubscriber
+    tags:
+      - { name: event_subscriber }
+```
+
+Drupal's service container discovers the subscriber through this service definition.
+
+After adding or changing service definitions, rebuild Drupal's cache so that the container is rebuilt:
+
+```php
+drush cr
+```
+
+The example subscriber is intentionally minimal. A real subscriber should implement a specific requirement rather than doing expensive work for every request.
+
+## 9.5. Event priorities
+
+Subscribers can specify a priority:
+
+```php
+public static function getSubscribedEvents(): array {
+  return [
+    KernelEvents::REQUEST => ['onRequest', 100],
+  ];
+}
+```
+
+The priority affects the order in which listeners for the same event are executed.
+
+In Symfony's event dispatcher, higher priorities execute before lower priorities. The default priority is `0`.
+
+Use priorities only when execution order is meaningful. Unnecessary priority dependencies can make event-driven code difficult to maintain.
+
+## 9.6. Creating a custom event
+
+Drupal modules can define their own events for business operations.
+
+For example, a project-management module may want to announce that a task has moved to a new status.
+
+Create an event class:
+
+`modules/custom/drupaljira_board/src/Event/TaskStatusChangedEvent.php`
+
+```php
+<?php
+
+namespace Drupal\drupaljira_board\Event;
+
+use Drupal\node\NodeInterface;
+use Symfony\Contracts\EventDispatcher\Event;
+
+final class TaskStatusChangedEvent extends Event {
+
+  public function __construct(
+    private readonly NodeInterface $task,
+    private readonly string $oldStatus,
+    private readonly string $newStatus,
+  ) {}
+
+  public function getTask(): NodeInterface {
+    return $this->task;
+  }
+
+  public function getOldStatus(): string {
+    return $this->oldStatus;
+  }
+
+  public function getNewStatus(): string {
+    return $this->newStatus;
+  }
+
+}
+```
+
+The event carries the task entity and the old and new status values.
+
+In this example, the event extends Symfony's `Event` class. It is a notification object; defining it does not automatically change the task or validate whether the status transition is allowed.
+
+## 9.7. Dispatching a custom event
+
+Inject the event dispatcher into the service that performs the task operation.
+
+Example service:
+
+```php
+<?php
+
+namespace Drupal\drupaljira_board;
+
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\drupaljira_board\Event\TaskStatusChangedEvent;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
+
+final class TaskStatusManager {
+
+  public function __construct(
+    private readonly EventDispatcherInterface $eventDispatcher,
+    private readonly EntityTypeManagerInterface $entityTypeManager,
+  ) {}
+
+  public function changeStatus(
+    int $taskId,
+    string $newStatus,
+  ): void {
+    $task = $this->entityTypeManager
+      ->getStorage('node')
+      ->load($taskId);
+
+    if (!$task) {
+      throw new \InvalidArgumentException('Task not found.');
+    }
+
+    $oldStatus = $task->get('field_status')->value;
+
+    // The example assumes this operation has already been authorized
+    // and that the new status has been validated.
+    $task->set('field_status', $newStatus);
+    $task->save();
+
+    $this->eventDispatcher->dispatch(
+      new TaskStatusChangedEvent($task, $oldStatus, $newStatus),
+      'drupaljira_board.task_status_changed',
+    );
+  }
+
+}
+```
+
+Register the service in `drupaljira_board.services.yml`:
+
+```php
+services:
+  drupaljira_board.task_status_manager:
+    class: Drupal\drupaljira_board\TaskStatusManager
+    arguments:
+      - '@event_dispatcher'
+      - '@entity_type.manager'
+```
+
+This is an illustrative implementation. A production status manager should use the application's real workflow rules, check access, validate transitions, and handle persistence failures appropriately. If the status is managed by Drupal Content Moderation or another workflow system, use its transition mechanisms instead of directly changing a field.
+
+Notice that the event is dispatched after saving the entity. Subscribers therefore receive a notification that the operation has completed successfully at the application level. Dispatching an event before saving would represent a different lifecycle point.
+
+## 9.8. Subscribing to a custom event
+
+Another module or service can react to the custom event.
+
+For example:
+
+`modules/custom/drupaljira_board/src/EventSubscriber/TaskStatusSubscriber.php`
+
+```php
+<?php
+
+namespace Drupal\drupaljira_board\EventSubscriber;
+
+use Drupal\drupaljira_board\Event\TaskStatusChangedEvent;
+use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+
+final class TaskStatusSubscriber implements EventSubscriberInterface {
+
+  public static function getSubscribedEvents(): array {
+    return [
+      'drupaljira_board.task_status_changed' => 'onStatusChanged',
+    ];
+  }
+
+  public function onStatusChanged(
+    TaskStatusChangedEvent $event,
+  ): void {
+    $task = $event->getTask();
+    $oldStatus = $event->getOldStatus();
+    $newStatus = $event->getNewStatus();
+
+    // React to the completed status change.
+  }
+
+}
+```
+
+Register it in the service file:
+
+```php
+services:
+  drupaljira_board.task_status_subscriber:
+    class: Drupal\drupaljira_board\EventSubscriber\TaskStatusSubscriber
+    tags:
+      - { name: event_subscriber }
+```
+
+This subscriber can be extended to trigger a notification, record an audit event, or update another integration.
+
+Do not assume that every side effect belongs in a subscriber. If an operation is mandatory for the correctness of the main business transaction, it may be better to keep it in the business service. Event subscribers are particularly useful for independent reactions.
+
+## 9.9. Events versus hooks
+
+Drupal also has a long-standing hook system.
+
+Hooks and events can both allow one part of Drupal to react to behavior in another part, but they are not identical.
+
+| Feature                | Hooks                                                         | Events                                            |
+| ---------------------- | ------------------------------------------------------------- | ------------------------------------------------- |
+| Typical implementation | Procedural functions following hook naming conventions        | Event subscribers or listeners                    |
+| Registration           | Drupal discovers hook implementations                         | Services are registered with the event dispatcher |
+| Main use               | Drupal extension points, including entity and form operations | Notifications and reactions to dispatched events  |
+| Data exchange          | Depends on the hook's arguments and return contract           | Often an event object                             |
+| Execution order        | Depends on the hook and module ordering mechanisms            | Listener priority                                 |
+| Typical style          | Procedural or function-oriented                               | Object-oriented                                   |
+
+Use the extension point that fits the task. Many Drupal features are still based on hooks, so the Events API does not replace the hook system.
+
+## 9.10. Events versus entity hooks and lifecycle methods
+
+When working with entities, developers may encounter hooks such as:
+
+- `hook_entity_presave()`
+    
+- `hook_entity_insert()`
+    
+- `hook_entity_update()`
+    
+- `hook_entity_delete()`
+    
+
+These hooks run during particular entity lifecycle operations.
+
+A custom event is different: the module defines when it is dispatched and what it means.
+
+For example, `hook_entity_update()` can react to a node update in general. A custom `task_status_changed` event communicates a narrower business fact: the task's status changed through the operation that dispatches that event.
+
+A custom event will not automatically be dispatched for every possible status change in Drupal. All relevant code paths must use the event-producing operation, or the event must be integrated at a more general lifecycle extension point.
+
+## 9.11. Events and dependency injection
+
+Event subscribers are services, so they can use dependency injection.
+
+For example, a subscriber might need a logger:
+
+```php
+use Psr\Log\LoggerInterface;
+
+final class TaskStatusSubscriber implements EventSubscriberInterface {
+
+  public function __construct(
+    private readonly LoggerInterface $logger,
+  ) {}
+
+  public static function getSubscribedEvents(): array {
+    return [
+      'drupaljira_board.task_status_changed' => 'onStatusChanged',
+    ];
+  }
+
+  public function onStatusChanged(
+    TaskStatusChangedEvent $event,
+  ): void {
+    $this->logger->info(
+      'Task status changed from @old to @new.',
+      [
+        '@old' => $event->getOldStatus(),
+        '@new' => $event->getNewStatus(),
+      ],
+    );
+  }
+
+}
+```
+
+Register the logger service in YAML:
+
+```php
+services:
+  drupaljira_board.task_status_subscriber:
+    class: Drupal\drupaljira_board\EventSubscriber\TaskStatusSubscriber
+    arguments:
+      - '@logger.channel.drupaljira_board'
+    tags:
+      - { name: event_subscriber }
+
+  logger.channel.drupaljira_board:
+    parent: logger.channel_base
+    arguments: ['drupaljira_board']
+```
+
+Dependency injection keeps the subscriber testable and avoids direct calls to global service accessors.
+
+## 9.12. Common Events API mistakes
+
+- Creating a subscriber class but forgetting its service definition.
+    
+- Forgetting the `event_subscriber` service tag.
+    
+- Dispatching an event with a name different from the name the subscriber listens for.
+    
+- Assuming a custom event is dispatched automatically by Drupal.
+    
+- Performing expensive work on every HTTP request.
+    
+- Ignoring main-request versus subrequest behavior.
+    
+- Using events for mandatory business logic that must always run.
+    
+- Assuming event dispatch automatically makes asynchronous processing happen.
+    
+- Forgetting to rebuild the service container after changing service definitions.
+    
+
+**Important:** Drupal events are normally dispatched synchronously. If a subscriber sends an email or performs a slow API request, that work may delay the original operation. For work that should be processed later, consider Drupal's Queue API or a suitable asynchronous processing system.
+
+---
+
