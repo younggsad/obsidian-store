@@ -915,6 +915,152 @@ At the same time, the page might display a project title. If that project change
 | To be associated with an entity       | Быть связанным с сущностью                |
 | To enforce access checks              | Обеспечивать выполнение проверок доступа  |
 | To be considered valid                | Считаться действительным                  |
+## Question 41 — What is the difference between `max-age: 0` and `max-age: -1` in Drupal?
+
+### Answer
+
+Max-age defines how long cached content can be considered valid. A value of `0` means that the render result must not be cached, while `-1` means that it has no time-based expiration. For example, I would use `0` for content that must be generated on every request and `-1` for content that remains valid until its cache is invalidated.
+
+### Explanation
+
+Drupal uses the `max-age` cacheability property to control time-based expiration.
+
+- `max-age: 0` — the render result is not cacheable.
+    
+- `max-age: -1` — the result has no time-based expiration. Drupal can keep it cached until it is invalidated by other mechanisms, such as cache tags.
+    
+- `max-age: 3600` — the result can remain valid for up to 3600 seconds (one hour).
+    
+
+Example:
+
+```php
+$build['message'] = [
+  '#markup' => 'This content is not cacheable.',
+  '#cache' => [
+    'max-age' => 0,
+  ],
+];
+```
+
+Use `max-age: 0` when the rendered result must not be cached. Use `max-age: -1` when the content does not need time-based expiration but can still be invalidated when its dependencies change.
+
+Important: `max-age: 0` on a render array does not automatically disable every possible caching layer in the entire application or infrastructure.
+
+### Key terms
+
+- **Max-age** — the maximum time, in seconds, that cached content can remain valid.
+    
+- **Time-based expiration** — expiration determined by elapsed time.
+    
+- **Cache invalidation** — making cached content outdated so it can be regenerated.
+    
+
+---
+
+## Question 42 — What is cache bubbling in Drupal?
+
+### Answer
+
+Cache bubbling is the process of passing cacheability metadata from child render arrays to their parent render arrays. This metadata includes cache contexts, cache tags, and max-age. It allows Drupal to cache rendered content correctly by considering the requirements of nested elements. Cache bubbling is important because it helps prevent incorrect cache reuse when different parts of a page have different caching requirements.
+
+### Explanation
+
+A render array can contain other render arrays. Each element may have its own cacheability metadata.
+
+When Drupal renders a tree of elements, the cacheability metadata of child elements can bubble up to their parents. As a result, the parent render result accounts for the caching requirements of its children.
+
+For example:
+
+```php
+$build = [
+  '#type' => 'container',
+  'message' => [
+    '#markup' => 'Hello!',
+    '#cache' => [
+      'contexts' => ['user.roles'],
+      'tags' => ['node:42'],
+      'max-age' => 3600,
+    ],
+  ],
+];
+```
+
+The child element has three cacheability properties:
+
+- `user.roles` — the output can vary depending on the user's roles.
+    
+- `node:42` — the output depends on node 42.
+    
+- `3600` — the output can remain valid for up to one hour.
+    
+
+During rendering, this metadata can bubble up through the render tree and affect the caching of parent elements.
+
+Without correct cache bubbling, a parent render result might not account for the caching requirements of its children.
+
+### Key terms
+
+- **Cache bubbling** — propagation of cacheability metadata from child elements to parent elements.
+    
+- **Child render array** — a render array nested inside another render array.
+    
+- **Parent render array** — the render array containing child elements.
+    
+- **Render tree** — a hierarchy of render arrays that Drupal processes to produce output.
+    
+
+---
+
+## Question 43 — What is the difference between a cache context and an access check in Drupal?
+
+### Answer
+
+A cache context determines when Drupal should use a different cached version of rendered content. For example, the `user.roles` cache context allows cached output to vary depending on the user's roles.
+
+An access check determines whether a user is allowed to perform a particular operation on a resource, such as viewing or editing a task.
+
+These concepts serve different purposes: cache contexts ensure correct cache variation, while access checks enforce access permissions. A cache context does not replace an access check.
+
+### Explanation
+
+Cache contexts and access checks are related to different aspects of Drupal.
+
+**Cache context**
+
+A cache context determines which variations of cached output Drupal needs to keep. For example, a page element may display different information depending on the user's roles.
+
+```php
+$build['message'] = [
+  '#markup' => 'Role-dependent content',
+  '#cache' => [
+    'contexts' => ['user.roles'],
+  ],
+];
+```
+
+The cache context tells Drupal that the rendered result can vary by user role. It does not decide whether the user is allowed to access the underlying resource.
+
+**Access check**
+
+An access check determines whether a user can perform a particular operation, such as viewing, updating, or deleting a content entity.
+
+For example, Drupal may allow a project manager to edit a task while denying that operation to another user.
+
+Access checks are essential for security. Hiding an Edit button in the interface is not sufficient protection; Drupal must also enforce access permissions when the user attempts to access the editing route or perform the operation.
+
+### Key terms
+
+- **Cache context** — a cache variation dimension.
+    
+- **Access check** — a check that determines whether an operation is permitted.
+    
+- **Permission** — an authorization capability assigned to a role or user.
+    
+- **Resource** — an entity or other object that a user wants to access.
+    
+- **Cache variation** — a distinct cached version of output for a particular context.
+
 ## Quick Revision
 
 | Concept               | Meaning                                                     |
