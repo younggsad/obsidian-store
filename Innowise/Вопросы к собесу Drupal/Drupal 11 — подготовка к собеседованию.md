@@ -2579,4 +2579,1278 @@ Dependency injection keeps the subscriber testable and avoids direct calls to gl
 **Important:** Drupal events are normally dispatched synchronously. If a subscriber sends an email or performs a slow API request, that work may delay the original operation. For work that should be processed later, consider Drupal's Queue API or a suitable asynchronous processing system.
 
 ---
+## 10.1. What is the Entity API?
+
+The Entity API is one of the central parts of Drupal. It provides a consistent way to represent, store, load, modify, validate, and delete structured data.
+
+An entity is an object that represents a particular piece of data in Drupal.
+
+Examples include:
+
+- A content node representing a project or task.
+    
+- A user account.
+    
+- A taxonomy term.
+    
+- A media item.
+    
+- A content type or another configuration object.
+    
+- A custom record managed by a custom entity type.
+    
+
+Instead of writing SQL queries for every operation, developers can use Drupal's Entity API to work with data through a consistent object-oriented interface.
+
+For example:
+
+```php
+$node = \Drupal\node\Entity\Node::load(42);
+
+if ($node) {
+  $title = $node->label();
+}
+```
+
+This loads a node with ID `42` and retrieves its label. The entity might not exist, so the result must be checked.
+
+## 10.2. Content entities and configuration entities
+
+Drupal has two major entity categories.
+
+### Content entities
+
+Content entities represent operational or user-generated data.
+
+Examples:
+
+- Nodes.
+    
+- Users.
+    
+- Taxonomy terms.
+    
+- Media.
+    
+- Comments.
+    
+- Custom records such as time logs.
+    
+
+Content entities typically have entity IDs, fields, and storage handlers. Depending on their definition, they may also support revisions, translations, and bundles.
+
+A content entity is often stored in one or more database tables.
+
+### Configuration entities
+
+Configuration entities represent configuration that defines how the site behaves.
+
+Examples:
+
+- Content types.
+    
+- Taxonomy vocabularies.
+    
+- Views.
+    
+- Image styles.
+    
+- User roles.
+    
+- Custom configuration entities defined by modules.
+    
+
+Configuration entities are commonly exported as YAML configuration.
+
+For example, a content type configuration file might be stored in:
+
+```php
+config/install/node.type.task.yml
+```
+
+This file defines the `task` content type. Individual task nodes are content entities and are not stored as one YAML file per task.
+
+### Comparison
+
+| Feature              | Content entities                                      | Configuration entities                                                            |
+| -------------------- | ----------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Purpose              | Store content or operational records                  | Define site configuration                                                         |
+| Examples             | Node, User, Media                                     | Content type, View, Role                                                          |
+| Typical storage      | Database tables                                       | Active configuration storage                                                      |
+| Configuration export | Entity data is not normally exported as configuration | Usually exported as YAML                                                          |
+| Revisions            | Supported by appropriate entity types                 | Not the usual content revision model                                              |
+| Translation          | Supported when the entity and fields are translatable | Configuration translation is handled through configuration translation mechanisms |
+
+Do not confuse a content type with the nodes that belong to it. The content type is configuration; each node is content.
+
+## 10.3. Entity types and bundles
+
+An **entity type** defines a general kind of entity. A **bundle** is a subtype or category within an entity type.
+
+For example:
+
+- Entity type: `node`
+    
+- Bundles: `project`, `task`, `article`, `page`
+    
+
+Both a Project node and a Task node are nodes, but they may have different fields and form displays.
+
+Another example is the User entity type. User accounts normally use the same entity type rather than separate entity types for every user role.
+
+Bundles allow different structures to share the same underlying entity type.
+
+## 10.4. Entity IDs, UUIDs, and labels
+
+Entities commonly expose several identifiers.
+
+- **ID** — the entity's storage identifier, such as a node ID.
+    
+- **UUID** — a globally unique identifier intended to identify the entity across environments or systems.
+    
+- **Label** — the human-readable name of the entity.
+    
+
+Example:
+
+```php
+$node = \Drupal\node\Entity\Node::load(42);
+
+if ($node) {
+  $id = $node->id();
+  $uuid = $node->uuid();
+  $label = $node->label();
+}
+```
+
+The numeric ID may differ between development and production. UUIDs are useful when identifying entities across systems, but they do not replace entity access checks or validation.
+
+Not every entity type exposes exactly the same identifier methods or storage behavior.
+
+## 10.5. Loading entities
+
+Drupal provides entity storage handlers to load entities.
+
+A simple example:
+
+```php
+$node = \Drupal\node\Entity\Node::load(42);
+```
+
+This is convenient for short examples, but production code in controllers, forms, plugins, and services should generally use dependency injection.
+
+Example with the entity type manager:
+
+```php
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+
+final class TaskManager {
+
+  public function __construct(
+    private readonly EntityTypeManagerInterface $entityTypeManager,
+  ) {}
+
+  public function loadTask(int $taskId) {
+    return $this->entityTypeManager
+      ->getStorage('node')
+      ->load($taskId);
+  }
+
+}
+```
+
+The `node` argument identifies the entity type. The returned object may be `NULL` when no entity with that ID exists.
+
+For reusable code, add a suitable return type, such as `?NodeInterface`, when the method is specifically expected to return a node or `NULL`.
+
+### Loading multiple entities
+
+```php
+$storage = $this->entityTypeManager->getStorage('node');
+
+$tasks = $storage->loadMultiple([12, 13, 14]);
+```
+
+This loads the entities with the specified IDs that exist in storage.
+
+When processing a large collection, avoid repeatedly loading entities one at a time if you can use `loadMultiple()` or an appropriate query.
+
+## 10.6. Entity queries
+
+Entity queries allow you to find entities matching conditions without writing SQL directly.
+
+Example:
+
+```php
+$storage = $this->entityTypeManager->getStorage('node');
+
+$query = $storage->getQuery()
+  ->condition('type', 'task')
+  ->condition('status', 1)
+  ->accessCheck(TRUE);
+
+$ids = $query->execute();
+```
+
+This example finds published task nodes that the current user is permitted to access according to the entity query's access checking.
+
+The `status` condition refers to the node's publication status, not a custom workflow field such as `field_status`.
+
+**Important:** In modern Drupal versions, explicitly specify `accessCheck(TRUE)` or `accessCheck(FALSE)` for entity queries. Do not leave the intended access behavior implicit.
+
+Use `accessCheck(TRUE)` when the results should be restricted by entity query access rules. Use `accessCheck(FALSE)` only when bypassing query-level access checking is intentional and justified, such as in a trusted administrative or system-level operation.
+
+Even with `accessCheck(TRUE)`, you may need additional checks for custom business rules or access to each entity.
+
+### Loading the matching entities
+
+```php
+$ids = $storage->getQuery()
+  ->condition('type', 'task')
+  ->accessCheck(TRUE)
+  ->execute();
+
+$tasks = $storage->loadMultiple($ids);
+```
+
+The query returns IDs, not fully loaded entity objects. `loadMultiple()` retrieves the entities.
+
+## 10.7. Creating and saving entities
+
+Drupal allows developers to create entities programmatically.
+
+Example:
+
+```php
+use Drupal\node\Entity\Node;
+
+$task = Node::create([
+  'type' => 'task',
+  'title' => 'Implement task validation',
+  'status' => 1,
+]);
+
+$task->save();
+```
+
+This creates and saves a node of type `task`.
+
+If the content type contains required fields, the entity must satisfy their requirements before it can be used successfully in the intended workflow.
+
+A more complete example:
+
+```php
+$task = Node::create([
+  'type' => 'task',
+  'title' => 'Implement task validation',
+  'field_status' => 'backlog',
+  'field_estimate' => '3.5',
+]);
+
+$task->save();
+```
+
+The field names and allowed values must match the actual content type configuration. A field can have different storage and validation requirements depending on its field type.
+
+For custom code, consider calling entity validation when you need to report validation violations explicitly:
+
+```php
+$violations = $task->validate();
+
+if ($violations->count() > 0) {
+  // Handle the validation violations.
+}
+else {
+  $task->save();
+}
+```
+
+Validation does not replace access checks. Before creating or modifying an entity on behalf of a user, verify that the operation is authorized.
+
+## 10.8. Updating and deleting entities
+
+Load an entity, modify it, and save it:
+
+```php
+$task = $storage->load($taskId);
+
+if ($task) {
+  $task->setTitle('Updated task title');
+  $task->save();
+}
+```
+
+Delete an entity:
+
+```php
+$task = $storage->load($taskId);
+
+if ($task) {
+  $task->delete();
+}
+```
+
+Deleting an entity can have wider consequences, depending on the entity type and its relationships. Review dependent records, references, revisions, files, and business rules before deleting entities programmatically.
+
+Do not accept an entity ID from a request and immediately delete the entity without checking access and validating the operation.
+
+## 10.9. Working with fields
+
+Fields store structured properties of an entity.
+
+For a Task content type, fields might include:
+
+- `field_project`
+    
+- `field_status`
+    
+- `field_assignee`
+    
+- `field_estimate`
+    
+
+Read a field:
+
+```php
+$status = $task->get('field_status')->value;
+```
+
+Read an entity reference:
+
+```php
+$project = $task->get('field_project')->entity;
+```
+
+An entity reference may be empty, so check the result before using it.
+
+Set a field value:
+
+```php
+$task->set('field_status', 'in_progress');
+$task->save();
+```
+
+For an entity reference, you can set the target entity ID:
+
+```php
+$task->set('field_project', [
+  'target_id' => $projectId,
+]);
+```
+
+Field APIs expose typed data. The `value` property is common for simple fields, but reference fields and other complex field types may expose different properties and behavior.
+
+## 10.10. Entity references
+
+An entity reference connects one entity to another.
+
+For example, a task can reference a project through `field_project`.
+
+```php
+$project = $task->get('field_project')->entity;
+
+if ($project) {
+  $projectTitle = $project->label();
+}
+```
+
+This is convenient, but accessing referenced entities in a loop can create an N+1 performance problem if each reference triggers an additional database query.
+
+For lists of many entities, consider loading referenced entities efficiently or using an appropriate query and view configuration.
+
+Entity references also introduce access considerations. The fact that a user can access a task does not necessarily mean that the user can access its referenced project.
+
+## 10.11. Entity access
+
+Entities provide access methods for operations such as viewing, updating, and deleting.
+
+```php
+if ($task->access('update', $account)) {
+  // The account is allowed to update the task.
+}
+```
+
+The available operations depend on the entity type and its access implementation.
+
+You can also request an access result object:
+
+```php
+$access = $task->access('view', $account, TRUE);
+
+if ($access->isAllowed()) {
+  // Continue with the view operation.
+}
+```
+
+Passing `TRUE` requests an access result object rather than only a boolean.
+
+When access results are used in cacheable responses, preserve their cacheability metadata where applicable. Access decisions can depend on user permissions, entity ownership, or other conditions.
+
+## 10.12. Entity revisions
+
+Some entity types support revisions. Nodes can have revisions when revision support is enabled for the relevant bundle and configuration.
+
+A revision stores a particular version of an entity.
+
+Revisions are useful for:
+
+- Content moderation.
+    
+- Reviewing changes.
+    
+- Restoring previous content.
+    
+- Maintaining an audit trail of content changes.
+    
+
+Example:
+
+```php
+$task->setNewRevision(TRUE);
+$task->setRevisionLogMessage('Updated task status.');
+$task->save();
+```
+
+This illustrates creating a new revision for an entity type that supports revisions.
+
+Creating a revision is not the same as performing a Content Moderation transition. If a content type uses workflows, follow the workflow APIs and permitted transitions rather than assuming that a new revision alone enforces the business rules.
+
+## 10.13. Entity translations
+
+Drupal can store language-specific translations of translatable entities and fields.
+
+Example:
+
+```php
+if ($node->hasTranslation('fr')) {
+  $translation = $node->getTranslation('fr');
+  $title = $translation->label();
+}
+```
+
+Before requesting a translation, check that it exists or handle the case where it does not.
+
+A field must be configured as translatable for its values to differ between translations. Entity translation support alone does not automatically make every field translatable.
+
+## 10.14. Entity type definitions and custom entities
+
+Modules can define custom entity types when the data needs do not fit naturally into nodes or other existing entities.
+
+For example, a TimeLog record might be modeled as a custom content entity if it requires structured storage, fields, access control, queries, and entity lifecycle behavior.
+
+A custom entity type definition specifies metadata such as:
+
+- Entity type ID.
+    
+- Label.
+    
+- Base table.
+    
+- Entity keys.
+    
+- Storage and access handlers.
+    
+- Field definitions or fieldability.
+    
+- Revision or translation support, when applicable.
+    
+
+A custom entity can require several classes and configuration elements. Use Drupal's entity annotation or attribute-based definition mechanisms appropriate to the entity type and Drupal version.
+
+Do not create a custom entity type simply because a feature has a database table. If the data is configuration, use a configuration entity; if it is a small internal record with simple requirements, another storage approach may be more appropriate.
+
+## 10.15. Common Entity API mistakes
+
+- Confusing a content type with a content entity.
+    
+- Assuming an entity always exists after loading it.
+    
+- Forgetting `accessCheck()` in entity queries.
+    
+- Using `accessCheck(FALSE)` without a clear reason.
+    
+- Treating entity IDs as security tokens.
+    
+- Assuming access to one entity implies access to referenced entities.
+    
+- Loading related entities individually inside large loops.
+    
+- Updating a workflow field directly when a workflow transition is required.
+    
+- Assuming every field has a simple `value` property.
+    
+- Forgetting validation and access checks before saving.
+    
+- Using static service access throughout production code instead of dependency injection.
+    
+
+---
+
+# Block 11 — Plugin API
+
+## 11.1. What is the Plugin API?
+
+The Plugin API allows Drupal to discover and instantiate interchangeable components that implement a particular type of functionality.
+
+A plugin is an object that follows a defined contract and is managed by a plugin manager.
+
+Examples of Drupal plugins include:
+
+- Blocks.
+    
+- Field formatters.
+    
+- Field widgets.
+    
+- Views plugins.
+    
+- Queue workers.
+    
+- Image effects.
+    
+- Conditions and actions.
+    
+- Many other extension points.
+    
+
+Plugins allow modules to provide additional functionality without changing the code of the component that uses them.
+
+For example, Drupal's Block system can discover block plugins from core and contributed modules. A site builder can then place compatible blocks through the administration interface.
+
+## 11.2. How the Plugin API works
+
+The main components are:
+
+1. **Plugin definition** — metadata describing the plugin.
+    
+2. **Plugin discovery** — finds available plugin definitions.
+    
+3. **Plugin manager** — discovers definitions and creates plugin instances.
+    
+4. **Plugin factory** — constructs a plugin object.
+    
+5. **Plugin instance** — performs the actual work.
+    
+
+Conceptually:
+
+```php
+Plugin definition
+       |
+       v
+Plugin discovery
+       |
+       v
+Plugin manager
+       |
+       v
+Plugin factory
+       |
+       v
+Plugin instance
+       |
+       v
+Plugin behavior
+```
+
+The precise implementation varies by plugin type. Some plugin managers use attributes, annotations, YAML, or other discovery mechanisms.
+
+## 11.3. Plugin definitions
+
+A plugin definition describes properties such as:
+
+- Plugin ID.
+    
+- Human-readable label.
+    
+- Description.
+    
+- Category.
+    
+- Supported options.
+    
+- Other plugin-type-specific metadata.
+    
+
+For example, a block plugin may define its ID and administrative label.
+
+The plugin ID is usually a stable machine-readable identifier. Other code can refer to the plugin by that ID.
+
+Changing a plugin ID can affect configuration and references to that plugin, so IDs should be chosen carefully.
+
+## 11.4. Creating a custom block plugin
+
+A block is a common example of a Drupal plugin.
+
+Create a class in:
+
+```php
+modules/custom/drupaljira_board/src/Plugin/Block/ProjectSummaryBlock.php
+```
+
+Example for Drupal versions supporting plugin attributes:
+
+```php
+<?php
+
+namespace Drupal\drupaljira_board\Plugin\Block;
+
+use Drupal\Core\Block\Attribute\Block;
+use Drupal\Core\Block\BlockBase;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
+
+/**
+ * Provides a project summary block.
+ */
+#[Block(
+  id: 'drupaljira_board_project_summary',
+  admin_label: new TranslatableMarkup('Project summary'),
+  category: new TranslatableMarkup('DrupalJira'),
+)]
+final class ProjectSummaryBlock extends BlockBase {
+
+  public function build(): array {
+    return [
+      '#markup' => $this->t('Project summary'),
+    ];
+  }
+
+}
+```
+
+The attribute provides the block plugin's definition. `BlockBase` supplies common block functionality, while `build()` returns a render array.
+
+This block is intentionally minimal. A real implementation could retrieve project statistics through an injected service.
+
+After adding a plugin, rebuild Drupal's cache so that plugin discovery can find it:
+
+```php
+drush cr
+```
+
+You can then look for the block in the block layout administration interface.
+
+## 11.5. Why plugins are useful
+
+Suppose a task-management application needs different ways to display a task's status:
+
+- A colored label.
+    
+- An icon.
+    
+- A progress indicator.
+    
+
+A plugin-based design can allow each formatter to implement the same contract while providing different output.
+
+The system that uses the formatter does not need to know the internal implementation of every formatter. It relies on the plugin type's contract.
+
+This makes the system extensible: new modules can provide additional implementations without modifying the original consumer.
+
+## 11.6. Plugin managers
+
+A plugin manager coordinates plugin discovery and creation.
+
+Drupal provides plugin managers for built-in plugin types. For example, the block manager manages block plugins.
+
+A plugin manager can be retrieved from the relevant service, often through a service such as `plugin.manager.block`.
+
+Example:
+
+```php
+$blockManager = \Drupal::service('plugin.manager.block');
+
+$definitions = $blockManager->getDefinitions();
+```
+
+This example retrieves block plugin definitions. In production code, inject the required plugin manager or a more specific service when appropriate.
+
+A plugin definition is not the same as a plugin instance. Definitions describe available plugins; instances are created for use.
+
+## 11.7. Creating a plugin instance
+
+Plugin managers can create plugin instances using the factory appropriate to the plugin type.
+
+For a block plugin, the instance may require configuration and a plugin ID:
+
+```php
+$block = $blockManager->createInstance(
+  'drupaljira_board_project_summary',
+  [],
+);
+
+$build = $block->build();
+```
+
+This is an illustrative example of creating a block plugin. In normal Drupal page rendering, the Block system handles placement, configuration, access, and rendering. Manually creating a block does not automatically reproduce the entire block placement workflow.
+
+## 11.8. Dependency injection in plugins
+
+Plugins often need services such as:
+
+- Entity type managers.
+    
+- Current user services.
+    
+- Time services.
+    
+- Database connections.
+    
+- Custom business services.
+    
+
+Plugins that need services commonly implement `ContainerFactoryPluginInterface` and provide a `create()` factory method.
+
+Example:
+
+```php
+<?php
+
+namespace Drupal\drupaljira_board\Plugin\Block;
+
+use Drupal\Core\Block\Attribute\Block;
+use Drupal\Core\Block\BlockBase;
+use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
+
+#[Block(
+  id: 'drupaljira_board_task_count',
+  admin_label: new TranslatableMarkup('Task count'),
+  category: new TranslatableMarkup('DrupalJira'),
+)]
+final class TaskCountBlock extends BlockBase implements ContainerFactoryPluginInterface {
+
+  public function __construct(
+    array $configuration,
+    $plugin_id,
+    $plugin_definition,
+    private readonly EntityTypeManagerInterface $entityTypeManager,
+  ) {
+    parent::__construct(
+      $configuration,
+      $plugin_id,
+      $plugin_definition,
+    );
+  }
+
+  public static function create(
+    ContainerInterface $container,
+    array $configuration,
+    $plugin_id,
+    $plugin_definition,
+  ): static {
+    return new static(
+      $configuration,
+      $plugin_id,
+      $plugin_definition,
+      $container->get('entity_type.manager'),
+    );
+  }
+
+  public function build(): array {
+    $count = $this->entityTypeManager
+      ->getStorage('node')
+      ->getQuery()
+      ->condition('type', 'task')
+      ->accessCheck(FALSE)
+      ->count()
+      ->execute();
+
+    return [
+      '#markup' => $this->t('Tasks: @count', [
+        '@count' => $count,
+      ]),
+    ];
+  }
+
+}
+```
+
+This example illustrates plugin dependency injection and entity counting. The access check is disabled because the example counts all task nodes at the storage-query level. That choice may be appropriate for a trusted administrative summary, but it is not automatically suitable for a block displayed to every user.
+
+For a public block, consider whether the count should be restricted to accessible tasks, whether the count reveals sensitive information, and how the result should be cached.
+
+Also, a block that displays data depending on permissions or the current user needs appropriate cache contexts. The example omits that production detail for clarity.
+
+## 11.9. Plugin configuration
+
+Some plugin types accept configuration.
+
+For example, a block instance can have configuration specific to its placement. A field formatter can have settings such as a date format or a number of displayed items.
+
+Plugin configuration is not always the same as the plugin definition:
+
+- **Plugin definition** describes the implementation.
+    
+- **Plugin configuration** describes how a particular instance is configured.
+    
+
+A block plugin may be implemented once but placed several times with different settings.
+
+## 11.10. Attributes and annotations
+
+Drupal's plugin system has traditionally used annotations in PHP docblocks for plugin discovery. Modern Drupal versions also support PHP attributes for many plugin types.
+
+Annotation-style example:
+
+```php
+/**
+ * Provides an example block.
+ *
+ * @Block(
+ *   id = "example_block",
+ *   admin_label = @Translation("Example block")
+ * )
+ */
+```
+
+Attribute-style example:
+
+```php
+#[Block(
+  id: 'example_block',
+  admin_label: new TranslatableMarkup('Example block'),
+)]
+```
+
+Use the discovery mechanism supported by the plugin type and Drupal version. Do not assume every plugin type uses the same definition format.
+
+When maintaining an existing module, follow its established conventions unless there is a specific reason to migrate.
+
+## 11.11. Plugins versus services
+
+Services and plugins solve related but different problems.
+
+| Feature          | Services                                               | Plugins                                                  |
+| ---------------- | ------------------------------------------------------ | -------------------------------------------------------- |
+| Main purpose     | Provide reusable application functionality             | Provide interchangeable implementations of a plugin type |
+| Discovery        | Usually registered in service definitions              | Discovered by a plugin manager                           |
+| Typical examples | Logger, entity type manager, custom business service   | Block, formatter, queue worker                           |
+| Creation         | Managed by the service container                       | Usually managed by a plugin manager and factory          |
+| Configuration    | Service definitions and service-specific configuration | Plugin definitions and often per-instance configuration  |
+
+A plugin can depend on services. The two systems complement each other rather than replace one another.
+
+## 11.12. When to create a plugin
+
+Consider creating a plugin when:
+
+- A system needs multiple interchangeable implementations.
+    
+- New modules should be able to extend a feature.
+    
+- Each implementation follows a shared contract.
+    
+- Drupal already provides a suitable plugin type.
+    
+
+A normal service or class may be more appropriate when there is only one implementation and no need for plugin discovery or interchangeable behavior.
+
+## 11.13. Common Plugin API mistakes
+
+- Forgetting the plugin namespace or expected directory structure.
+    
+- Using a plugin ID that conflicts with another implementation.
+    
+- Assuming a plugin definition is a plugin instance.
+    
+- Forgetting to rebuild caches after adding a plugin.
+    
+- Accessing services globally when dependency injection is appropriate.
+    
+- Implementing `ContainerFactoryPluginInterface` without a correct factory method.
+    
+- Assuming a custom plugin is automatically placed or executed.
+    
+- Forgetting access control and cache metadata in plugin output.
+    
+- Creating a plugin type when a simple service would be sufficient.
+    
+
+---
+
+# Block 12 — Batch API, Cron API, and Queue API
+
+## 12.1. Why Drupal provides these APIs
+
+Some operations take too long or require too much processing to execute comfortably during a single normal page request.
+
+Examples include:
+
+- Importing thousands of records.
+    
+- Recalculating project statistics.
+    
+- Processing uploaded files.
+    
+- Sending a large number of notifications.
+    
+- Synchronizing data with an external API.
+    
+- Cleaning up old records.
+    
+- Performing scheduled maintenance.
+    
+
+Drupal provides different mechanisms for these workloads.
+
+- **Batch API** — divides a long operation into steps and reports progress to the user.
+    
+- **Cron API** — executes scheduled maintenance tasks.
+    
+- **Queue API** — stores work items so that they can be processed separately from the original operation.
+    
+
+They solve different problems and are often used together.
+
+## 12.2. Batch API
+
+The Batch API breaks a long operation into smaller steps.
+
+Instead of processing every record in one request, Drupal processes a number of operations and displays progress between steps.
+
+Typical use cases include:
+
+- Bulk updating content.
+    
+- Importing many records.
+    
+- Rebuilding data structures.
+    
+- Performing an administrative cleanup.
+    
+
+A batch definition contains operations, callbacks, and optionally a finished callback.
+
+## 12.3. Creating a batch
+
+For example, suppose an administrator needs to process many task IDs.
+
+```php
+$operations = [];
+
+foreach ($taskIds as $taskId) {
+  $operations[] = [
+    '\Drupal\drupaljira_board\Batch\TaskBatch::processTask',
+    [$taskId],
+  ];
+}
+
+$batch = [
+  'title' => t('Processing tasks'),
+  'operations' => $operations,
+  'finished' => '\Drupal\drupaljira_board\Batch\TaskBatch::finished',
+];
+
+batch_set($batch);
+```
+
+This example assumes that `$taskIds` contains the IDs that should be processed.
+
+The operation callback receives the arguments supplied in the operation definition, followed by the batch context parameter.
+
+## 12.4. Batch operation callback
+
+A simplified callback:
+
+```php
+<?php
+
+namespace Drupal\drupaljira_board\Batch;
+
+final class TaskBatch {
+
+  public static function processTask(
+    int $taskId,
+    array &$context,
+  ): void {
+    $context['results']['processed'][] = $taskId;
+
+    // Load and process the task here.
+    // Keep each operation small and safe to retry.
+  }
+
+  public static function finished(
+    bool $success,
+    array $results,
+    array $operations,
+  ): void {
+    if ($success) {
+      // Report successful completion.
+    }
+    else {
+      // Report that the batch did not complete successfully.
+    }
+  }
+
+}
+```
+
+This is an illustrative callback structure. The actual implementation should load the required entities or services, perform the operation, and handle errors appropriately.
+
+Batch context can store shared information between operations:
+
+- `results` — results collected during processing.
+    
+- `message` — the current progress message.
+    
+- `sandbox` — persistent intermediate state for a long-running operation callback.
+    
+
+The Batch API manages the sequence of operations. A single operation can also use sandbox state to divide its own work into smaller chunks.
+
+## 12.5. Batch sandbox
+
+Sometimes a single operation needs to process many records. Rather than creating one operation for every record, the callback can process a small chunk and store its progress in `$context['sandbox']`.
+
+Conceptually:
+
+```php
+public static function processLargeDataset(
+  array &$context,
+): void {
+  if (!isset($context['sandbox']['offset'])) {
+    $context['sandbox']['offset'] = 0;
+  }
+
+  // Process a limited number of records.
+  // Update the offset and progress information.
+  // Set $context['finished'] when the work is complete.
+}
+```
+
+For sandbox-based operations, `$context['finished']` communicates completion progress. A value below `1` indicates that the operation has more work to do; `1` indicates completion.
+
+This is only a structural illustration. A complete callback must fetch the next chunk, process it, update its progress, and ensure that the operation eventually finishes.
+
+## 12.6. Batch API limitations
+
+Batch API is useful for user-triggered work that can be processed through Drupal's request and response lifecycle.
+
+However, it is not a universal background job system.
+
+For very large or time-consuming workloads, consider the Queue API, a dedicated worker, or another asynchronous processing mechanism.
+
+The Batch API also does not automatically make an operation safe to repeat. Callbacks should be designed with partial failures and retries in mind.
+
+---
+
+## 12.7. Cron API
+
+Cron is used for scheduled maintenance and periodic tasks.
+
+Typical examples include:
+
+- Removing expired data.
+    
+- Cleaning up temporary files.
+    
+- Processing scheduled maintenance.
+    
+- Running periodic module tasks.
+    
+- Initiating queue processing.
+    
+- Performing other recurring operations.
+    
+
+Drupal's cron system runs registered maintenance work. The exact execution frequency depends on how cron is triggered and the site's configuration.
+
+Cron is not a real-time scheduler. A task configured to run during cron processing may execute later than its intended interval if cron is not triggered frequently enough.
+
+## 12.8. Implementing `hook_cron()`
+
+A custom module can implement `hook_cron()` in its `.module` file.
+
+For example, in `drupaljira_board.module`:
+
+```php
+/**
+ * Implements hook_cron().
+ */
+function drupaljira_board_cron(): void {
+  // Perform a small amount of scheduled maintenance.
+}
+```
+
+Drupal invokes this hook during cron processing.
+
+Keep cron hooks efficient. A long-running loop inside `hook_cron()` can make the entire cron run slow or cause timeouts.
+
+For larger workloads, enqueue work and process it separately.
+
+## 12.9. Triggering cron
+
+Cron can be triggered through Drupal's administration interface, Drush, or an external scheduler.
+
+For example:
+
+```php
+drush cron
+```
+
+In a DDEV environment, the command may be run through:
+
+```php
+ddev drush cron
+```
+
+For a production site, cron is commonly triggered by a server scheduler or an appropriate external mechanism. The configuration should match the deployment environment and required execution frequency.
+
+A reliable production setup should monitor whether cron is actually running, rather than merely assuming it is configured.
+
+## 12.10. Queue API
+
+The Queue API stores individual units of work that can be processed independently.
+
+A queue is useful when the system needs to accept work quickly and process it later.
+
+For example, when a task changes status, the application might enqueue a notification job instead of sending a slow email during the status-change request.
+
+Conceptually:
+
+```php
+User changes task status
+          |
+          v
+Validate and save the task
+          |
+          v
+Create a queue item
+          |
+          v
+Worker processes the item later
+          |
+          v
+Send notification
+```
+
+This helps separate the primary business operation from secondary work.
+
+## 12.11. Creating a queue item
+
+Drupal provides the `queue` service.
+
+```php
+$queue = \Drupal::queue('drupaljira_board_notifications');
+
+$queue->createItem([
+  'task_id' => 42,
+  'event' => 'status_changed',
+]);
+```
+
+This is a simplified example. In production code, inject the queue factory or another appropriate dependency instead of calling `\Drupal::queue()` directly.
+
+Queue items should contain the minimum information required to perform the work. Storing an entity ID and loading the current entity later is often preferable to serializing a complex entity object into the queue item.
+
+Remember that the entity may have changed or been deleted by the time the item is processed. The worker must handle such cases.
+
+## 12.12. Queue workers
+
+A QueueWorker plugin defines how queue items are processed.
+
+Create a class in:
+
+```php
+modules/custom/drupaljira_board/src/Plugin/QueueWorker/TaskNotificationWorker.php
+```
+
+Example using the traditional annotation-based plugin definition:
+
+```php
+<?php
+
+namespace Drupal\drupaljira_board\Plugin\QueueWorker;
+
+use Drupal\Core\Queue\QueueWorkerBase;
+
+/**
+ * Processes task notification queue items.
+ *
+ * @QueueWorker(
+ *   id = "drupaljira_board_notifications",
+ *   title = @Translation("Task notifications"),
+ *   cron = {"time" = 60}
+ * )
+ */
+final class TaskNotificationWorker extends QueueWorkerBase {
+
+  public function processItem($data): void {
+    $taskId = $data['task_id'] ?? NULL;
+
+    if (!$taskId) {
+      return;
+    }
+
+    // Load the task and process the notification.
+    // Handle deleted tasks and temporary failures appropriately.
+  }
+
+}
+```
+
+The plugin ID must match the queue name used when creating the item.
+
+The `cron` setting indicates that Drupal's cron queue processing can allocate time to this worker. The value is a time budget in seconds, not a guarantee that every item will be processed within that period.
+
+This example is intentionally minimal. A production worker should inject its dependencies, validate queue item data, and implement its actual business logic.
+
+## 12.13. Processing queue items
+
+Drupal's queue system typically follows a lifecycle:
+
+1. An item is created.
+    
+2. A worker claims an available item.
+    
+3. The worker processes it.
+    
+4. The item is deleted after successful processing by the queue processing mechanism.
+    
+5. If processing fails or the item is not completed, it may become available for later processing depending on the queue backend and processing behavior.
+    
+
+A queue item may be processed more than once. Therefore, queue workers should ideally be **idempotent**.
+
+An operation is idempotent when repeating it does not cause unintended additional effects.
+
+For example, sending a payment twice because a queue item was retried is dangerous. A robust system needs a way to recognize that the payment operation has already been completed.
+
+Likewise, sending a notification may require a unique operation ID or another mechanism to avoid duplicate messages.
+
+## 12.14. Queue backends
+
+Drupal provides queue abstractions that can be implemented by different backends.
+
+The database queue is a common default. Other backends may provide different performance or reliability characteristics.
+
+A queue abstraction allows application code to work with queue items without directly implementing storage and claiming behavior.
+
+However, the queue backend influences operational details such as concurrency, recovery, and scalability. Choose a backend that matches the application's reliability and throughput requirements.
+
+## 12.15. Dependency injection in queue workers
+
+Queue workers are plugins and can use dependency injection.
+
+For example, a worker might need the entity type manager and a notification service.
+
+A production implementation can use `ContainerFactoryPluginInterface` and a `create()` factory method, just as other Drupal plugins do.
+
+This makes the worker easier to test and prevents business logic from depending directly on global service access.
+
+## 12.16. Cron versus Queue versus Batch
+
+| Feature              | Batch API                                          | Cron API                             | Queue API                                               |
+| -------------------- | -------------------------------------------------- | ------------------------------------ | ------------------------------------------------------- |
+| Primary purpose      | Long-running operations with user-visible progress | Scheduled maintenance                | Deferred units of work                                  |
+| Typical trigger      | User or administrator starts an operation          | Scheduler or manual trigger          | Items are enqueued; a worker processes them             |
+| Progress UI          | Usually available                                  | Usually not user-facing              | Usually not user-facing                                 |
+| Processing model     | Operations processed through the batch workflow    | Scheduled callbacks and maintenance  | Independent queue items                                 |
+| Best for             | Bulk updates and imports started by a user         | Periodic cleanup and scheduled tasks | Notifications, synchronization, and deferred processing |
+| Retry considerations | Operations                                         |                                      |                                                         |
+
+---
 
