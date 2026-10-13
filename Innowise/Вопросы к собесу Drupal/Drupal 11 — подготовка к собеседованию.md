@@ -2,31 +2,37 @@
 custom-width: 80
 ---
 ---
+## Темы
 
-| Тема                     | За что отвечает                          | Где в DrupalJira                                  |
-| ------------------------ | ---------------------------------------- | ------------------------------------------------- |
-| Multilingual             | языки интерфейса, контента, конфигурации | переводимые заголовки, статусы, сообщения         |
-| REST / JSON:API          | доступ к данным по HTTP                  | внешний клиент, список задач                      |
-| Configuration Management | перенос настроек между окружениями       | типы Project/Task, поля, роли, Views              |
-| Services & DI            | переиспользуемая логика и зависимости    | `TaskStatService`                                 |
-| Performance              | кеш, запросы, масштабирование            | сводка по задачам, N+1 по проектам                |
-| Testing                  | проверка поведения и доступа             | Kernel-тест `TaskStatService`, тесты доступа      |
-| Security                 | доступ, CSRF, XSS, SQL                   | смена статуса чужой задачи                        |
-| Multisite                | несколько сайтов на одной кодовой базе   | (теоретически)                                    |
-| Events API               | реакция на события без жёстких связей    | `TaskStatusChangedEvent`                          |
-| Entity API               | CRUD данных, bundles, query              | node `project`/`task`, entity `time_log`          |
-| Plugin API               | взаимозаменяемые компоненты              | блок «Task Summary»                               |
-| Batch / Cron / Queue     | долгие и фоновые операции                | update hook 10001, уведомления                    |
-| Migration API            | перенос данных из внешних источников     | старые статусы → новые                            |
-| Field API                | структура данных сущностей               | `field_status`, `field_estimate`, `field_project` |
-| Authentication API       | кто делает запрос                        | внешняя интеграция                                |
+|Тема|За что отвечает|Где в DrupalJira|
+|---|---|---|
+|Multilingual|языки интерфейса, контента, конфигурации|переводимые заголовки, статусы, сообщения|
+|REST / JSON:API|доступ к данным по HTTP|внешний клиент, список задач|
+|Configuration Management|перенос настроек между окружениями|типы Project/Task, поля, роли, Views|
+|Services & DI|переиспользуемая логика и зависимости|`TaskStatService`|
+|Performance|кеш, запросы, масштабирование|сводка по задачам, N+1 по проектам|
+|Testing|проверка поведения и доступа|Kernel-тест `TaskStatService`, тесты доступа|
+|Security|доступ, CSRF, XSS, SQL|смена статуса чужой задачи|
+|Multisite|несколько сайтов на одной кодовой базе|(теоретически)|
+|Events API|реакция на события без жёстких связей|`TaskStatusChangedEvent`|
+|Entity API|CRUD данных, bundles, query|node `project`/`task`, entity `time_log`|
+|Plugin API|взаимозаменяемые компоненты|блок «Task Summary»|
+|Batch / Cron / Queue|долгие и фоновые операции|update hook 10001, уведомления|
+|Migration API|перенос данных из внешних источников|старые статусы → новые|
+|Field API|структура данных сущностей|`field_status`, `field_estimate`, `field_project`|
+|Authentication API|кто делает запрос|внешняя интеграция|
 
 ---
 
 ## Блок 1. Мультиязычность (Multilingual)
 
-> [!abstract] Кратко 
-> Drupal разделяет **язык интерфейса**, **язык контента** и **язык конфигурации**. Язык запроса определяет _language negotiation_; перевод живёт на уровне сущности и поля; кеш обязан учитывать язык.
+> [!abstract] Кратко
+> 
+> В Drupal мультиязычность состоит из трёх независимых слоёв: язык интерфейса (системные строки и сообщения), язык контента (переводы сущностей и их полей) и язык конфигурации (метки полей, названия типов материалов).
+> 
+> Язык текущего запроса определяет механизм language negotiation: по префиксу URL, домену, предпочтениям пользователя или заголовку браузера Accept-Language. Переводится не обязательно вся сущность целиком: часть полей может быть общей для всех переводов.
+> 
+> И последнее, что важно помнить: кеш должен учитывать язык, иначе пользователь получит страницу на чужом языке.
 
 ### 1.1. Общая концепция
 
@@ -180,8 +186,11 @@ $text = $this->formatPlural($count, '1 task', '@count tasks');
 
 Язык влияет на результат рендеринга, поэтому кеш должен учитывать языковой контекст. Используются cache contexts `languages:language_interface` и `languages:language_content`. Если компонент выводит заголовок переведённой статьи, кеш не должен отдавать английский вариант русскому запросу. Контекст добавляется в `#cache` render array либо «всплывает» (bubbling) из вложенных элементов (см. Блок 5).
 
-> [!example] DrupalJira 
-> Статусы задач (`backlog`, `in_progress`, …) хранятся как машинные значения, а подписи выводятся через перевод. Сообщения в `TaskStatService` и формах — через `$this->t()`. Блок «Task Summary» должен иметь контекст `languages:language_interface`.
+> [!example] DrupalJira
+> 
+> В DrupalJira статусы задач (backlog, in_progress, review, done) логично хранить как машинные значения, а подписи показывать через перевод. Тогда фильтры, Views и логика не зависят от языка интерфейса.
+> 
+> Сообщения в формах и в сервисах вроде TaskStatService оборачиваются в $this->t() с подстановками, а не склеиваются из кусочков. Блоку со сводкой по задачам нужен cache context languages:language_interface, иначе русский пользователь может получить закешированную английскую версию.
 
 > [!warning] Типичные ошибки
 > 
@@ -193,15 +202,25 @@ $text = $this->formatPlural($count, '1 task', '@count tasks');
 > - Переводить machine names полей и конфигурационных объектов.
 > - Предполагать одинаковое поведение fallback для всех типов данных.
 
-> [!tip] Interview answer (EN) 
-> Drupal separates interface, content and configuration languages. The language of a request is resolved by language negotiation; entities and fields can be translatable, with non-translatable fields shared across translations. UI strings go through `t()`, and render caches must vary by language context.
+> [!tip] Ответ на собеседовании (EN)
+> 
+> In Drupal, multilingual support has three separate layers: interface language, content language and configuration language. The language of each request is resolved by language negotiation, which can use the URL prefix, the domain, the user's preference or the browser's Accept-Language header.
+> 
+> Entities and fields can be translatable. A translation is not a separate node: it lives on the same entity with the same ID, and non-translatable fields are shared between all translations. In code I always check hasTranslation() before getTranslation(), because getTranslation() does not create a translation.
+> 
+> All user-facing strings go through t() with placeholders, so translators can reorder words. Finally, render caches must vary by language through cache contexts, otherwise one user can see another language's cached output.
+> 
+> По-русски: три слоя языков, язык запроса определяет negotiation, перевод живёт на одной сущности, строки через t(), кеш с языковым контекстом.
 
 ---
 
 ## Блок 2. REST API
 
-> [!abstract] Кратко 
-> REST в Drupal — это не «вернуть JSON». Есть три пути: **core REST** (плагины `ResourceBase`), **JSON:API** (стандартный API сущностей) и **собственные маршруты**. Везде обязательны аутентификация, авторизация, валидация, кеш-метаданные и корректные коды ответов.
+> [!abstract] Кратко
+> 
+> REST в Drupal — это не просто «вернуть JSON». Есть три основных пути: REST-модуль ядра с плагинами ресурсов, JSON:API для стандартных операций с сущностями и собственные маршруты с контроллерами.
+> 
+> Какой бы путь ни выбрали, нужны аутентификация, авторизация, валидация входных данных, корректные HTTP-коды и метаданные кеша.
 
 ### 2.1. Что такое REST
 
@@ -378,8 +397,11 @@ Serialization API преобразует данные между PHP-предс�
 
 Если фронтенд находится на другом домене, нужен **CORS**: параметр `cors.config` в `services.yml` (`enabled`, `allowedOrigins`, `allowedMethods`, `allowedHeaders`, `supportsCredentials`).
 
-> [!example] DrupalJira 
-> Для внешнего клиента списка задач проще всего JSON:API (`/jsonapi/node/task`). Операция «сменить статус с проверкой workflow» — отдельный REST Resource или маршрут с проверкой `access('update')` и допустимости перехода.
+> [!example] DrupalJira
+> 
+> Если внешнему клиенту (например, React-фронтенду) нужен список задач и связанные проекты, проще всего отдать это через JSON:API: запрос вида /jsonapi/node/task с фильтром по статусу и include проекта.
+> 
+> Если нужна специальная бизнес-операция, например «сменить статус с проверкой допустимого перехода workflow», я бы сделал отдельный REST Resource или маршрут, где явно проверяется доступ к конкретной задаче, допустимость перехода и CSRF для cookie-запросов.
 
 > [!warning] Типичные ошибки
 > 
@@ -392,15 +414,25 @@ Serialization API преобразует данные между PHP-предс�
 > - Использовать неподходящие HTTP-методы (например, `GET` для изменения).
 > - Кешировать персональные ответы без контекстов.
 
-> [!tip] Interview answer (EN) 
-> For standard entity data I would start with JSON:API; for custom business operations I'd write a REST Resource plugin or a custom route. Either way, authentication only identifies the caller — I still check route and entity access, validate input, return proper status codes, and set cache metadata.
+> [!tip] Ответ на собеседовании (EN)
+> 
+> For standard entity data I would start with JSON:API, because it is in core, follows a specification and already supports filtering, includes and pagination. For a custom business operation I would write a REST Resource plugin or a custom route with a controller.
+> 
+> In both cases authentication only tells me who the caller is. I still check route and entity access, validate the input, return correct status codes such as 403 or 422, and avoid leaking internal errors.
+> 
+> I also think about caching: responses need cacheability metadata, personalised responses must not go to a shared cache, and if the frontend is on another domain I configure CORS.
+> 
+> По-русски: стандартные данные — JSON:API, спец-операции — REST Resource или маршрут; всегда доступ, валидация, коды ответов, кеш и CORS.
 
 ---
 
 ## Блок 3. Configuration Management
 
-> [!abstract] Кратко 
-> Configuration Management хранит **настройки и устройство сайта** в YAML и переносит их между окружениями через Git. Контент (рабочие данные) в конфигурацию не входит. Код + конфигурация деплоятся вместе.
+> [!abstract] Кратко
+> 
+> Configuration Management хранит настройки и устройство сайта в YAML-файлах и позволяет переносить их между окружениями через Git. В конфигурацию входят типы материалов, поля, Views, роли и разрешения. Контент (сами задачи, проекты, записи времени) в конфигурацию не входит.
+> 
+> Идея в том, что код и конфигурация разворачиваются вместе, а на каждом окружении отдельно задаются только секреты и параметры инфраструктуры.
 
 ### 3.1. Назначение
 
@@ -561,7 +593,11 @@ function example_update_10001(): void {
 - **Config Split** (contrib) — разные наборы конфигурации для окружений (например, dev-модули включены только локально).
 - **Config Ignore** (contrib) — исключает объекты из импорта/экспорта.
 
-> [!example] DrupalJira Типы `project`/`task`, поля `field_status`, `field_estimate`, `field_project`, роли и Views экспортируются в Git. Записи `time_log` и сами задачи — контент, в CM не входят. Новая схема сущности `time_log` доставляется update hook'ом, а не импортом.
+> [!example] DrupalJira
+> 
+> В DrupalJira типы Project и Task, поля field_status, field_estimate, field_project, роли и Views экспортируются в Git командой drush cex и импортируются на тестовом и боевом сайте командой drush cim.
+> 
+> Сами задачи и записи time_log — это контент, поэтому при деплое они не переезжают. А изменение структуры уже существующих данных (например, начальные значения для старых задач) делается update hook, как в drupaljira_timelog_update_10001, а не конфигурацией.
 
 > [!warning] Типичные ошибки
 > 
@@ -574,13 +610,25 @@ function example_update_10001(): void {
 > - Импортировать без просмотра изменений (`drush cst`).
 > - Хранить секреты в репозитории.
 
-> [!tip] Interview answer (EN) Configuration Management exports site settings — content types, fields, views, roles — to YAML so they can be versioned in Git and imported on other environments. Content is not configuration. For existing sites, schema changes need update hooks, and secrets stay out of the repo, set per environment.
+> [!tip] Ответ на собеседовании (EN)
+> 
+> Configuration Management lets me export site configuration, such as content types, fields, views and roles, to YAML files, commit them to Git and import them on other environments. Content is not configuration, so nodes and custom entities are not transferred this way.
+> 
+> A typical deployment is: update the code, run database updates, import configuration and clear caches. Before importing I review the differences with drush config:status, because an import can also delete configuration objects.
+> 
+> Secrets and environment-specific values stay out of the repository and are set in settings.php or environment variables. When existing data has to change, I use update hooks, because config import only changes configuration.
+> 
+> По-русски: настройки в YAML через Git (cex/cim), контент не входит, секреты вне репозитория, данные существующих сайтов — update hooks.
 
 ---
 
 ## Блок 4. Services и Dependency Injection
 
-> [!abstract] Кратко **Service** — объект с определённой функциональностью, зарегистрированный в **Service Container**. **DI** — зависимости передаются объекту извне (чаще всего через конструктор). Так код переиспользуем и тестируем.
+> [!abstract] Кратко
+> 
+> Service — это объект с определённой функциональностью, который зарегистрирован в service container и может использоваться разными частями Drupal. Dependency Injection — принцип, при котором класс получает зависимости извне, чаще всего через конструктор, а не создаёт их сам.
+> 
+> Это делает код переиспользуемым, слабо связанным и легко тестируемым: в тесте зависимость можно заменить.
 
 ### 4.1. Что такое Service
 
@@ -761,14 +809,11 @@ final class TaskController extends ControllerBase {
 
 Для небольшой локальной операции сервис лишь усложняет проект.
 
-> [!example] DrupalJira `TaskStatService` — типичный сервис: считает залогированные часы, остаток оценки и статистику проектов, зависит от `entity_type.manager` и, возможно, `database`. Его используют блок, контроллер и update hook. Регистрация (иллюстративно, сверьте с реальным кодом):
+> [!example] DrupalJira
 > 
-> ```yaml
-> services:
->   drupaljira_timelog.task_stat:
->     class: Drupal\drupaljira_timelog\TaskStatService
->     arguments: ['@entity_type.manager', '@database']
-> ```
+> TaskStatService в DrupalJira — типичный пример сервиса: он считает залогированные часы, остаток оценки и статистику по проекту. Его можно использовать и в блоке, и в контроллере, и в update hook, не дублируя расчёты.
+> 
+> Свои зависимости, например entity_type.manager, он получает через конструктор, а в блок и контроллер сам сервис внедряется через create(). Благодаря этому его можно протестировать в Kernel-тесте или подменить зависимости в unit-тесте.
 
 > [!warning] Типичные ошибки
 > 
@@ -780,13 +825,25 @@ final class TaskController extends ControllerBase {
 > - Зависеть от конкретных классов там, где достаточно интерфейса.
 > - Считать, что все объекты Drupal создаются одинаково.
 
-> [!tip] Interview answer (EN) A service is a reusable object registered in the service container; dependency injection means a class receives its collaborators through the constructor instead of calling `\Drupal::service()`. Controllers and forms use `create()`, plugins use `ContainerFactoryPluginInterface`. It keeps classes loosely coupled and easy to unit-test.
+> [!tip] Ответ на собеседовании (EN)
+> 
+> A service is a reusable object registered in the service container, and dependency injection means that a class receives its dependencies through the constructor instead of creating them or calling \Drupal::service() directly. It keeps classes loosely coupled and makes them easy to test.
+> 
+> I register my own services in the module's services.yml with their arguments. Controllers and forms get services through the create() method, and plugins use ContainerFactoryPluginInterface, because a plugin manager creates them, not the container directly.
+> 
+> I do not create a service for every small function. A service makes sense when the logic has its own responsibility, is used in several places or needs to be tested in isolation.
+> 
+> По-русски: сервис регистрируется в services.yml, зависимости передаются через конструктор; контроллеры и формы — create(), плагины — ContainerFactoryPluginInterface.
 
 ---
 
 ## Блок 5. Производительность и масштабирование (Performance & Scalability)
 
-> [!abstract] Кратко **Performance** — скорость при заданной нагрузке, **Scalability** — способность расти вместе с нагрузкой. Основа производительности Drupal — правильное кеширование (**contexts + tags + max-age**), отсутствие N+1 и вынос тяжёлой работы из HTTP-запроса. Оптимизацию начинают с измерений.
+> [!abstract] Кратко
+> 
+> Performance — это скорость при определённой нагрузке, scalability — способность расти вместе с нагрузкой. Основа производительности Drupal — правильное кеширование через три механизма: cache contexts (от чего зависит результат), cache tags (от каких данных) и max-age (сколько живёт).
+> 
+> Вторая группа проблем — лишние запросы к БД, в первую очередь N+1, и тяжёлая работа в HTTP-запросе. Любую оптимизацию начинают с измерений, а не с предположений.
 
 ### 5.1. Производительность и масштабирование
 
@@ -945,7 +1002,11 @@ Callback должен быть доверенным (`TrustedCallbackInterface`)
 
 Если два экземпляра независимо обрабатывают одну задачу, возможны дубли и конфликты.
 
-> [!example] DrupalJira Сводка по проекту (`TaskStatService`) на странице проекта: агрегатный SQL/Entity Query вместо загрузки всех `time_log` в цикле; cache tags на `node:{task}` и список `time_log`; context `user.roles`/язык. Рассылка уведомлений — через Queue, а не в запросе.
+> [!example] DrupalJira
+> 
+> Страница проекта с итогами по часам — хороший пример. Если для каждой из сотни задач отдельно загружать записи time_log, получится N+1. Лучше выбрать нужные записи одним запросом или агрегирующим SQL и посчитать суммы.
+> 
+> Результат кешируется с cache tags на изменяемые данные и нужными контекстами, например по ролям и языку. А тяжёлые операции, вроде рассылки уведомлений, уходят в очередь, а не выполняются в запросе.
 
 > [!warning] Типичные ошибки
 > 
@@ -958,13 +1019,25 @@ Callback должен быть доверенным (`TrustedCallbackInterface`)
 > - Масштабировать PHP, игнорируя ограничения БД.
 > - Кешировать персональные данные без контекстов и правил доступа.
 
-> [!tip] Interview answer (EN) I measure first, then fix. In Drupal that usually means correct cacheability metadata — contexts for variation, tags for invalidation, max-age for time limits — avoiding N+1 entity loads, adding indexes only after looking at the query plan, and moving heavy work to queues. Redis, a CDN or BigPipe help only on top of that.
+> [!tip] Ответ на собеседовании (EN)
+> 
+> I start with measuring: profiling, query logs and checking what is actually slow. In Drupal the most important tool is correct cacheability metadata. Cache contexts describe variations, cache tags describe dependencies for invalidation and max-age sets a time limit.
+> 
+> I avoid the N+1 problem by loading entities with loadMultiple or by using a single query instead of loading in a loop, and I add database indexes only after looking at the query plan. Heavy work such as sending emails goes into a queue.
+> 
+> Infrastructure helps on top of that: OPcache, Redis, a CDN or a reverse proxy, and BigPipe for personalised parts of a page. For scaling horizontally I have to think about the shared database, files, cache and running cron once.
+> 
+> По-русски: сначала измерения, потом контексты, теги и max-age, без N+1, индексы по плану запроса, тяжёлое — в очередь.
 
 ---
 
 ## Блок 6. Тестирование (Testing)
 
-> [!abstract] Кратко Тесты проверяют поведение и защищают от регрессий. В Drupal четыре уровня: **Unit** (изолированный код) → **Kernel** (ядро без браузера) → **Functional** (HTTP/браузероподобный) → **FunctionalJavascript** (с JS). Проверяйте каждую функциональность на самом простом уровне, который доказывает корректность. Права доступа тестируются обязательно.
+> [!abstract] Кратко
+> 
+> Тесты проверяют поведение кода и защищают от регрессий. В Drupal четыре уровня: Unit-тесты для изолированной логики, Kernel-тесты, которые поднимают ядро и тестовую БД, Functional-тесты через HTTP и FunctionalJavascript, когда нужен браузер с JS.
+> 
+> Правило простое: проверять функциональность на самом простом уровне, который подтверждает её корректность. И всегда тестировать права доступа, причём не только успешный сценарий.
 
 ### 6.1. Зачем нужны тесты
 
@@ -1131,7 +1204,11 @@ final class TaskAccessTest extends BrowserTestBase {
 - **PHPStan** (`phpstan-drupal`) — статический анализ;
 - **Nightwatch/Playwright** — для front-end сценариев (по необходимости).
 
-> [!example] DrupalJira Kernel-тест `TaskStatService`: создать Project и Task, добавить несколько `time_log`, проверить сумму часов и остаток оценки. Functional/Kernel-тест доступа: менеджер может создавать `time_log`, обычный пользователь — нет. Регрессия на update hook `10001`: состояние moderation у существующих задач.
+> [!example] DrupalJira
+> 
+> Для TaskStatService самый подходящий уровень — Kernel-тест: создать проект, задачу и несколько записей time_log и проверить сумму часов и остаток оценки на реальных сущностях.
+> 
+> Доступ к time_log проверяется Functional-тестом: менеджер проекта может создавать записи, обычный пользователь и аноним — нет. А для update hook 10001 полезен регрессионный тест, что у существующих задач корректно проставилось состояние moderation.
 
 > [!warning] Типичные ошибки
 > 
@@ -1144,13 +1221,25 @@ final class TaskAccessTest extends BrowserTestBase {
 > - Проверять детали реализации вместо поведения.
 > - Не запускать тесты после изменения конфигурации или схемы сущностей.
 
-> [!tip] Interview answer (EN) I test at the cheapest level that proves the behavior: unit tests for pure logic, kernel tests for services and entities against a real test database, functional tests for routes, forms and permissions. I always test both the allowed and the forbidden user, and run everything in CI together with PHPCS and PHPStan.
+> [!tip] Ответ на собеседовании (EN)
+> 
+> I test at the cheapest level that proves the behavior. Unit tests are for pure logic without Drupal, kernel tests are for services and entities against a real test database, and functional tests are for routes, forms and permissions in a simulated browser.
+> 
+> I avoid overusing mocks, because tests that only check implementation details are fragile. I always test both an allowed and a forbidden user, since access control is where Drupal bugs are most expensive.
+> 
+> Test data is created inside the test, so it does not depend on the state of a site. I run the tests in CI together with coding standards checks and static analysis like PHPCS and PHPStan.
+> 
+> По-русски: Unit → Kernel → Functional; не злоупотреблять моками; обязательно тесты доступа; данные создаём в тесте; всё в CI.
 
 ---
 
 ## Блок 7. Безопасность Drupal (Security)
 
-> [!abstract] Кратко Безопасность многоуровневая: **authentication → authorization → access control → input validation → output escaping → CSRF → SQL injection protection**. Главное правило: **не доверять пользовательским данным** и проверять доступ на сервере, а не в интерфейсе.
+> [!abstract] Кратко
+> 
+> Безопасность в Drupal многоуровневая: аутентификация, авторизация, контроль доступа, валидация входных данных, экранирование вывода, CSRF-защита и защита от SQL-инъекций. Главное правило — не доверять пользовательским данным и проверять доступ на сервере, а не в интерфейсе.
+> 
+> Наличие permission ещё не значит, что пользователь может работать с любой сущностью: доступ к конкретной задаче проверяется отдельно.
 
 ### 7.1. Основные принципы
 
@@ -1328,7 +1417,11 @@ $result = $connection->select('users_field_data', 'u')
 
 Нельзя считать запрос безопасным лишь потому, что кнопка видна только менеджеру.
 
-> [!example] DrupalJira Менеджер проекта меняет статусы задач только своего проекта: route `_entity_access: node.update` + проверка проекта в access handler/контроллере + допустимость перехода workflow + CSRF. Тест: пользователь из другого проекта получает `403`.
+> [!example] DrupalJira
+> 
+> Классический сценарий DrupalJira: пользователь пытается изменить статус чужой задачи, отправив запрос на /task/123/status. Недостаточно скрыть кнопку в интерфейсе.
+> 
+> Сервер должен проверить HTTP-метод, CSRF-токен, что пользователь вправе менять именно эту задачу, и что новый статус допустим для текущего workflow. Изменение сохраняется через Entity API. И я бы покрыл это тестом, где пользователь другого проекта получает 403.
 
 > [!warning] Типичные ошибки
 > 
@@ -1340,13 +1433,25 @@ $result = $connection->select('users_field_data', 'u')
 > - Выдавать лишние права «для удобства».
 > - Оставлять секреты и debug-вывод в production.
 
-> [!tip] Interview answer (EN) I never trust input and never rely on the UI: access is checked on the server at route and entity level, forms and custom routes are CSRF-protected, Twig auto-escapes output, queries go through the Database or Entity API with parameters, and permissions follow least privilege. I also cover allowed and forbidden cases with tests.
+> [!tip] Ответ на собеседовании (EN)
+> 
+> I never trust input and I never rely on the UI for security. Access is checked on the server at route level and at entity level, using permissions, access checkers and the Entity Access API.
+> 
+> For XSS I rely on Twig auto-escaping and render arrays, and I avoid the raw filter on user data. For SQL injection I use the Entity API or the Database API with placeholders, never string concatenation.
+> 
+> Forms are protected by Form API tokens, and custom routes that change data get CSRF protection too. I also follow least privilege, keep core and contrib updated, and cover allowed and forbidden cases with tests.
+> 
+> По-русски: доступ проверяю на сервере (маршрут + сущность), Twig экранирует, SQL только через API, CSRF, наименьшие привилегии, тесты.
 
 ---
 
 ## Блок 8. Multisite
 
-> [!abstract] Кратко **Multisite** — несколько Drupal-сайтов из одной кодовой базы (общие core, modules, themes), у каждого — свой каталог в `sites/`, свой `settings.php`, обычно своя БД и конфигурация. Удобно для похожих сайтов, рискованно при разных жизненных циклах.
+> [!abstract] Кратко
+> 
+> Multisite — это несколько Drupal-сайтов, работающих на одной кодовой базе: общие core, модули и темы. У каждого сайта свой каталог в sites/, свой settings.php, обычно своя база данных и своя конфигурация.
+> 
+> Он удобен для похожих сайтов, но ошибка или обновление в общем коде затрагивает все сайты сразу.
 
 ### 8.1. Что такое Multisite
 
@@ -1455,7 +1560,11 @@ Cron, очереди и обновления БД (`updb`) выполняютс�
 
 Когда несколько сайтов используют общую кодовую базу и имеют похожие требования к поддержке. Если сайты должны независимо обновляться, использовать несовместимые версии модулей или иметь разные процессы разработки — отдельные установки удобнее. Альтернативы: отдельные установки с общим Composer-шаблоном, один сайт с contrib-модулем **Domain** (несколько доменов — один сайт и одна БД).
 
-> [!example] DrupalJira Если бы DrupalJira нужно было запустить для нескольких клиентов с общим модулем `drupaljira_timelog`, multisite даст общий код, но у каждого клиента — своя БД, конфигурация и свой запуск `updb` (в т.ч. update hook `10001`).
+> [!example] DrupalJira
+> 
+> В DrupalJira multisite сейчас не нужен, но, если бы модуль drupaljira_timelog запускали для нескольких клиентов, он дал бы общий код и раздельные данные.
+> 
+> При этом обновления БД и cron пришлось бы выполнять отдельно для каждого сайта, например через drush --uri, включая update hook 10001, а конфигурацию вести в отдельных sync-каталогах.
 
 > [!warning] Типичные ошибки
 > 
@@ -1466,13 +1575,25 @@ Cron, очереди и обновления БД (`updb`) выполняютс�
 > - Хранить секреты `settings.php` в репозитории.
 > - Выбирать multisite для сайтов с разными жизненными циклами.
 
-> [!tip] Interview answer (EN) Multisite runs several Drupal sites from one codebase, each with its own `sites/<name>/settings.php`, usually its own database and configuration. It simplifies updates for similar sites, but a change in shared code affects every site, so it needs careful testing and per-site `updb` and cron.
+> [!tip] Ответ на собеседовании (EN)
+> 
+> Multisite runs several Drupal sites from one codebase. Each site has its own folder under sites/ with its own settings.php, and usually its own database and configuration.
+> 
+> The main benefit is easier maintenance for similar sites: one core and one set of modules. The main risk is the blast radius, because a change in shared code affects all sites, so every update has to be tested for each of them.
+> 
+> Database updates, cron and configuration sync are done per site, for example with drush --uri. If sites have different life cycles or security requirements, I would prefer separate installations.
+> 
+> По-русски: общий код, раздельные settings/БД/конфигурация; плюс — проще обновления, минус — большой радиус ошибок; updb и cron на каждый сайт.
 
 ---
 
 ## Блок 9. Events API
 
-> [!abstract] Кратко Events API — слабосвязанный способ реакции на происходящее: один компонент **отправляет** событие через `event_dispatcher`, другие **подписываются** (**Event Subscriber** — сервис с тегом `event_subscriber`). Основан на Symfony EventDispatcher.
+> [!abstract] Кратко
+> 
+> Events API позволяет одному компоненту сообщить о событии, а другим — отреагировать на него, не зная друг о друге. Событие — это объект, который отправляется через сервис event_dispatcher, а обработчики — event subscribers, то есть сервисы с тегом event_subscriber.
+> 
+> Подписчик объявляет события и приоритеты в getSubscribedEvents(). Это уменьшает связанность кода.
 
 ### 9.1. Что такое Events API
 
@@ -1645,7 +1766,11 @@ Events API — реакция в ходе выполнения приложен�
 
 Когда несколько компонентов должны реагировать на одно действие, а основной код не должен зависеть от них напрямую: уведомления, аудит, интеграция с внешней системой. Не создавайте событие для каждого простого вызова — оно полезно, когда создаёт понятную точку расширения и снижает связанность.
 
-> [!example] DrupalJira При смене статуса задачи `TaskStatusUpdater` отправляет `TaskStatusChangedEvent`; подписчики: журнал аудита, постановка уведомления в очередь, пересчёт статистики через `TaskStatService`.
+> [!example] DrupalJira
+> 
+> В DrupalJira удобно ввести собственное событие TaskStatusChangedEvent, которое хранит задачу, старый и новый статус. Оно отправляется после того, как статус реально сохранён.
+> 
+> На него могут подписаться разные части системы: журнал аудита, постановка уведомления в очередь, пересчёт статистики через TaskStatService. Основной код смены статуса о них ничего не знает.
 
 > [!warning] Типичные ошибки
 > 
@@ -1657,13 +1782,25 @@ Events API — реакция в ходе выполнения приложен�
 > - Создавать событие без реальной точки расширения.
 > - Путать приоритеты: больший приоритет выполняется раньше.
 
-> [!tip] Interview answer (EN) Events decouple code: a component dispatches an event object through `event_dispatcher`, and any number of subscribers — services tagged `event_subscriber` — react to it, ordered by priority. I use events for custom extension points like "task status changed", and hooks where Drupal core already provides one.
+> [!tip] Ответ на собеседовании (EN)
+> 
+> The Events API lets one part of the system announce that something happened, and other parts react without being called directly. I dispatch an event object through the event_dispatcher service and handle it in subscribers, which are services tagged event_subscriber.
+> 
+> A subscriber returns its events and priorities from getSubscribedEvents(). I create custom events when I want a clear extension point, for example when a task status changes, and I dispatch the event only after the change has really been saved.
+> 
+> Events are different from hooks, and I use whichever Drupal provides at that point. Heavy work in a subscriber should be moved to a queue.
+> 
+> По-русски: диспетчер + подписчики, тег event_subscriber, приоритеты; своё событие — точка расширения; отправлять после сохранения; тяжёлое — в очередь.
 
 ---
 
 ## Блок 10. Entity API
 
-> [!abstract] Кратко **Entity** — единица данных Drupal. **Entity type** (`node`, `user`, `taxonomy_term`) задаёт общее поведение, **bundle** (`task`, `project`) — подтип со своими полями. Бывают **Content Entity** (рабочие данные) и **Configuration Entity** (настройки сайта). Entity API — стандартный способ CRUD, поиска и проверки доступа вместо SQL.
+> [!abstract] Кратко
+> 
+> Entity — это единица данных Drupal. Entity type (node, user, taxonomy_term) задаёт общее поведение, а bundle (task, project) — подтип со своим набором полей. Сущности бывают контентными и конфигурационными: первые хранят рабочие данные, вторые — настройки сайта.
+> 
+> Entity API — стандартный способ создавать, загружать, искать и удалять данные и проверять доступ, без прямого SQL.
 
 ### 10.1. Что такое Entity API
 
@@ -1826,7 +1963,11 @@ return [
 
 Главное преимущество — работа с данными через стандартную абстракцию Drupal вместо прямого взаимодействия с таблицами БД.
 
-> [!example] DrupalJira `project` и `task` — bundles `node`; `time_log` — custom content entity со ссылкой на задачу. `TaskStatService` ищет `time_log` через Entity Query с `accessCheck`, загружает `loadMultiple()` и считает часы. Состояние Task в moderation workflow — отдельно от `field_status` и от published.
+> [!example] DrupalJira
+> 
+> В DrupalJira project и task — это bundles типа node, а time_log — собственная content entity со ссылкой на задачу, часами, датой и комментарием.
+> 
+> TaskStatService находит записи через Entity Query с явным accessCheck, загружает их через loadMultiple и считает часы. Важно не путать три разные вещи: статус публикации node, пользовательское поле field_status и состояние moderation workflow.
 
 > [!warning] Типичные ошибки
 > 
@@ -1838,13 +1979,25 @@ return [
 > - Писать SQL к таблицам вместо Entity API.
 > - Менять схему custom entity без update hook.
 
-> [!tip] Interview answer (EN) Entities are Drupal's data objects: the entity type (node, user, term) defines behavior, the bundle (task, project) defines fields. I use the storage API and entity queries — always with an explicit `accessCheck` — rather than SQL, check entity access for any custom operation, and use custom content entities, like our `time_log`, when nodes don't fit.
+> [!tip] Ответ на собеседовании (EN)
+> 
+> An entity type defines a kind of data, such as node or user, and a bundle defines a subtype with its own fields, such as task or project. Content entities store site data, and configuration entities describe how the site works.
+> 
+> I work with entities through the storage API and entity queries, and I always set accessCheck explicitly. I use loadMultiple to avoid N+1 and I check for NULL after load or when following an entity reference.
+> 
+> When nodes do not fit, I create a custom content entity, like our time_log. Its base fields are defined in code, and schema changes for existing sites need update hooks.
+> 
+> По-русски: type + bundle, content vs config, storage и Entity Query с accessCheck, loadMultiple, custom entity time_log, изменения схемы — через update hooks.
 
 ---
 
 ## Блок 11. Plugin API
 
-> [!abstract] Кратко **Plugin** — взаимозаменяемая реализация известного контракта (блок, виджет поля, queue worker, process-плагин миграции). **Plugin Manager** обнаруживает плагины (annotation/attribute discovery), создаёт экземпляры и хранит определения. Плагин — для интеграции с подсистемой, бизнес-логику лучше выносить в сервис.
+> [!abstract] Кратко
+> 
+> Plugin — это взаимозаменяемая реализация известного контракта: блок, виджет поля, queue worker, process-плагин миграции. Plugin Manager находит плагины (по аннотациям или атрибутам), хранит их определения и создаёт экземпляры.
+> 
+> Плагин нужен для интеграции с подсистемой Drupal, а бизнес-логику лучше выносить в сервис.
 
 ### 11.1. Что такое Plugin API
 
@@ -2036,7 +2189,11 @@ Hooks позволяют вмешаться в определённые точк
 
 Когда нужен компонент, который Drupal сможет обнаруживать, конфигурировать и использовать как одну из реализаций. Блок статистики задач логично оформить как Block Plugin, а расчёт вынести в сервис: плагин отвечает за интеграцию с системой блоков, сервис — за бизнес-логику.
 
-> [!example] DrupalJira `TaskSummaryBlock` (Block Plugin) получает `drupaljira_timelog.task_stat` через `create()`, вызывает сервис и возвращает render array с cache tags и contexts. Для обработки уведомлений — QueueWorker plugin (Блок 12).
+> [!example] DrupalJira
+> 
+> Блок «Task Summary» в DrupalJira — хороший пример Block Plugin. Он только отвечает за интеграцию с системой блоков и возвращает render array.
+> 
+> Сам расчёт делает TaskStatService, который попадает в блок через ContainerFactoryPluginInterface и create(). Для уведомлений аналогично используется QueueWorker, тоже плагин.
 
 > [!warning] Типичные ошибки
 > 
@@ -2048,13 +2205,25 @@ Hooks позволяют вмешаться в определённые точк
 > - Путать определение плагина и конфигурацию экземпляра.
 > - Использовать плагин там, где достаточно hook или сервиса.
 
-> [!tip] Interview answer (EN) A plugin is a swappable implementation of a contract, discovered by a plugin manager from annotations or attributes in a known namespace. A block is the classic example: the plugin integrates with the block system, gets services through `ContainerFactoryPluginInterface`, and delegates the real logic to a service.
+> [!tip] Ответ на собеседовании (EN)
+> 
+> A plugin is a swappable implementation of a contract, found by a plugin manager through annotations or attributes in a known directory. Blocks, field widgets, queue workers and migration process plugins are all plugins.
+> 
+> A plugin has an ID, a definition with metadata and, optionally, instance configuration. Because plugins are created by their manager, I inject services through ContainerFactoryPluginInterface and the create() method.
+> 
+> I keep the plugin thin: it integrates with the subsystem, for example it returns a render array with cache metadata, and the real logic lives in a service. After adding a plugin I clear caches so its definition is discovered.
+> 
+> По-русски: плагин — реализация контракта; менеджер находит и создаёт; DI через ContainerFactoryPluginInterface; логика в сервисе; после добавления сбросить кеш.
 
 ---
 
 ## Блок 12. Batch API, Cron API и Queue API
 
-> [!abstract] Кратко Долгие операции нельзя делать в одном HTTP-запросе. **Batch API** — шаги с прогрессом, запускает пользователь. **Cron API** — периодические задачи по расписанию. **Queue API** — отложенная обработка отдельных заданий воркерами. Механизмы комбинируются.
+> [!abstract] Кратко
+> 
+> Долгие операции нельзя выполнять в одном HTTP-запросе. Batch API делит работу на шаги с индикатором прогресса и подходит для действий, запускаемых пользователем. Cron API выполняет периодические задачи по расписанию. Queue API ставит отдельные задания в очередь, которые обрабатывают воркеры.
+> 
+> Эти механизмы часто комбинируют: например, batch импортирует данные, в очередь ставятся уведомления, а cron запускает воркеры.
 
 ### 12.1. Зачем нужны фоновые операции
 
@@ -2220,7 +2389,11 @@ final class TaskNotificationWorker extends QueueWorkerBase {
 
 Не используйте очередь для каждого простого действия: короткую операцию лучше выполнить сразу.
 
-> [!example] DrupalJira Update hook `drupaljira_timelog_update_10001` инициализирует тип проекта и moderation state у существующих задач **порциями** (`$sandbox`). Импорт задач — Batch/Migration, уведомления об изменениях — Queue, а Cron запускает воркеры.
+> [!example] DrupalJira
+> 
+> Update hook drupaljira_timelog_update_10001 обрабатывает существующие задачи порциями через $sandbox, а не за один проход, чтобы не упереться в лимиты времени и памяти.
+> 
+> Уведомления об изменении задач логично отправлять через очередь: воркер должен быть идемпотентным, потому что задание может быть выполнено повторно. А cron запускает воркеры и периодические задачи обслуживания.
 
 > [!warning] Типичные ошибки
 > 
@@ -2232,13 +2405,25 @@ final class TaskNotificationWorker extends QueueWorkerBase {
 > - Класть в очередь чувствительные данные и огромные объекты.
 > - Использовать очередь для коротких мгновенных операций.
 
-> [!tip] Interview answer (EN) Batch API runs a long operation in chunks with a progress bar for an admin-triggered task; cron runs scheduled maintenance; queues defer individual jobs to workers, usually processed on cron. Queue workers must be idempotent because items can be retried, and heavy work should never run inside a single web request.
+> [!tip] Ответ на собеседовании (EN)
+> 
+> Batch API splits a long operation into chunks with a progress bar, and it is the right tool when a user starts a heavy action. Cron runs scheduled maintenance, and hook_cron should only start small tasks or put jobs into a queue.
+> 
+> The Queue API stores individual jobs that a queue worker processes later, usually on cron or with drush queue:run. Workers must be idempotent, because an item can be retried, and they should handle temporary failures without deleting the item.
+> 
+> I do not put a queue everywhere: a short operation that must finish immediately is better done directly. For long operations I never rely on a single web request.
+> 
+> По-русски: Batch — прогресс для пользователя, Cron — расписание, Queue — отложенные задания; воркеры идемпотентны; короткое делаем сразу.
 
 ---
 
 ## Блок 13. Migration API
 
-> [!abstract] Кратко Migration API переносит данные из источника в Drupal по схеме **Source → Process → Destination**. Состояние хранится в **ID map**, поэтому миграции повторяемы и откатываемы. Миграция — это не копирование, а преобразование, сопоставление и создание связей.
+> [!abstract] Кратко
+> 
+> Migration API переносит данные из источника в Drupal по схеме Source, Process, Destination. Source читает строки, process-плагины преобразуют значения, destination создаёт сущности. Соответствие старых и новых записей хранится в ID map, поэтому миграции можно перезапускать, обновлять и откатывать.
+> 
+> Связи между миграциями (проекты, затем задачи) задаются зависимостями и плагином migration_lookup.
 
 ### 13.1. Что такое Migration API
 
@@ -2404,16 +2589,11 @@ drush migrate:rollback legacy_tasks
 
 Миграция — перенос данных **из внешнего источника**. Update hook — преобразование **существующей** установки Drupal при обновлении кода. Преобразование внутри уже работающего сайта (как инициализация `field_project_type` у существующих задач) обычно делается update hook'ом, а не миграцией.
 
-> [!example] DrupalJira Старые статусы → новые:
+> [!example] DrupalJira
 > 
-> |Старый|Новый|
-> |---|---|
-> |`todo`|`backlog`|
-> |`working`|`in_progress`|
-> |`qa`|`review`|
-> |`completed`|`done`|
+> Старые статусы задач преобразуются в новые через static_map: todo в backlog, working в in_progress, qa в review, completed в done.
 > 
-> Если используется Content Moderation, обновить только `field_status` недостаточно. Нужно согласовать: пользовательское поле статуса, **moderation state**, статус публикации, revisions и допустимые переходы workflow. Эти механизмы связаны, но это разные вещи.
+> Но в DrupalJira этого недостаточно: если используется Content Moderation, нужно согласовать ещё moderation state, статус публикации и revisions. Преобразование данных внутри уже работающего сайта я бы делал update hook, а миграцию использовал для переноса из внешнего источника.
 
 > [!warning] Типичные ошибки
 > 
@@ -2425,13 +2605,25 @@ drush migrate:rollback legacy_tasks
 > - Не проверить миграцию на тестовой копии.
 > - Использовать Migrate Plus-плагины, не установив модуль.
 
-> [!tip] Interview answer (EN) A migration has a source, process pipeline and destination, and keeps an ID map so it can be re-run, updated and rolled back. Dependencies between migrations use `migration_lookup`. I always dry-run on a copy and make sure related state — like moderation state — stays consistent with the migrated fields.
+> [!tip] Ответ на собеседовании (EN)
+> 
+> A migration has a source, a process pipeline and a destination. Source plugins read rows, process plugins transform the values, and the destination, for example entity:node, saves them. The ID map remembers which source row became which entity, so I can re-run, update and roll back.
+> 
+> If tasks reference projects, I run the projects migration first, declare migration dependencies and use migration_lookup. For value conversions I use static_map and think about what happens with unknown values.
+> 
+> I first run a migration on a copy of the data and check messages with drush migrate:messages. And I make sure related state, like moderation state and publication status, stays consistent with the migrated fields.
+> 
+> По-русски: Source → Process → Destination, ID map, зависимости и migration_lookup, static_map; пробный запуск на копии; согласовать moderation state.
 
 ---
 
 ## Блок 14. Field API
 
-> [!abstract] Кратко Field API добавляет сущностям структурированные данные. Три понятия: **Field Type** (тип данных), **Field Storage** (как и где хранится) и **Field Configuration** (поле на конкретном bundle). Отображение — **Widget** (ввод) и **Formatter** (вывод). Бывают базовые (в коде) и конфигурируемые (через UI/конфигурацию) поля.
+> [!abstract] Кратко
+> 
+> Field API добавляет сущностям структурированные данные. Нужно различать три понятия: Field Type (тип данных), Field Storage (как и где хранится, включая cardinality) и Field Configuration (использование поля на конкретном bundle). Ввод значения обеспечивает widget, вывод — formatter.
+> 
+> Поля бывают базовыми (объявлены в коде сущности) и конфигурируемыми (создаются через UI и хранятся в конфигурации).
 
 ### 14.1. Что такое Field API
 
@@ -2603,7 +2795,11 @@ Views выводит данные сущностей и полей без руч
 
 Преимущество — единый механизм хранения, редактирования и отображения данных.
 
-> [!example] DrupalJira Task: `field_status` (список допустимых значений), `field_estimate` (decimal), `field_project` (entity_reference на `project`). Project: `field_project_type`. Они лежат в конфигурации, поэтому для существующих сайтов их значения по умолчанию задаются update hook'ом (`10001`), а не одним импортом.
+> [!example] DrupalJira
+> 
+> У задачи DrupalJira есть field_status, field_estimate и field_project. field_estimate — decimal с одним значением, field_project — entity reference на проект, а статус удобно делать списком допустимых значений.
+> 
+> Определения лежат в конфигурации и переносятся через config sync, но заполнить значения у уже существующих задач можно только update hook'ом или миграцией, как в update 10001. Менять тип поля с данными без такой подготовки нельзя.
 
 > [!warning] Типичные ошибки
 > 
@@ -2615,13 +2811,25 @@ Views выводит данные сущностей и полей без руч
 > - Забывать экспортировать конфигурацию после создания поля через UI.
 > - Менять `field_status` и забывать про moderation state.
 
-> [!tip] Interview answer (EN) A field has a type that defines the data, a storage that defines how it is stored — entity type, name, cardinality — and a per-bundle configuration. Widgets handle input and formatters handle output. Fields are configuration, so they travel through config sync, but data changes for existing content need update hooks or migrations.
+> [!tip] Ответ на собеседовании (EN)
+> 
+> A field has a type that defines the kind of data, a storage that defines how it is stored, such as the entity type, field name and cardinality, and a field configuration for each bundle. Widgets handle editing and formatters handle display.
+> 
+> I read single values with get('field')->value and iterate over multi-value fields, and I always handle NULL when following entity references. Base fields are defined in code, and configurable fields are created through the UI and exported to configuration.
+> 
+> Because field definitions are configuration, they move with config sync, but changing the data of existing content or the storage of a field with data needs update hooks or migrations.
+> 
+> По-русски: type / storage / field config, widget и formatter; base vs configurable; конфигурация переносится через sync, а данные — update hooks.
 
 ---
 
 ## Блок 15. Authentication API
 
-> [!abstract] Кратко Аутентификация отвечает на вопрос **«кто делает запрос?»**, авторизация — **«что ему разрешено?»**. За аутентификацию отвечают **Authentication Providers** (cookie/сессия, Basic Auth, токены, OAuth). После определения пользователя всё равно проверяются доступ к маршруту, к сущности и бизнес-правила.
+> [!abstract] Кратко
+> 
+> Аутентификация отвечает на вопрос «кто делает запрос», авторизация — «что ему разрешено». За аутентификацию отвечают authentication providers: cookie-сессия, HTTP Basic, токены и OAuth из contrib-модулей.
+> 
+> После того как пользователь определён, Drupal всё равно проверяет доступ к маршруту, к конкретной сущности и бизнес-правила.
 
 ### 15.1. Что такое Authentication API
 
@@ -2752,7 +2960,11 @@ final class TokenAuth implements AuthenticationProviderInterface {
 
 Оба механизма необходимы.
 
-> [!example] DrupalJira Внешней системе, читающей задачи, создают отдельную техническую учётную запись с минимальными permissions (чтение), токен или Basic через HTTPS и проверку `entity access` на каждую задачу. Полный административный доступ «для удобства» выдавать нельзя.
+> [!example] DrupalJira
+> 
+> Если внешняя система должна читать задачи DrupalJira, я бы создал для неё отдельную техническую учётную запись с минимальными правами, только на чтение.
+> 
+> Для передачи данных использовал бы токен или Basic через HTTPS, а в REST-ресурсе явно указал бы разрешённый провайдер. Каждую задачу проверял бы через entity access, чтобы нельзя было получить чужую просто сменой ID в URL.
 
 > [!warning] Типичные ошибки
 > 
@@ -2765,13 +2977,23 @@ final class TokenAuth implements AuthenticationProviderInterface {
 > - Писать собственный провайдер там, где хватает готового.
 > - Выдавать технической учётной записи права администратора.
 
-> [!tip] Interview answer (EN) Authentication answers "who is calling" — via a session cookie, Basic auth over HTTPS or a token provider such as OAuth — and authorization answers "what may they do" through permissions and entity access. For cookie sessions I also need CSRF protection, and for integrations I use a dedicated account with least privilege.
+> [!tip] Ответ на собеседовании (EN)
+> 
+> Authentication answers who is making the request, and authorization answers what that user is allowed to do. In Drupal an authentication provider identifies the user, for example from a session cookie, Basic auth or a token, and after that route access, entity access and business rules are checked.
+> 
+> Browsers send cookies automatically, so for cookie authentication on changing requests I also need CSRF protection. Basic auth must only be used over HTTPS, because Base64 is encoding, not encryption.
+> 
+> For integrations I use a dedicated account with least privilege and a token mechanism with expiry and revocation. I write a custom authentication provider only when existing mechanisms are not enough.
+> 
+> По-русски: authentication — кто, authorization — что можно; provider определяет пользователя, дальше доступ; CSRF для cookie; интеграции — отдельная учётка с минимумом прав.
 
 ---
 
 ## Приложение. Базовые темы, на которые опираются блоки 1–15
 
-> [!info] Зачем приложение Без этих тем ответы на блоки неполны: на собеседовании их спрашивают рядом с основными. Каждая тема — минимум для уверенного ответа.
+> [!info] Зачем приложение
+> 
+> Без этих тем ответы на блоки неполны: на собеседовании их спрашивают рядом с основными. Каждая тема — минимум для уверенного ответа.
 
 ### A. Routing и Controllers
 
