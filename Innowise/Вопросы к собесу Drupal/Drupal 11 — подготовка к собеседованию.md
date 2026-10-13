@@ -54,7 +54,7 @@ Drupal может выбирать язык на основании:
 
 Для работы с языками используется сервис `language_manager`.
 
-```
+```php
 $language_manager = \Drupal::languageManager();
 
 $interface_language = $language_manager
@@ -96,7 +96,7 @@ $content_code = $content_language->getId();
 
 Пример получения перевода материала:
 
-```
+```php
 $node = \Drupal\node\Entity\Node::load($nid);
 
 if ($node && $node->hasTranslation('en')) {
@@ -130,13 +130,13 @@ if ($node && $node->hasTranslation('en')) {
 
 В классах Drupal обычно применяется `$this->t()`:
 
-```
+```php
 $message = $this->t('Task has been saved.');
 ```
 
 Для динамических значений используется подстановка:
 
-```
+```php
 $message = $this->t(
   'Task @title has been saved.',
   ['@title' => $title]
@@ -156,7 +156,7 @@ $message = $this->t(
 
 Например, вместо конкатенации имени и статического текста лучше использовать:
 
-```
+```php
 $message = $this->t(
   'The task @title has been updated.',
   ['@title' => $title]
@@ -252,7 +252,7 @@ URI идентифицирует ресурс или коллекцию ресу
 
 Пример запроса к JSON в Drupal:
 
-```
+```php
 GET /jsonapi/node/task
 Accept: application/vnd.api+json
 ```
@@ -316,7 +316,7 @@ JSON является отдельной реализацией API, ориен�
 
 Пример структуры:
 
-```
+```php
 <?php
 
 namespace Drupal\example\Plugin\rest\resource;
@@ -553,7 +553,7 @@ Configuration Management — механизм хранения, экспорта
 
 Основные команды:
 
-```
+```php
 # Экспорт активной конфигурации.
 drush config:export
 
@@ -566,7 +566,7 @@ drush config:status
 
 Распространённые сокращения:
 
-```
+```php
 drush cex
 drush cim
 drush cst
@@ -584,7 +584,7 @@ drush cst
 
 Упрощённый пример:
 
-```
+```php
 langcode: en
 status: true
 name: Task
@@ -614,7 +614,7 @@ Config schema описывает структуру и типы значений
 
 Например, собственный модуль хранит настройки:
 
-```
+```php
 api_endpoint: 'https://api.example.com'
 timeout: 30
 enabled: true
@@ -622,7 +622,7 @@ enabled: true
 
 Для этих настроек может быть объявлена схема:
 
-```
+```php
 example.settings:
   type: config_object
   label: 'Example settings'
@@ -698,7 +698,7 @@ Update hooks позволяют выполнить программные изм
 
 Например, update hook может добавить новое значение в существующую конфигурацию:
 
-```
+```php
 /**
  * Adds a new configuration value.
  */
@@ -752,6 +752,6 @@ Update hooks используют, когда существующая уста�
 
 ---
 
-## Конец части 1
-
 В этой части разобраны Multilingual, REST API и Configuration Management. Следующие блоки продолжают изучение архитектуры Drupal: Services & Dependency Injection, Performance & Scalability и Testing.
+
+---
