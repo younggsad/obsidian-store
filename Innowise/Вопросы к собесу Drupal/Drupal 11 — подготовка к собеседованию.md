@@ -2017,11 +2017,11 @@ return [
 
 Различие:
 
-||Base fields|Configurable fields (Field UI)|
-|---|---|---|
-|Где объявлены|в коде сущности|в конфигурации (`field.storage.*`, `field.field.*`)|
-|Есть у всех bundles|да|нет, для конкретных bundles|
-|Меняются через|код + update hook|UI / Configuration Management|
+| Критерий              | Base fields                                      | Configurable fields (Field UI)                      |
+| --------------------- | ------------------------------------------------ | --------------------------------------------------- |
+| Где объявлены         | В коде сущности                                  | В конфигурации (`field.storage.*`, `field.field.*`) |
+| Доступность в bundles | Обычно доступны всем bundles данного entity type | Настраиваются отдельно для конкретных bundles       |
+| Как изменяются        | Через код и update hooks                         | Через UI и Configuration Management                 |
 
 ### 10.12. Когда применять Entity API
 
