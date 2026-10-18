@@ -4,23 +4,23 @@ custom-width: 80
 ---
 ## Карта: что за что отвечает
 
-|Тема|За что отвечает|Ключевые понятия|
-|---|---|---|
-|Multilingual|языки интерфейса, контента, конфигурации|language negotiation, translatable fields, `t()`|
-|REST / JSON:API|доступ к данным по HTTP|REST Resource, JSON:API, serialization, CORS|
-|Configuration Management|перенос настроек между окружениями|`cex`/`cim`, sync storage, config schema, Config Split|
-|Services & DI|переиспользуемая логика и зависимости|service container, `services.yml`, `create()`|
-|Performance|кеш, запросы, масштабирование|cache contexts/tags/max-age, N+1, BigPipe|
-|Testing|проверка поведения и доступа|Unit, Kernel, Functional, `BrowserTestBase`|
-|Security|доступ, CSRF, XSS, SQL|Entity Access, CSRF token, Twig escaping|
-|Multisite|несколько сайтов на одной кодовой базе|`sites/`, `settings.php`, `sites.php`|
-|Events API|реакция на события без жёстких связей|`event_dispatcher`, subscribers|
-|Entity API|CRUD данных, bundles, query|storage, Entity Query, `accessCheck`, revisions|
-|Plugin API|взаимозаменяемые компоненты|Plugin Manager, annotations/attributes, derivatives|
-|Batch / Cron / Queue|долгие и фоновые операции|`$sandbox`, `hook_cron`, QueueWorker|
-|Migration API|перенос данных из внешних источников|source/process/destination, ID map|
-|Field API|структура данных сущностей|field type/storage/config, widget, formatter|
-|Authentication API|кто делает запрос|Authentication Provider, Basic, OAuth, CSRF|
+| Тема                     | За что отвечает                          | Ключевые понятия                                       |
+| ------------------------ | ---------------------------------------- | ------------------------------------------------------ |
+| Multilingual             | языки интерфейса, контента, конфигурации | language negotiation, translatable fields, `t()`       |
+| REST / JSON:API          | доступ к данным по HTTP                  | REST Resource, JSON:API, serialization, CORS           |
+| Configuration Management | перенос настроек между окружениями       | `cex`/`cim`, sync storage, config schema, Config Split |
+| Services & DI            | переиспользуемая логика и зависимости    | service container, `services.yml`, `create()`          |
+| Performance              | кеш, запросы, масштабирование            | cache contexts/tags/max-age, N+1, BigPipe              |
+| Testing                  | проверка поведения и доступа             | Unit, Kernel, Functional, `BrowserTestBase`            |
+| Security                 | доступ, CSRF, XSS, SQL                   | Entity Access, CSRF token, Twig escaping               |
+| Multisite                | несколько сайтов на одной кодовой базе   | `sites/`, `settings.php`, `sites.php`                  |
+| Events API               | реакция на события без жёстких связей    | `event_dispatcher`, subscribers                        |
+| Entity API               | CRUD данных, bundles, query              | storage, Entity Query, `accessCheck`, revisions        |
+| Plugin API               | взаимозаменяемые компоненты              | Plugin Manager, annotations/attributes, derivatives    |
+| Batch / Cron / Queue     | долгие и фоновые операции                | `$sandbox`, `hook_cron`, QueueWorker                   |
+| Migration API            | перенос данных из внешних источников     | source/process/destination, ID map                     |
+| Field API                | структура данных сущностей               | field type/storage/config, widget, formatter           |
+| Authentication API       | кто делает запрос                        | Authentication Provider, Basic, OAuth, CSRF            |
 
 ---
 
