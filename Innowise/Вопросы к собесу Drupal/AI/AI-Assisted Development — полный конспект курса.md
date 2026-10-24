@@ -1,46 +1,37 @@
 ---
-title: AI-Assisted Development — полный конспект курса
-aliases:
-  - AI Assisted Development
-  - Claude Code 101
-tags:
-  - ai-assisted-development
-  - claude-code
-  - coding-agents
-  - spec-driven-development
 custom-width: 80
 ---
 ---
 ## Содержание
 
-1. [Введение в AI-Assisted Development](#1-введение-в-ai-assisted-development)
-2. [Современные инструменты](#2-современные-инструменты)
-3. [Claude Code: модель работы](#3-claude-code-модель-работы)
-4. [Prompt Engineering](#4-prompt-engineering)
-5. [Meta Prompting и context-aware prompt enhancement](#5-meta-prompting-и-context-aware-prompt-enhancement)
-6. [Context Engineering](#6-context-engineering)
-7. [Model Context Protocol (MCP)](#7-model-context-protocol-mcp)
-8. [Spec-Driven Development](#8-spec-driven-development)
-9. [GitHub Spec Kit](#9-github-spec-kit)
-10. [Установка Spec Kit](#10-установка-spec-kit)
-11. [Constitution](#11-constitution)
-12. [Specify, Clarify, Plan, Tasks, Implement](#12-specify-clarify-plan-tasks-implement)
-13. [Post-MVP](#13-post-mvp)
-14. [Agent Skills](#14-agent-skills)
-15. [Sub-Agents](#15-sub-agents)
-16. [Claude Code Agent Teams](#16-claude-code-agent-teams)
-17. [Frameworks и Task-Master AI](#17-frameworks-и-task-master-ai)
-18. [NotebookLM](#18-notebooklm)
-19. [Проверка качества](#19-проверка-качества)
-20. [Self-healing CI/CD](#20-self-healing-cicd)
-21. [Deployment Lovable-прототипа в Google Cloud](#21-deployment-lovable-прототипа-в-google-cloud)
-22. [Мультиагентные системы, open-source модели и harness](#22-мультиагентные-системы-open-source-модели-и-harness)
-23. [Pet projects и full-stack delivery](#23-pet-projects-и-full-stack-delivery)
-24. [Безопасность](#24-безопасность)
-25. [Полный рабочий процесс](#25-полный-рабочий-процесс)
-26. [Вопросы к собеседованию](#26-вопросы-к-собеседованию)
-27. [Шпаргалка](#27-шпаргалка)
-28. [Источники и оговорки](#28-источники-и-оговорки)
+1. Введение в AI-Assisted Development
+2. Современные инструменты
+3. Claude Code: модель работы
+4. Prompt Engineering
+5. Meta Prompting и context-aware prompt enhancement
+6. Context Engineering
+7. Model Context Protocol (MCP)
+8. Spec-Driven Development
+9. GitHub Spec Kit
+10. Установка Spec Kit
+11. Constitution
+12. Specify, Clarify, Plan, Tasks, Implement
+13. Post-MVP
+14. Agent Skills
+15. Sub-Agents
+16. Claude Code Agent Teams
+17. Frameworks и Task-Master AI
+18. NotebookLM
+19. Проверка качества
+20. Self-healing CI/CD
+21. Deployment Lovable-прототипа в Google Cloud
+22. Мультиагентные системы, open-source модели и harness
+23. Pet projects и full-stack delivery
+24. Безопасность
+25. Полный рабочий процесс
+26. Вопросы к собеседованию
+27. Шпаргалка
+28. Источники и оговорки
 
 ---
 
