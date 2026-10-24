@@ -6,32 +6,31 @@ custom-width: 80
 
 1. Введение в AI-Assisted Development
 2. Современные инструменты
-3. Claude Code: модель работы
-4. Prompt Engineering
-5. Meta Prompting и context-aware prompt enhancement
-6. Context Engineering
-7. Model Context Protocol (MCP)
-8. Spec-Driven Development
-9. GitHub Spec Kit
-10. Установка Spec Kit
-11. Constitution
-12. Specify, Clarify, Plan, Tasks, Implement
-13. Post-MVP
-14. Agent Skills
-15. Sub-Agents
-16. Claude Code Agent Teams
-17. Frameworks и Task-Master AI
-18. NotebookLM
-19. Проверка качества
-20. Self-healing CI/CD
-21. Deployment Lovable-прототипа в Google Cloud
-22. Мультиагентные системы, open-source модели и harness
-23. Pet projects и full-stack delivery
-24. Безопасность
-25. Полный рабочий процесс
-26. Вопросы к собеседованию
-27. Шпаргалка
-28. Источники и оговорки
+3. Prompt Engineering
+4. Meta Prompting и context-aware prompt enhancement
+5. Context Engineering
+6. Model Context Protocol (MCP)
+7. Spec-Driven Development
+8. GitHub Spec Kit
+9. Установка Spec Kit
+10. Constitution
+11. Specify, Clarify, Plan, Tasks, Implement
+12. Post-MVP
+13. Agent Skills
+14. Sub-Agents
+15. Claude Code Agent Teams
+16. Frameworks и Task-Master AI
+17. NotebookLM
+18. Проверка качества
+19. Self-healing CI/CD
+20. Deployment Lovable-прототипа в Google Cloud
+21. Мультиагентные системы, open-source модели и harness
+22. Pet projects и full-stack delivery
+23. Безопасность
+24. Полный рабочий процесс
+25. Вопросы к собеседованию
+26. Шпаргалка
+27. Источники и оговорки
 
 ---
 
@@ -120,20 +119,6 @@ Google Antigravity упоминается в курсе как ещё один �
 Пока не изменяй файлы. Опиши текущий flow, важные зависимости
 и тесты, которые покрывают это поведение.
 ```
-
-# 3. Claude Code: модель работы
-
-Claude Code получает задачу, собирает контекст, использует разрешённые инструменты и сообщает результат. Качество зависит от трёх составляющих: **инструкции, контекста и доступных инструментов/разрешений**.
-
-В незнакомом проекте сначала попросите агента определить стек, структуру, entry points, команды запуска и тестирования, существующие паттерны и связанные файлы. Это снижает риск преждевременных изменений.
-
-Для сложной задачи попросите план с предполагаемыми файлами, изменениями, зависимостями, тестами и рисками. План — это ранняя проверка того, правильно ли агент понял задачу.
-
-Не считайте фразу «готово» доказательством успеха. Проверьте список изменённых файлов, тесты, lint/typecheck/build, runtime-сценарий, ограничения и нежелательные изменения.
-
-Агент может выполнять опасные команды или взаимодействовать с внешними системами. Не выдавайте избыточные разрешения, проверяйте удаление и массовую перезапись, не помещайте секреты в промпты и используйте изолированное окружение для рискованных экспериментов.
-
-Большие задачи лучше делить на этапы, если они затрагивают много файлов, архитектуру, миграции, безопасность или внешние API.
 
 # 4. Prompt Engineering
 
