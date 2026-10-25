@@ -272,8 +272,7 @@ An **Agent Framework** provides reusable components for building agent-based sys
 **Multi-agent Orchestration** coordinates multiple agents, including task assignment, parallel execution, context sharing, and result integration.
 
 ```
-Task → Orchestration → Models + Tools + Context
-     → Verification → Final Result
+Task → Orchestration → Models + Tools + Context → Verification → Final Result
 ```
 
 Open-source models can offer more infrastructure control but may require additional hardware, maintenance, and configuration.
@@ -283,8 +282,7 @@ Open-source models can offer more infrastructure control but may require additio
 **Spec-Driven Development** is an approach in which specifications guide planning, implementation, and verification.
 
 ```
-Intent → Specification → Plan → Tasks
-       → Implementation → Verification
+Intent → Specification → Plan → Tasks → Implementation → Verification
 ```
 
 SDD helps clarify requirements before coding and makes expected behavior easier to verify.
@@ -298,8 +296,7 @@ It is especially useful for complex features, but may be excessive for tiny chan
 A typical workflow is:
 
 ```
-Constitution → Specify → Clarify → Plan
-             → Tasks → Analyze → Implement → Verify
+Constitution → Specify → Clarify → Plan → Tasks → Analyze → Implement → Verify
 ```
 
 The exact commands and supported integrations depend on the current version.
@@ -431,8 +428,7 @@ Generated tasks must be checked for completeness, duplication, and correct order
 Workflow:
 
 ```
-Sources → Summary → Verify Against Sources
-        → Study Questions / Audio / Slides
+Sources → Summary → Verify Against Sources → Study Questions / Audio / Slides
 ```
 
 It is useful for learning and revision, but summaries may omit details or simplify important concepts.
@@ -462,9 +458,7 @@ The exact pipeline depends on the project and team requirements.
 **Self-Healing CI/CD** uses automation, potentially including AI agents, to analyze failures and propose or implement fixes.
 
 ```
-CI Failure → Collect Logs → Analyze
-           → Prepare Fix → Run Checks
-           → Pull Request → Review
+CI Failure → Collect Logs → Analyze → Prepare Fix → Run Checks → Pull Request → Review
 ```
 
 Best practices:
@@ -491,9 +485,7 @@ The goal is to reduce recovery time without sacrificing reliability.
 Typical workflow:
 
 ```
-Inspect Project → Build → Configure Environment
-               → Configure Secrets / Database
-               → Deploy → Health Checks → Monitor
+Inspect Project → Build → Configure Environment → Configure Secrets / Database → Deploy → Health Checks → Monitor
 ```
 
 Before deployment, identify the stack, runtime commands, environment variables, database requirements, external APIs, and security constraints.
@@ -534,39 +526,31 @@ Prompt → Inspect → Implement → Test → Review
 ### Complex Feature
 
 ```
-Explore → Specify → Clarify → Plan → Tasks
-       → Implement → Test → Review → Verify
+Explore → Specify → Clarify → Plan → Tasks → Implement → Test → Review → Verify
 ```
 
 ### Working with an Unfamiliar Codebase
 
 ```
-Inspect Instructions → Explore Architecture
-                     → Find Related Code / Tests
-                     → Plan → Implement
+Inspect Instructions → Explore Architecture → Find Related Code / Tests → Plan → Implement
 ```
 
 ### Fixing a CI Failure
 
 ```
-Read Logs → Reproduce Failure → Identify Cause
-          → Fix → Run Checks → Review
+Read Logs → Reproduce Failure → Identify Cause → Fix → Run Checks → Review
 ```
 
 ### Using Sub-Agents
 
 ```
-Define Independent Tasks → Delegate
-                          → Collect Findings
-                          → Validate Results
-                          → Integrate
+Define Independent Tasks → Delegate → Collect Findings → Validate Results → Integrate
 ```
 
 ### Deployment
 
 ```
-Inspect → Build → Configure → Deploy
-        → Health Checks → Monitor
+Inspect → Build → Configure → Deploy → Health Checks → Monitor
 ```
 
 ## 29. Essential Interview Definitions
