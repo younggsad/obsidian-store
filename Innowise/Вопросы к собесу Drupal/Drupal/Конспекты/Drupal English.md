@@ -8,27 +8,27 @@ A single set of notes for interview preparation. Blocks 1–15 are the main topi
 
 ## Map: what is responsible for what
 
-|Topic|What it is responsible for|Key concepts|
-|---|---|---|
-|1. Multilingual|interface, content, and configuration languages|language negotiation, translatable fields, `t()`|
-|2. REST / JSON:API|access to data over HTTP|REST Resource, JSON:API, serialization, CORS|
-|3. Configuration Management|transferring settings between environments|`cex`/`cim`, sync storage, config schema, Config Split|
-|4. Services & DI|reusable logic and dependencies|service container, `services.yml`, `create()`|
-|5. Performance|cache, queries, scaling|cache contexts/tags/max-age, N+1, BigPipe|
-|6. Testing|verifying behavior and access|Unit, Kernel, Functional, `BrowserTestBase`|
-|7. Security|access, CSRF, XSS, SQL|Entity Access, CSRF token, Twig escaping|
-|8. Multisite|several sites on one codebase|`sites/`, `settings.php`, `sites.php`|
-|9. Events API|reacting to events without tight coupling|`event_dispatcher`, subscribers|
-|10. Entity API|data CRUD, bundles, query|storage, Entity Query, `accessCheck`, revisions, entity keys|
-|11. Plugin API|interchangeable components|Plugin Manager, attributes, derivatives|
-|12. Batch / Cron / Queue|long-running and background operations|`$sandbox`, `hook_cron`, QueueWorker|
-|13. Migration API|transferring data from external sources|source/process/destination, ID map|
-|14. Field API|structure of entity data|field type/storage/config, widget, formatter, computed fields|
-|15. Authentication API|who is making the request|Authentication Provider, Basic, OAuth, CSRF|
-|16. Entity Handlers|entity roles: list, form, access, routes|`handlers`, ListBuilder, AccessControlHandler|
-|17. Form API|forms and their processing|FormBase, ConfigFormBase, `#states`, AJAX|
-|18. Changing someone else's code|changing Core/contrib without editing it|alter hooks, preprocess, Twig, RouteSubscriber|
-|19. settings.php and the DB|environment parameters and secrets|`$databases`, `settings.local.php`, `getenv()`|
+| Topic                            | What it is responsible for                      | Key concepts                                                  |
+| -------------------------------- | ----------------------------------------------- | ------------------------------------------------------------- |
+| 1. Multilingual                  | interface, content, and configuration languages | language negotiation, translatable fields, `t()`              |
+| 2. REST / JSON:API               | access to data over HTTP                        | REST Resource, JSON:API, serialization, CORS                  |
+| 3. Configuration Management      | transferring settings between environments      | `cex`/`cim`, sync storage, config schema, Config Split        |
+| 4. Services & DI                 | reusable logic and dependencies                 | service container, `services.yml`, `create()`                 |
+| 5. Performance                   | cache, queries, scaling                         | cache contexts/tags/max-age, N+1, BigPipe                     |
+| 6. Testing                       | verifying behavior and access                   | Unit, Kernel, Functional, `BrowserTestBase`                   |
+| 7. Security                      | access, CSRF, XSS, SQL                          | Entity Access, CSRF token, Twig escaping                      |
+| 8. Multisite                     | several sites on one codebase                   | `sites/`, `settings.php`, `sites.php`                         |
+| 9. Events API                    | reacting to events without tight coupling       | `event_dispatcher`, subscribers                               |
+| 10. Entity API                   | data CRUD, bundles, query                       | storage, Entity Query, `accessCheck`, revisions, entity keys  |
+| 11. Plugin API                   | interchangeable components                      | Plugin Manager, attributes, derivatives                       |
+| 12. Batch / Cron / Queue         | long-running and background operations          | `$sandbox`, `hook_cron`, QueueWorker                          |
+| 13. Migration API                | transferring data from external sources         | source/process/destination, ID map                            |
+| 14. Field API                    | structure of entity data                        | field type/storage/config, widget, formatter, computed fields |
+| 15. Authentication API           | who is making the request                       | Authentication Provider, Basic, OAuth, CSRF                   |
+| 16. Entity Handlers              | entity roles: list, form, access, routes        | `handlers`, ListBuilder, AccessControlHandler                 |
+| 17. Form API                     | forms and their processing                      | FormBase, ConfigFormBase, `#states`, AJAX                     |
+| 18. Changing someone else's code | changing Core/contrib without editing it        | alter hooks, preprocess, Twig, RouteSubscriber                |
+| 19. settings.php and the DB      | environment parameters and secrets              | `$databases`, `settings.local.php`, `getenv()`                |
 
 ---
 
