@@ -76,7 +76,7 @@ The Interface Translation module translates interface strings.
 
 Example:
 
-```
+```php
 $this->t('Create a new task');
 ```
 
@@ -101,7 +101,7 @@ Examples:
 
 Drupal provides methods for working with entity translations:
 
-```
+```php
 $node->hasTranslation('de');
 
 $translated_node = $node->getTranslation('de');
@@ -130,7 +130,7 @@ Important distinctions:
 
 For base fields in code:
 
-```
+```php
 $fields['title']->setTranslatable(TRUE);
 ```
 
@@ -142,7 +142,7 @@ Drupal must distinguish cached content according to language.
 
 Common cache contexts:
 
-```
+```php
 languages:language_interface
 languages:language_content
 ```
@@ -267,19 +267,19 @@ It exposes supported entity types through standardized endpoints.
 
 Example:
 
-```
+```json
 GET /jsonapi/node/article
 ```
 
 Retrieve an individual article:
 
-```
+```json
 GET /jsonapi/node/article/{uuid}
 ```
 
 A JSON response commonly contains:
 
-```
+```json
 {
   "data": [
     {
@@ -316,19 +316,19 @@ Filtering allows the frontend to retrieve only matching resources.
 
 Example:
 
-```
+```json
 GET /jsonapi/node/article?filter[status]=1
 ```
 
 More complex filters can use conditions:
 
-```
+```json
 GET /jsonapi/node/article?filter[title-filter][condition][path]=title
 ```
 
 Sparse fieldsets allow selecting specific fields:
 
-```
+```json
 GET /jsonapi/node/article?fields[node--article]=title,body
 ```
 
@@ -336,7 +336,7 @@ Pagination can limit the number of returned resources.
 
 Example:
 
-```
+```json
 GET /jsonapi/node/article?page[limit]=10
 ```
 
@@ -382,20 +382,20 @@ A custom REST endpoint should delegate business logic to a Drupal service rather
 
 Enable JSON:API:
 
-```
+```php
 drush en jsonapi -y
 drush cr
 ```
 
 Retrieve articles:
 
-```
+```php
 curl -i https://example.com/jsonapi/node/article
 ```
 
 Retrieve published articles:
 
-```
+```json
 GET /jsonapi/node/article?filter[status]=1
 ```
 
@@ -529,7 +529,7 @@ Configuration is generally stored in YAML files.
 
 Example:
 
-```
+```php
 name: Article
 type: node
 description: 'An article content type.'
@@ -560,7 +560,7 @@ The directory is defined in `settings.php`.
 
 Example:
 
-```
+```php
 $settings['config_sync_directory'] = '../config/sync';
 ```
 
@@ -568,13 +568,13 @@ The exact path depends on the project.
 
 ### Export configuration
 
-```
+```php
 drush cex
 ```
 
 Full command:
 
-```
+```php
 drush config:export
 ```
 
@@ -582,13 +582,13 @@ Exported YAML files should be reviewed and committed to Git.
 
 ### Import configuration
 
-```
+```php
 drush cim
 ```
 
 Full command:
 
-```
+```php
 drush config:import
 ```
 
@@ -623,7 +623,7 @@ Verify configuration
 
 ### Useful Drush commands
 
-```
+```php
 drush cex
 drush cim
 drush config:status
@@ -687,7 +687,7 @@ Configuration exclusions can also prevent selected configuration from being sync
 
 Local:
 
-```
+```php
 drush cex -y
 
 git status
@@ -701,7 +701,7 @@ git push
 
 Staging:
 
-```
+```php
 git pull
 
 drush cim -y
@@ -715,7 +715,7 @@ Before importing into production, review the configuration changes and understan
 
 Useful commands:
 
-```
+```php
 drush config:status
 drush config:get field.field.node.article.field_subtitle
 drush cr
@@ -746,7 +746,7 @@ Remember that a field can exist in configuration but remain hidden in the editin
 
 Check:
 
-```
+```php
 core.entity_form_display.node.article.default
 ```
 
@@ -801,7 +801,7 @@ Services are usually defined in a module's `.services.yml` file.
 
 Example:
 
-```
+```php
 services:
   my_module.task_manager:
     class: Drupal\my_module\Service\TaskManager
@@ -815,7 +815,7 @@ Dependency Injection is a design pattern in which an object receives its depende
 
 Example:
 
-```
+```php
 public function __construct(
   EntityTypeManagerInterface $entity_type_manager,
 ) {
@@ -846,7 +846,7 @@ Advantages:
 
 Drupal also provides global service access:
 
-```
+```php
 $entity_type_manager = \Drupal::entityTypeManager();
 
 $logger = \Drupal::service('logger.factory');
@@ -864,7 +864,7 @@ File:
 
 `my_module.services.yml`
 
-```
+```php
 services:
   my_module.task_manager:
     class: Drupal\my_module\Service\TaskManager
@@ -882,7 +882,7 @@ File:
 
 `src/Service/TaskManager.php`
 
-```
+```php
 <?php
 
 namespace Drupal\my_module\Service;
@@ -910,7 +910,7 @@ For this example, the class must also import `Drupal\node\NodeInterface`.
 
 Controllers commonly use the `ContainerInjectionInterface` pattern through `ControllerBase`.
 
-```
+```php
 <?php
 
 namespace Drupal\my_module\Controller;
@@ -967,7 +967,7 @@ It is useful when you want to add behavior without completely replacing the orig
 
 Example:
 
-```
+```php
 services:
   my_module.task_manager_decorator:
     class: Drupal\my_module\Decorator\TaskManagerDecorator
@@ -1049,7 +1049,7 @@ Cache tags identify what data a cached item depends on.
 
 Example:
 
-```
+```php
 $build['#cache']['tags'] = [
   'node:12',
 ];
@@ -1063,7 +1063,7 @@ Cache contexts define variations in cached output.
 
 Examples:
 
-```
+```php
 user
 user.roles
 languages:language_interface
@@ -1076,7 +1076,7 @@ For example, if output depends on the current user's role, the cache must vary b
 
 Defines how long an item can remain cached.
 
-```
+```php
 $build['#cache']['max-age'] = 3600;
 ```
 
@@ -1096,7 +1096,7 @@ A common problem is the N+1 query problem.
 
 Example:
 
-```
+```php
 1 query to load 100 tasks
 100 additional queries to load their projects
 ```
@@ -1122,7 +1122,7 @@ Possible solutions:
 
 Example:
 
-```
+```php
 $query = $entity_type_manager
   ->getStorage('node')
   ->getQuery();
@@ -1195,7 +1195,7 @@ They commonly use mocks for dependencies.
 
 Example:
 
-```
+```php
 public function testCalculateTotal(): void {
   $result = $this->calculator->calculate(10, 20);
 
@@ -1249,7 +1249,7 @@ Tools such as Playwright can automate browser workflows.
 
 Example:
 
-```
+```php
 test('user can open task board', async ({ page }) => {
   await page.goto('/board');
 
@@ -1280,7 +1280,7 @@ Dependency Injection makes mocking easier because dependencies are passed into c
 
 Example:
 
-```
+```php
 $entity_manager = $this->createMock(
   EntityTypeManagerInterface::class
 );
@@ -1414,7 +1414,7 @@ A route can define access requirements.
 
 Example:
 
-```
+```php
 my_module.admin:
   path: '/admin/custom'
   defaults:
@@ -1431,7 +1431,7 @@ Entity access checks determine whether a user can perform an operation on a spec
 
 Example:
 
-```
+```php
 $access = $node->access('update', $account);
 ```
 
@@ -1464,7 +1464,7 @@ Drupal uses Twig autoescaping.
 
 Prefer:
 
-```
+```php
 {{ variable }}
 ```
 
@@ -1478,7 +1478,7 @@ Never concatenate untrusted user input directly into SQL queries.
 
 Use parameterized queries:
 
-```
+```php
 $result = $database->select('users_field_data', 'u')
   ->fields('u', ['uid', 'name'])
   ->condition('uid', $uid)
@@ -1664,13 +1664,13 @@ An Event Subscriber defines which events a class listens to.
 
 A subscriber must implement:
 
-```
+```php
 EventSubscriberInterface
 ```
 
 The interface requires:
 
-```
+```php
 public static function getSubscribedEvents(): array;
 ```
 
@@ -1680,7 +1680,7 @@ This method defines the subscribed events and corresponding callback methods.
 
 Example subscriber:
 
-```
+```php
 <?php
 
 namespace Drupal\my_module\EventSubscriber;
@@ -1710,7 +1710,7 @@ final class NodeInsertSubscriber implements EventSubscriberInterface {
 
 Register it:
 
-```
+```php
 services:
   my_module.node_insert_subscriber:
     class: Drupal\my_module\EventSubscriber\NodeInsertSubscriber
@@ -1720,7 +1720,7 @@ services:
 
 Rebuild cache:
 
-```
+```php
 drush cr
 ```
 
@@ -1734,7 +1734,7 @@ A custom event class can carry data required by subscribers.
 
 The dispatcher can be injected as a service:
 
-```
+```php
 public function __construct(
   private readonly EventDispatcherInterface $dispatcher,
 ) {}
@@ -1742,7 +1742,7 @@ public function __construct(
 
 Dispatching a custom event:
 
-```
+```php
 $this->dispatcher->dispatch(
   $event,
   'my_module.task_completed'
@@ -1876,7 +1876,7 @@ A bundle represents a subtype or variation of an entity type.
 
 Example:
 
-```
+```php
 Entity Type: Node
 
 Bundles:
@@ -1892,7 +1892,7 @@ All are node entities, but they can have different fields and configuration.
 
 Use the Entity Type Manager:
 
-```
+```php
 $node = $entity_type_manager
   ->getStorage('node')
   ->load(12);
@@ -1900,7 +1900,7 @@ $node = $entity_type_manager
 
 Load multiple entities:
 
-```
+```php
 $nodes = $entity_type_manager
   ->getStorage('node')
   ->loadMultiple([12, 13, 14]);
@@ -1908,7 +1908,7 @@ $nodes = $entity_type_manager
 
 ## 10.6. Creating entities
 
-```
+```php
 $node = $entity_type_manager
   ->getStorage('node')
   ->create([
@@ -1922,7 +1922,7 @@ $node->save();
 
 ## 10.7. Updating entities
 
-```
+```php
 $node = $entity_type_manager
   ->getStorage('node')
   ->load(12);
@@ -1935,7 +1935,7 @@ if ($node) {
 
 ## 10.8. Deleting entities
 
-```
+```php
 $node = $entity_type_manager
   ->getStorage('node')
   ->load(12);
@@ -1949,7 +1949,7 @@ if ($node) {
 
 Entity Query provides an abstraction for querying entities.
 
-```
+```php
 $query = $entity_type_manager
   ->getStorage('node')
   ->getQuery();
@@ -1967,7 +1967,7 @@ Entity Query can filter entities by field values and other properties.
 
 Entity access checks whether the current user can perform an operation.
 
-```
+```php
 $node->access('view');
 $node->access('update');
 $node->access('delete');
@@ -2002,7 +2002,7 @@ Drupal 11 supports attribute-based entity definitions.
 
 Simplified example:
 
-```
+```php
 <?php
 
 namespace Drupal\my_module\Entity;
@@ -2140,7 +2140,7 @@ For modern Drupal 11 custom plugins, attributes are generally preferred where th
 
 ## 11.4. Example: Custom Block Plugin
 
-```
+```php
 <?php
 
 namespace Drupal\my_module\Plugin\Block;
@@ -2233,7 +2233,7 @@ A batch definition commonly contains:
 
 Simplified example:
 
-```
+```php
 $batch = [
   'title' => t('Processing tasks'),
   'operations' => [
@@ -2269,7 +2269,7 @@ Examples:
 
 Drupal can run cron through the administration interface or Drush.
 
-```
+```php
 drush cron
 ```
 
@@ -2302,7 +2302,7 @@ A Queue Worker is a plugin responsible for processing queue items.
 
 Simplified example:
 
-```
+```php
 <?php
 
 namespace Drupal\my_module\Plugin\QueueWorker;
@@ -2439,7 +2439,7 @@ Migration definitions are commonly stored in YAML files.
 
 Example:
 
-```
+```php
 id: article_migration
 
 label: 'Article migration'
@@ -2486,7 +2486,7 @@ Common examples:
 
 Example:
 
-```
+```php
 process:
   status:
     plugin: default_value
@@ -2505,7 +2505,7 @@ Migrations can depend on other migrations.
 
 Example:
 
-```
+```php
 migration_dependencies:
   required:
     - user_migration
@@ -2518,7 +2518,7 @@ This ensures required entities are migrated before dependent entities.
 
 Common migration commands:
 
-```
+```php
 drush migrate:status
 
 drush migrate:import article_migration
@@ -2534,7 +2534,7 @@ The Migrate and Migrate Drupal modules are part of Drupal core, while Migrate Pl
 
 ## 13.6. Migration workflow
 
-```
+```php
 Identify source data
        |
        v
@@ -2606,7 +2606,7 @@ Fields can be attached to entity bundles.
 
 For example:
 
-```
+```php
 Node
   |
   +-- Article
@@ -2662,7 +2662,7 @@ Defined in code by the entity type.
 
 Example:
 
-```
+```php
 $fields['status'] = BaseFieldDefinition::create('boolean')
   ->setLabel(t('Status'))
   ->setDefaultValue(TRUE);
@@ -2689,7 +2689,7 @@ Entity Reference fields connect one entity to another.
 
 Example:
 
-```
+```php
 Task
   |
   +-- field_project
@@ -2914,7 +2914,7 @@ Responsible for entity persistence and loading.
 
 Example:
 
-```
+```php
 $storage = $entity_type_manager->getStorage('node');
 
 $node = $storage->load(12);
@@ -2922,7 +2922,7 @@ $node = $storage->load(12);
 
 Common methods:
 
-```
+```php
 load()
 loadMultiple()
 create()
@@ -2936,7 +2936,7 @@ Responsible for entity access checks.
 
 Example:
 
-```
+```php
 $access = $node->access('update');
 ```
 
@@ -2948,7 +2948,7 @@ Responsible for rendering entities.
 
 Example:
 
-```
+```php
 $view_builder = $entity_type_manager->getViewBuilder('node');
 
 $build = $view_builder->view($node);
@@ -2979,7 +2979,7 @@ Entity Type Manager is the main service for accessing entity definitions and han
 
 Example:
 
-```
+```php
 $entity_type_manager = \Drupal::entityTypeManager();
 
 $storage = $entity_type_manager->getStorage('node');
@@ -3045,7 +3045,7 @@ Forms can be created for:
 
 A common base class for custom forms is:
 
-```
+```php
 FormBase
 ```
 
@@ -3066,7 +3066,7 @@ A custom form usually implements:
 
 Example:
 
-```
+```php
 <?php
 
 namespace Drupal\my_module\Form;
@@ -3172,19 +3172,19 @@ FormStateInterface provides access to submitted values and form processing state
 
 Example:
 
-```
+```php
 $value = $form_state->getValue('title');
 ```
 
 Set an error:
 
-```
+```php
 $form_state->setErrorByName('title', $message);
 ```
 
 Set a redirect:
 
-```
+```php
 $form_state->setRedirect('entity.node.canonical', [
   'node' => $nid,
 ]);
@@ -3196,7 +3196,7 @@ Drupal Form API supports AJAX interactions.
 
 Example:
 
-```
+```php
 $form['details'] = [
   '#type' => 'container',
   '#attributes' => [
@@ -3274,7 +3274,7 @@ I would inspect:
 
 Useful commands:
 
-```
+```php
 drush status
 
 composer show drupal/core
@@ -3311,7 +3311,7 @@ Before creating a new solution, search the project for similar functionality.
 
 For example:
 
-```
+```php
 grep -R "getStorage('node')" web/modules/custom/
 ```
 
@@ -3361,7 +3361,7 @@ Recommended approach:
 
 ## 18.7. Git workflow
 
-```
+```php
 git checkout develop
 
 git pull
@@ -3428,7 +3428,7 @@ The `settings.php` file contains environment-specific Drupal configuration.
 
 It is located in:
 
-```
+```php
 web/sites/default/settings.php
 ```
 
@@ -3459,7 +3459,7 @@ Drupal uses database connection settings to connect to the database.
 
 Example:
 
-```
+```php
 $databases['default']['default'] = [
   'database' => 'drupal',
   'username' => 'drupal',
@@ -3493,7 +3493,7 @@ A common approach is to load environment-specific settings from separate files o
 
 Example:
 
-```
+```php
 $settings['hash_salt'] = getenv('DRUPAL_HASH_SALT');
 ```
 
@@ -3505,7 +3505,7 @@ Trusted host patterns protect against Host header attacks.
 
 Example:
 
-```
+```php
 $settings['trusted_host_patterns'] = [
   '^example\.com$',
   '^www\.example\.com$',
@@ -3520,7 +3520,7 @@ Drupal uses a hash salt for security-related operations.
 
 Example:
 
-```
+```php
 $settings['hash_salt'] = 'generated-random-secret';
 ```
 
@@ -3532,7 +3532,7 @@ Drupal provides a Database API for database operations.
 
 Example:
 
-```
+```php
 $database = \Drupal::database();
 
 $query = $database->select('users_field_data', 'u')
@@ -3544,7 +3544,7 @@ $result = $query->execute();
 
 In object-oriented classes, inject the database connection:
 
-```
+```php
 Connection $database
 ```
 
@@ -3579,13 +3579,13 @@ A database backup is important before risky deployments, updates, and migrations
 
 With Drush:
 
-```
+```php
 drush sql:dump --result-file=backup.sql
 ```
 
 Import:
 
-```
+```php
 drush sql:cli < backup.sql
 ```
 
@@ -3644,7 +3644,7 @@ I would also create database backups before risky deployments or migrations and 
 
 ## Important Drush Commands
 
-```
+```php
 # Status
 drush status
 
@@ -3686,7 +3686,7 @@ drush router:debug
 
 ### Entity loading
 
-```
+```php
 $node = $entity_type_manager
   ->getStorage('node')
   ->load($id);
@@ -3694,7 +3694,7 @@ $node = $entity_type_manager
 
 ### Entity creation
 
-```
+```php
 $node = $entity_type_manager
   ->getStorage('node')
   ->create([
@@ -3708,7 +3708,7 @@ $node->save();
 
 ### Dependency Injection
 
-```
+```php
 public function __construct(
   EntityTypeManagerInterface $entity_type_manager,
 ) {
@@ -3718,13 +3718,13 @@ public function __construct(
 
 ### Entity access
 
-```
+```php
 $node->access('update');
 ```
 
 ### Entity Query
 
-```
+```php
 $query = $entity_type_manager
   ->getStorage('node')
   ->getQuery();
@@ -3737,7 +3737,7 @@ $ids = $query
 
 ### Translation
 
-```
+```php
 $node->hasTranslation('de');
 
 $translated = $node->getTranslation('de');
@@ -3745,7 +3745,7 @@ $translated = $node->getTranslation('de');
 
 ### Logging
 
-```
+```php
 $logger->notice('Task @id was updated.', [
   '@id' => $task_id,
 ]);
@@ -3753,7 +3753,7 @@ $logger->notice('Task @id was updated.', [
 
 ### Service registration
 
-```
+```php
 services:
   my_module.task_manager:
     class: Drupal\my_module\Service\TaskManager
