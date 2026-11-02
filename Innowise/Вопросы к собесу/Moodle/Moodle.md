@@ -1807,6 +1807,7 @@ message_send($eventdata);
 ### Код
 
 #### Интеграционный тест `tests/manager_test.php`
+
 ```php
 <?php
 namespace local_hello;
