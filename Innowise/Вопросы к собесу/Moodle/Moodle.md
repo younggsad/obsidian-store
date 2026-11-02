@@ -387,6 +387,7 @@ require_capability('mod/assign:view', $context);
 ### Код
 
 #### 1. Регистрация capability в `db/access.php`
+
 ```php
 <?php
 defined('MOODLE_INTERNAL') || die();
@@ -414,6 +415,7 @@ $capabilities = [
 ```
 
 #### 2. Проверка прав в бизнес-логике
+
 ```php
 $context = context_course::instance($course->id);
 
