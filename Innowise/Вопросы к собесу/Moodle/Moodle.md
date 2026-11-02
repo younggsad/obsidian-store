@@ -873,6 +873,7 @@ $deleteurl = new moodle_url('/local/hello/index.php', [
 ### Код
 
 #### 1. Класс формы `classes/form/message_form.php`
+
 ```php
 <?php
 namespace local_hello\form;
@@ -913,6 +914,7 @@ class message_form extends \moodleform {
 ```
 
 #### 2. Обработка формы в контроллере (`index.php`)
+
 ```php
 $mform = new \local_hello\form\message_form(null, ['id' => $id]);
 
