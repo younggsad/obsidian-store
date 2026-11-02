@@ -1160,11 +1160,11 @@ if ($hassiteconfig) {
 
     // Добавляем текстовую настройку
     $settings->add(new admin_setting_configtext(
-        'local_hello/api_key',                          // Уникальный ключ: component/name
+        'local_hello/api_key',                            // Уникальный ключ: component/name
         get_string('setting_apikey', 'local_hello'),      // Название
         get_string('setting_apikey_desc', 'local_hello'), // Описание
-        '',                                             // Дефолтное значение
-        PARAM_ALPHANUMEXT                               // Тип очистки параметра
+        '',                                               // Дефолтное значение
+        PARAM_ALPHANUMEXT                                 // Тип очистки параметра
     ));
 
     // Добавляем флаг (чекбокс)
