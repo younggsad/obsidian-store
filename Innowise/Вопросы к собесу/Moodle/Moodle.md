@@ -679,6 +679,7 @@ php admin/cli/purge_caches.php
 ### Код
 
 #### 1. Миграция в `db/upgrade.php`
+
 ```php
 <?php
 defined('MOODLE_INTERNAL') || die();
@@ -706,6 +707,7 @@ function xmldb_local_hello_upgrade($oldversion) {
 ```
 
 #### 2. DML-операции чтения и записи
+
 ```php
 global $DB;
 
