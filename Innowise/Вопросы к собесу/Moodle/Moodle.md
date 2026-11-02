@@ -1682,6 +1682,7 @@ function local_hello_pluginfile($course, $cm, $context, $filearea, $args, $force
 ### Код
 
 #### 1. Декларация в `db/caches.php`
+
 ```php
 <?php
 defined('MOODLE_INTERNAL') || die();
@@ -1696,6 +1697,7 @@ $definitions = [
 ```
 
 #### 2. Использование кэша в коде
+
 ```php
 $cache = \cache::make('local_hello', 'calculated_stats');
 
