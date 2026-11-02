@@ -1917,7 +1917,7 @@ vendor/bin/phpunit local/hello/tests/manager_test.php
 
 ### Карта конфигурационных файлов плагина
 ```text
-Таблицы БД           ──► db/install.xml
+Таблицы БД            ──► db/install.xml
 Миграции схемы        ──► db/upgrade.php
 Права доступа         ──► db/access.php
 Языковые строки       ──► lang/en/{component}.php
