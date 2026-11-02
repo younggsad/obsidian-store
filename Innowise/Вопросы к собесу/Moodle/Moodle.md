@@ -514,6 +514,7 @@ require_capability('local/hello:manage', $context);
   `local_hello\util\calculator` $\longrightarrow$ `local/hello/classes/util/calculator.php`
 
 ### Структура каталога плагина
+
 ```text
 local/hello/
 ├── version.php                    # Метаданные компонента и версии
@@ -541,6 +542,7 @@ local/hello/
 ### Код
 
 #### `version.php`
+
 ```php
 <?php
 defined('MOODLE_INTERNAL') || die();
