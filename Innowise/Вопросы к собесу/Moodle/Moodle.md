@@ -1515,6 +1515,7 @@ class get_messages extends external_api {
 ### Код
 
 #### 1. Модуль `amd/src/main.js`
+
 ```javascript
 import Ajax from 'core/ajax';
 import Notification from 'core/notification';
@@ -1557,6 +1558,7 @@ export const init = (limit) => {
 ```
 
 #### 2. Компиляция через Grunt
+
 ```bash
 # Установка зависимостей (один раз в корне moodle)
 npm install
@@ -1585,6 +1587,7 @@ npx grunt watch
 ### Код
 
 #### 1. Подписка в `db/hooks.php`
+
 ```php
 <?php
 defined('MOODLE_INTERNAL') || die();
@@ -1599,6 +1602,7 @@ $callbacks = [
 ```
 
 #### 2. Обработчик `classes/hooks.php`
+
 ```php
 <?php
 namespace local_hello;
