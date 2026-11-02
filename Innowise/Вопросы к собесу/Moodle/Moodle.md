@@ -1294,9 +1294,11 @@ class observer {
 ### Теория
 
 - **Фоновый планировщик Moodle (Task API)**: Работает на системном кроне операционной системы, который вызывается ежеминутно:
+
   ```bash
   * * * * * php /var/www/moodle/admin/cli/cron.php >/dev/null
   ```
+
 - **Два фундаментальных типа задач**:
 
 | Характеристика | Scheduled Tasks (По расписанию) | Adhoc Tasks (Асинхронные разовые) |
@@ -1310,6 +1312,7 @@ class observer {
 ### Код
 
 #### 1. Scheduled Task `classes/task/cleanup_task.php`
+
 ```php
 <?php
 namespace local_hello\task;
@@ -1334,6 +1337,7 @@ class cleanup_task extends \core\task\scheduled_task {
 ```
 
 #### 2. Регистрация в `db/tasks.php`
+
 ```php
 <?php
 defined('MOODLE_INTERNAL') || die();
@@ -1352,6 +1356,7 @@ $tasks = [
 ```
 
 #### 3. Создание и запуск Adhoc Task
+
 ```php
 // classes/task/send_email_task.php
 namespace local_hello\task;
