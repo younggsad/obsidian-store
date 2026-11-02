@@ -1195,6 +1195,7 @@ if ($hassiteconfig) {
 ### Код
 
 #### 1. Создание кастомного события `classes/event/item_created.php`
+
 ```php
 <?php
 namespace local_hello\event;
@@ -1224,6 +1225,7 @@ class item_created extends \core\event\base {
 ```
 
 #### 2. Генерация события (Trigger)
+
 ```php
 $event = \local_hello\event\item_created::create([
     'objectid' => $newid,
@@ -1234,6 +1236,7 @@ $event->trigger();
 ```
 
 #### 3. Подписка в `db/events.php`
+
 ```php
 <?php
 defined('MOODLE_INTERNAL') || die();
@@ -1250,6 +1253,7 @@ $observers = [
 ```
 
 #### 4. Обработчик `classes/observer.php`
+
 ```php
 <?php
 namespace local_hello;
