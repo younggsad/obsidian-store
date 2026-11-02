@@ -1400,6 +1400,7 @@ $task->set_custom_data([
 ### Код
 
 #### 1. Декларация в `db/services.php`
+
 ```php
 <?php
 defined('MOODLE_INTERNAL') || die();
@@ -1426,6 +1427,7 @@ $services = [
 ```
 
 #### 2. Реализация класса `classes/external/get_messages.php`
+
 ```php
 <?php
 namespace local_hello\external;
