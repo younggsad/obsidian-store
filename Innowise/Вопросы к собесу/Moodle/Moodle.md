@@ -316,11 +316,13 @@ echo $OUTPUT->footer();
 
 - **Иерархия сущностей**: 
   $$\text{Site} \longrightarrow \text{Course Categories} \longrightarrow \text{Courses} \longrightarrow \text{Course Sections} \longrightarrow \text{Course Modules (CM)}$$
+
 - **Разделение Course Module (`cm`) и Экземпляра (`instance`)**:
   - **`instance`**: Конкретная запись активности в таблице плагина (например, запись в таблице `{assign}` или `{forum}`). Хранит бизнес-данные: текст задания, даты сдачи, шкалу оценок.
   - **`cm` (`course_modules`)**: Системная обертка Moodle, связывающая активность с курсом. Хранит инфраструктурные данные: в какой секции курса находится элемент, виден ли он студентам, настроены ли ограничения доступа (availability), критерии завершения (completion).
 - **Связка**: Поле `course_modules.instance` указывает на первичный ключ `id` в таблице самой активности.
 - **Контекст активности**: Строится **строго от `cmid`**, а не от `instance` id:
+
   ```php
   $context = context_module::instance($cm->id);
   ```
