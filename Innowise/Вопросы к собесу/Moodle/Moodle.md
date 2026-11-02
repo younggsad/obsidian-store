@@ -373,8 +373,8 @@ require_capability('mod/assign:view', $context);
 ### Теория
 
 - **Контекст (`Context`)**: Область действия полномочий. Контексты выстроены в строгую древовидную иерархию:
-  $$\text{CONTEXT\_SYSTEM (10)} \longrightarrow \text{CONTEXT\_COURSECAT (40)} \longrightarrow \text{CONTEXT\_COURSE (50)} \longrightarrow \text{CONTEXT\_MODULE (70)}$$
-*(Контекст пользователя `CONTEXT_USER (30)` находится в отдельной ветке).*
+  $$\text{CONTEXT\_SYSTEM (10)} \longrightarrow \text{CONTEXT\_COURSECAT (40)} \longrightarrow \text{CONTEXT\_COURSE (50)} \longrightarrow \text{CONTEXT\_MODULE (70)} \longrightarrow \text{CONTEXT\_BLOCK (80)}$$
+  *(Контекст пользователя `CONTEXT_USER (30)` находится в отдельной ветке).*
 
 - **Наследование**: Права, выданные в родительском контексте (например, на уровне категории), автоматически наследуются дочерними уровнями (все курсы внутри этой категории).
 - **Разрешение конфликта прав (Permission Levels)**:
