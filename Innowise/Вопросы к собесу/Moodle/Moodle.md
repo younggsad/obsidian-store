@@ -1010,6 +1010,7 @@ class message_list implements renderable, templatable {
 ```
 
 #### 2. Шаблон `templates/message_list.mustache`
+
 ```mustache
 {{!
     @template local_hello/message_list
@@ -1046,6 +1047,7 @@ class message_list implements renderable, templatable {
 ```
 
 #### 3. Вызов рендеринга на странице
+
 ```php
 $messages = $DB->get_records('local_hello_messages', ['userid' => $USER->id]);
 $renderable = new \local_hello\output\message_list($messages);
