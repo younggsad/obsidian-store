@@ -594,6 +594,7 @@ $plugin->dependencies = [                // Зависимости от друг
 ### Код
 
 #### 1. `lang/en/local_hello.php`
+
 ```php
 <?php
 defined('MOODLE_INTERNAL') || die();
@@ -605,6 +606,7 @@ $string['privacy:metadata'] = 'The Hello plugin does not store personal data.';
 ```
 
 #### 2. `classes/privacy/provider.php`
+
 ```php
 <?php
 namespace local_hello\privacy;
@@ -619,6 +621,7 @@ class provider implements \core_privacy\local\metadata\null_provider {
 ```
 
 #### 3. `index.php`
+
 ```php
 <?php
 require_once(__DIR__ . '/../../config.php');
@@ -642,6 +645,7 @@ echo $OUTPUT->footer();
 ```
 
 #### 4. Команды для развертывания
+
 ```bash
 php admin/cli/upgrade.php --non-interactive
 php admin/cli/purge_caches.php
