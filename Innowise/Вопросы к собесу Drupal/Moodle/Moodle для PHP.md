@@ -97,7 +97,8 @@ php admin/cli/install.php --lang=ru --wwwroot=http://localhost:8080 \
   --adminuser=admin --adminpass='Admin123!' --agree-license --non-interactive
 ```
 
-> [!note] Путь к CLI-скриптам В 5.x часть кода переехала в `public/`, расположение CLI-скриптов (`admin/cli/...`) проверяй в своей версии.
+> [!note] Путь к CLI-скриптам 
+> В 5.x часть кода переехала в `public/`, расположение CLI-скриптов (`admin/cli/...`) проверяй в своей версии.
 
 ### config.php: настройки разработчика
 
