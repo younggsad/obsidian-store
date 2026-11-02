@@ -1636,6 +1636,7 @@ class hooks {
 ### Код
 
 #### Обработчик отдачи файла в `lib.php`
+
 ```php
 function local_hello_pluginfile($course, $cm, $context, $filearea, $args, $forcedownload, array $options = []) {
     // 1. Проверяем валидность контекста
