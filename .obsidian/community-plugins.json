@@ -1,5 +1,6 @@
 [
   "custom-note-width",
   "hybrid-git-sync",
-  "git-obsi-sync"
+  "git-obsi-sync",
+  "agent-client"
 ]
