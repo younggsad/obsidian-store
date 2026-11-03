@@ -109,8 +109,6 @@ php -l file.php            # проверка синтаксиса (lint)
 
 ### Код
 
-php
-
 ```php
 <?php
 declare(strict_types=1);
