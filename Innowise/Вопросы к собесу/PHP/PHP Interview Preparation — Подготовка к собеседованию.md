@@ -84,7 +84,7 @@ PHP может работать через разные SAPI:
 
 ### 1.3. Синтаксис PHP
 
-```
+```php
 <?php
 
 declare(strict_types=1);
@@ -108,7 +108,7 @@ $result = $age + 10;
 
 Переменные в PHP начинаются с `$`.
 
-```
+```php
 $name = 'John';
 $age = 30;
 $price = 19.99;
@@ -120,7 +120,7 @@ PHP не требует предварительного объявления п
 
 Переменные имеют динамический тип:
 
-```
+```php
 $value = 100;
 $value = 'Hello';
 $value = false;
@@ -132,7 +132,7 @@ $value = false;
 
 Константы — значения, которые нельзя переопределить после объявления.
 
-```
+```php
 define('APP_NAME', 'My Application');
 
 const API_VERSION = 'v1';
@@ -152,7 +152,7 @@ echo API_VERSION;
 - Константы класса объявляются через `const`.
     
 
-```
+```php
 class User
 {
     public const ROLE_ADMIN = 'admin';
@@ -172,7 +172,7 @@ PHP поддерживает следующие основные типы:
 
 Пример:
 
-```
+```php
 $integer = 10;
 $float = 10.5;
 $string = 'PHP';
@@ -186,7 +186,7 @@ $null = null;
 
 Целые числа.
 
-```
+```php
 $number = 100;
 $negative = -50;
 $hex = 0xFF;
