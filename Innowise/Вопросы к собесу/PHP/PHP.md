@@ -394,8 +394,6 @@ $text = <<<TXT
 
 ### Код
 
-php
-
 ```php
 $users = [
     ['id' => 1, 'name' => 'Анна', 'age' => 30],
