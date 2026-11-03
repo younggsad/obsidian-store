@@ -546,8 +546,6 @@ foreach (readLines('big.log') as $n => $line) { /* O(1) память */ }
 
 ### Код
 
-php
-
 ```php
 <?php
 declare(strict_types=1);
