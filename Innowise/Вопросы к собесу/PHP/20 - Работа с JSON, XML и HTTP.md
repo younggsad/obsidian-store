@@ -1,19 +1,10 @@
----
-custom-width: 80
----
-# 20 — Работа с JSON, XML и HTTP
+## 1. Фундаментальная теория и архитектура
 
-## 1. Теория
+### JSON и обработка ошибок
+- Использование флага `JSON_THROW_ON_ERROR` заставляет `json_encode` и `json_decode` выбрасывать `JsonException` при сбоях вместо возврата `false`/`null`.
 
-### Работа с JSON
-- `json_encode(mixed $value, int $flags = 0): string|false` — сериализация в JSON.
-- `json_decode(string $json, ?bool $assoc = null, int $depth = 512, int $flags = 0): mixed` — десериализация.
-  - Если `$assoc` равен `true`, возвращает ассоциативный массив, если `false` — объект.
-- Ошибки кодирования проверяются через `json_last_error()` или с помощью флага `JSON_THROW_ON_ERROR` (выбрасывает `JsonException`).
-
-### Работа с XML
-- Для базового парсинга: `SimpleXMLElement`.
-- Для сложных задач: `DOMDocument`, `XMLReader` (потоковый парсер для больших файлов) и `XMLWriter`.
+### XML
+- Для больших файлов используется потоковый парсер `XMLReader`. Для простых структур — `SimpleXMLElement` или `DOMDocument`.
 
 ---
 
@@ -23,25 +14,22 @@ custom-width: 80
 <?php
 declare(strict_types=1);
 
-// JSON с выбросом исключений при ошибках
 try {
-    $jsonString = '{"name": "Alice", "age": 30}';
-    $data = json_decode($jsonString, associative: true, flags: JSON_THROW_ON_ERROR);
-    
-    $encoded = json_encode($data, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
-    echo $encoded;
+    $data = json_decode('{"status": "ok"}', true, 512, JSON_THROW_ON_ERROR);
 } catch (\JsonException $e) {
-    echo "JSON error: " . $e->getMessage();
+    // Обработка ошибки
 }
 ```
 
 ---
 
-## 3. Вопросы на собеседовании
+## 3. Детальные вопросы на техническом собеседовании
 
-1. **Почему рекомендуется использовать флаг `JSON_THROW_ON_ERROR` при работе с JSON в PHP?**
-   *Ответ*: По умолчанию при ошибке кодирования/декодирования `json_encode` и `json_decode` возвращают `false` или `null`, а ошибку нужно было проверять через `json_last_error()`. Флаг `JSON_THROW_ON_ERROR` заставляет функции выбрасывать `JsonException`, что упрощает обработку ошибок в блоках `try-catch`.
-2. **Какой инструмент лучше использовать для парсинга огромных XML файлов и почему?**
-   *Ответ*: Лучше использовать `XMLReader`, так как он работает как потоковый итератор (pull-parser), обрабатывая XML по частям и не загружая весь документ в память. `SimpleXMLElement` и `DOMDocument` загружают дерево целиком в оперативную память.
-3. **Как избежать некорректного экранирования кириллицы при `json_encode()`?**
+1. **Почему флаг `JSON_THROW_ON_ERROR` считается лучшей практикой в современном PHP?**
+   *Ответ*: По умолчанию функции работы с JSON возвращают `false` или `null` при ошибке, требуя ручной проверки через `json_last_error()`. Флаг `JSON_THROW_ON_ERROR` переводит обработку в стандартный ООП-режим с выбросом `JsonException`.
+2. **Какой инструмент парсинга XML выбрать для обработки гигабайтных файлов и почему?**
+   *Ответ*: `XMLReader`. Он работает как pull-парсер (итератор), считывая документ поэтапно, тогда как `SimpleXMLElement` и `DOMDocument` загружают всё дерево XML целиком в оперативную память.
+3. **Как при `json_encode` избежать экранирования символов кириллицы в читаемый вид?**
    *Ответ*: Использовать флаг `JSON_UNESCAPED_UNICODE`.
+4. **Каковы особенности кодирования глубоких вложенных структур в JSON?**
+   *Ответ*: Параметр `depth` в `json_decode` / `json_encode` ограничивает максимальную глубину рекурсии (по умолчанию 512) во избежание переполнения стека.
