@@ -953,8 +953,6 @@ final class Mailer
 
 ### Код
 
-php
-
 ```php
 final class InsufficientFundsException extends DomainException
 {
@@ -995,9 +993,7 @@ set_error_handler(function (int $no, string $str, string $file, int $line): bool
 ---
 
 > [!question] Что вернёт функция, если в `try` есть `return`, а в `finally` тоже?
-> 
-> php
-> 
+> > 
 > ```php
 > function f() {
 >     try { return 'try'; }
@@ -1019,7 +1015,8 @@ set_error_handler(function (int $no, string $str, string $file, int $line): bool
 
 ## 12. Память: ссылки, copy-on-write, сборщик мусора
 
-> [!abstract] Коротко Копирование по значению (copy-on-write), объекты по handle, ссылки и их ловушки, подсчёт ссылок и GC.
+> [!abstract] Коротко 
+> Копирование по значению (copy-on-write), объекты по handle, ссылки и их ловушки, подсчёт ссылок и GC.
 
 ### Теория
 
@@ -1033,8 +1030,6 @@ set_error_handler(function (int $no, string $str, string $file, int $line): bool
 - **Контроль памяти**: `memory_limit`, `memory_get_usage()`, `memory_get_peak_usage()`, генераторы, обработка порциями, `unset` больших структур, отключение логов запросов (`DB logging`) в долгоживущих скриптах.
 
 ### Код
-
-php
 
 ```php
 $arr = [1, 2, 3];
