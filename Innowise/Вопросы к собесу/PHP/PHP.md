@@ -528,7 +528,8 @@ foreach (readLines('big.log') as $n => $line) { /* O(1) память */ }
 
 ## 7. Строгая типизация и современная система типов
 
-> [!abstract] Коротко `declare(strict_types=1)`, nullable/union/intersection типы, `void`/`never`, enum. Типы — основа безопасного кода.
+> [!abstract] Коротко 
+> `declare(strict_types=1)`, nullable/union/intersection типы, `void`/`never`, enum. Типы — основа безопасного кода.
 
 ### Теория
 
