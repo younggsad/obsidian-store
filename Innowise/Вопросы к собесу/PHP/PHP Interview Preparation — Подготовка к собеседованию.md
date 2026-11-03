@@ -199,14 +199,14 @@ $binary = 0b1010;
 
 Числа с плавающей точкой.
 
-```
+```php
 $price = 19.99;
 $rate = 0.15;
 ```
 
 Float использует двоичное представление, поэтому некоторые десятичные значения не могут быть представлены точно.
 
-```
+```php
 var_dump(0.1 + 0.2);
 ```
 
@@ -223,7 +223,7 @@ var_dump(0.1 + 0.2);
 
 #### String
 
-```
+```php
 $name = 'John';
 
 $message = "Hello, {$name}";
@@ -265,7 +265,7 @@ TEXT;
 
 Для Unicode необходимо учитывать разницу между байтовой длиной строки и количеством символов.
 
-```
+```php
 $text = 'Привет';
 
 echo strlen($text);
@@ -276,7 +276,7 @@ echo mb_strlen($text);
 
 #### Boolean
 
-```
+```php
 $isActive = true;
 
 if ($isActive) {
@@ -307,7 +307,7 @@ Falsy-значения в PHP:
 
 Type Juggling — автоматическое преобразование типов.
 
-```
+```php
 $result = '10' + 5;
 
 var_dump($result); // int(15)
@@ -315,7 +315,7 @@ var_dump($result); // int(15)
 
 Type Casting — явное преобразование.
 
-```
+```php
 $value = '100';
 
 $integer = (int) $value;
@@ -339,7 +339,7 @@ $boolean = (bool) $value;
 
 Для проверки типа:
 
-```
+```php
 is_int($value);
 is_string($value);
 is_array($value);
@@ -349,7 +349,7 @@ is_null($value);
 
 Для проверки значения:
 
-```
+```php
 isset($value);
 empty($value);
 is_null($value);
@@ -364,7 +364,7 @@ is_null($value);
 |is_null()|Проверяет null|
 |array_key_exists()|Проверяет существование ключа массива, даже если значение null|
 
-```
+```php
 $data = [
     'name' => null,
 ];
@@ -377,7 +377,7 @@ array_key_exists('name', $data); // true
 
 #### Arithmetic
 
-```
+```php
 $a + $b;
 $a - $b;
 $a * $b;
@@ -388,7 +388,7 @@ $a ** $b;
 
 #### Comparison
 
-```
+```php
 $a == $b;
 $a === $b;
 $a != $b;
@@ -406,7 +406,7 @@ $a <= $b;
 - `===` сравнивает значения и типы.
     
 
-```
+```php
 var_dump(10 == '10');  // true
 var_dump(10 === '10'); // false
 ```
@@ -415,7 +415,7 @@ var_dump(10 === '10'); // false
 
 #### Logical
 
-```
+```php
 &&
 ||
 !
@@ -428,7 +428,7 @@ xor
 
 #### Null coalescing
 
-```
+```php
 $name = $input['name'] ?? 'Guest';
 ```
 
@@ -436,7 +436,7 @@ $name = $input['name'] ?? 'Guest';
 
 #### Nullsafe operator
 
-```
+```php
 $city = $user?->getAddress()?->getCity();
 ```
 
@@ -444,7 +444,7 @@ $city = $user?->getAddress()?->getCity();
 
 #### Spaceship operator
 
-```
+```php
 $result = $a <=> $b;
 ```
 
@@ -463,7 +463,7 @@ $result = $a <=> $b;
 
 #### if / elseif / else
 
-```
+```php
 if ($age >= 18) {
     echo 'Adult';
 } elseif ($age >= 13) {
@@ -477,7 +477,7 @@ if ($age >= 18) {
 
 `match` — выражение, которое возвращает значение и использует строгое сравнение.
 
-```
+```php
 $status = match ($code) {
     200 => 'OK',
     404 => 'Not Found',
@@ -501,7 +501,7 @@ $status = match ($code) {
 
 #### Loops
 
-```
+```php
 for ($i = 0; $i < 5; $i++) {
     echo $i;
 }
@@ -521,7 +521,7 @@ foreach ($items as $key => $value) {
 
 При изменении элементов массива по ссылке:
 
-```
+```php
 foreach ($items as &$item) {
     $item *= 2;
 }
@@ -535,7 +535,7 @@ unset($item);
 
 Функция — переиспользуемый блок кода, который может принимать аргументы и возвращать значение.
 
-```
+```php
 function calculateTotal(float $price, int $quantity): float
 {
     return $price * $quantity;
@@ -555,7 +555,7 @@ function calculateTotal(float $price, int $quantity): float
 - Ссылочную передачу.
     
 
-```
+```php
 function createUser(
     string $name,
     int $age = 18,
@@ -569,7 +569,7 @@ function createUser(
 
 Named arguments:
 
-```
+```php
 createUser(
     age: 25,
     name: 'John',
@@ -578,7 +578,7 @@ createUser(
 
 Variadic arguments:
 
-```
+```php
 function sum(int ...$numbers): int
 {
     return array_sum($numbers);
@@ -589,7 +589,7 @@ echo sum(1, 2, 3, 4);
 
 Возвращаемый тип:
 
-```
+```php
 function getName(): string
 {
     return 'John';
@@ -598,7 +598,7 @@ function getName(): string
 
 Функция может возвращать `void`, если не должна возвращать значение.
 
-```
+```php
 function logMessage(string $message): void
 {
     echo $message;
