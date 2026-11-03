@@ -1,3 +1,6 @@
+---
+custom-width: 80
+---
 # 26 — Dependency Injection и Service Container
 
 ## 1. Теория

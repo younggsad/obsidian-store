@@ -1,3 +1,6 @@
+---
+custom-width: 80
+---
 # 17 — Namespaces, Autoloading и Composer
 
 ## 1. Теория

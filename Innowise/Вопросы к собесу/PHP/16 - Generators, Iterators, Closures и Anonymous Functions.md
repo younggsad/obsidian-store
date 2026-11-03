@@ -1,3 +1,6 @@
+---
+custom-width: 80
+---
 # 16 — Generators, Iterators, Closures и Anonymous Functions
 
 ## 1. Теория

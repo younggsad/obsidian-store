@@ -1,3 +1,6 @@
+---
+custom-width: 80
+---
 # 15 — PHP Memory Management. Garbage Collector и References
 
 ## 1. Теория

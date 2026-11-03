@@ -1,3 +1,6 @@
+---
+custom-width: 80
+---
 # 25 — Design Patterns в PHP
 
 ## 1. Теория

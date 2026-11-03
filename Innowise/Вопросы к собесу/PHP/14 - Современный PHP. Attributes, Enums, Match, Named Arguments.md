@@ -1,3 +1,6 @@
+---
+custom-width: 80
+---
 # 14 — Современный PHP. Attributes, Enums, Match, Named Arguments
 
 ## 1. Теория

@@ -1,3 +1,6 @@
+---
+custom-width: 80
+---
 # 20 — Работа с JSON, XML и HTTP
 
 ## 1. Теория

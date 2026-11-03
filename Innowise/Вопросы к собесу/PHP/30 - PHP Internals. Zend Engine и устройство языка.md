@@ -1,3 +1,6 @@
+---
+custom-width: 80
+---
 # 30 — PHP Internals. Zend Engine и устройство языка
 
 ## 1. Теория

@@ -1,3 +1,6 @@
+---
+custom-width: 80
+---
 # 31 — Production. PHP-FPM, OPcache, Nginx и Docker
 
 ## 1. Теория
