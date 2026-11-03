@@ -192,8 +192,6 @@ var_dump(array_key_exists('k', $a));        // true
 
 ### Код
 
-php
-
 ```php
 $user = null;
 echo $user?->profile?->name ?? 'Гость';   // Гость
