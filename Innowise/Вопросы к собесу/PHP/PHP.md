@@ -634,8 +634,6 @@ Status::cases();                   // массив всех кейсов
 
 ### Код
 
-php
-
 ```php
 <?php
 declare(strict_types=1);
