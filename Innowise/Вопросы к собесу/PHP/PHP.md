@@ -835,7 +835,8 @@ class Proxy
 
 ## 10. Пространства имён, автозагрузка, Composer и PSR
 
-> [!abstract] Коротко Namespaces, автозагрузка PSR-4, Composer (`install` против `update`, lock-файл), стандарты PSR.
+> [!abstract] Коротко 
+> Namespaces, автозагрузка PSR-4, Composer (`install` против `update`, lock-файл), стандарты PSR.
 
 ### Теория
 
@@ -859,8 +860,6 @@ class Proxy
 
 ### Код
 
-json
-
 ```json
 {
   "name": "acme/app",
@@ -879,8 +878,6 @@ json
   }
 }
 ```
-
-php
 
 ```php
 <?php
