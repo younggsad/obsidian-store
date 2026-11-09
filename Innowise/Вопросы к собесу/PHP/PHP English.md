@@ -1,5 +1,5 @@
 ---
-title: PHP 8.4+ Senior Technical Interview & Systems Architecture Manual
+title: "PHP 8.4+ Senior Technical Interview & Systems Architecture Manual"
 created: 2026-11-09
 tags:
   - php
@@ -10,7 +10,6 @@ tags:
   - security
 cssclasses:
   - wide-page
-custom-width: 80
 ---
 
 # PHP 8.4+ Senior Technical Handbook & Systems Architecture Manual
@@ -37,113 +36,151 @@ custom-width: 80
 
 ## 1. PHP Runtime Internals & Lifecycle (Zend Engine, OPcache, SAPI)
 
-> [!abstract] Architectural Overview
-> PHP is a compiled bytecode execution engine. Code is parsed into an Abstract Syntax Tree (AST), compiled into opcode vectors, and executed by the Zend Virtual Machine (VM). Under traditional web configurations, PHP uses a **shared-nothing** process model.
+> [!abstract] Architectural Summary
+> PHP is not an interpreted language in the classical line-by-line sense. It is a bytecode-compiled language executed on an abstract stack-and-register virtual machine (Zend VM). In traditional HTTP configurations, PHP executes under a **shared-nothing** process architecture: memory allocations, global states, and class definitions are provisioned and dismantled per-request.
 
-```
-Source Code (.php)
-       │
-       ▼
- 1. Lexer (Tokens) ──► 2. Parser (AST) ──► 3. Compiler (Opcodes)
-                                                    │
- ┌──────────────────────────────────────────────────┘
- │
- ▼
-[ OPcache Shared Memory Storage ] (SHM)
- │
- ▼
-4. Zend VM Execution Engine (Executor)
- │
- ▼
-SAPI Output Buffer (FastCGI / HTTP Response / CLI Output)
-```
-
-### The Compilation & Execution Pipeline
+### 1.1 The Complete Compilation & Execution Pipeline
 
 ```mermaid
 flowchart TD
-    A[Source File] -->|Lexical Analysis| B[Token Stream]
-    B -->|Grammar Parsing| C[Abstract Syntax Tree - AST]
-    C -->|Bytecode Compiler| D[Zend Opcode Array]
-    D --> E{OPcache Hit?}
-    E -->|No| F[Store in SHM Segment]
-    E -->|Yes| G[Fetch directly from SHM]
+    A[Source File .php] -->|Re2c Lexer| B[Token Stream]
+    B -->|Bison LALR Parser| C[Abstract Syntax Tree AST]
+    C -->|Bytecode Compiler| D[Zend Opcode Array zend_op_array]
+    D --> E{OPcache Hit in SHM?}
+    E -->|No / Stale| F[Compile & Store in Shared Memory Segment]
+    E -->|Yes| G[Fetch Opcode Array Pointers Directly]
     F --> H[Zend Virtual Machine Executor]
     G --> H
-    H --> I[SAPI Response Layer]
+    H --> I[SAPI Output Layer: FastCGI / CLI / Worker Response]
 ```
 
-1. **Lexical Analysis (Re2c Lexer):** Reads the raw stream of characters and breaks it into recognizable tokens (e.g., `T_VARIABLE`, `T_OBJECT_OPERATOR`).
-2. **Grammar Parsing (Bison LALR Parser):** Generates an Abstract Syntax Tree (AST) representing abstract syntactic relations.
-3. **Bytecode Compilation:** The AST traverses down to generate opcode arrays (`zend_op_array`). Each opcode (`zend_op`) consists of an instruction handler, operands, and return types.
-4. **Zend VM Executor:** A virtual machine that executes instructions via function-pointer-based direct threaded loops or switch-dispatch mechanisms.
+#### Step 1: Lexical Analysis (Scanning)
+* **Engine Tool:** Custom Re2c scanner.
+* **Mechanism:** Converts raw UTF-8/ASCII bytes into discrete lexical units called **tokens** (e.g., `T_VARIABLE`, `T_WHITESPACE`, `T_OBJECT_OPERATOR`). Each token contains an integer ID, string payload, and file line number.
+* **Diagnostic Utility:** `token_get_all($sourceCode)` or PHP 8.0+ `PhpToken::tokenize($sourceCode)`.
 
-### OPcache Architecture & Preloading
+#### Step 2: Syntax Parsing & AST Generation
+* **Engine Tool:** Bison-derived LALR(1) parser.
+* **Mechanism:** Verifies syntax validity against the formal grammar of PHP and builds a recursive hierarchical graph called the **Abstract Syntax Tree (AST)**.
+* **Purpose:** Separates syntax validation from code generation. Optimizers like constant-folding (evaluating `60 * 60 * 24` into `86400` at compile time) operate directly on this AST before generating bytecode.
 
-OPcache eliminates steps 1–3 by caching `zend_op_array` structures directly within an allocated segment of Shared Memory (SHM):
+#### Step 3: Bytecode Compilation
+* **Output:** An array of VM instructions known as `zend_op_array`.
+* **Opcode Structure (`zend_op`):**
+  * `opcode`: The numeric instruction to execute (e.g., `ZEND_ADD`, `ZEND_RECV`, `ZEND_INIT_METHOD_CALL`).
+  * `op1`, `op2`: Operands (can be compiled variables `CV`, temporary variables `TMPVAR`, internal variables `VAR`, or constants `CONST`).
+  * `result`: Storage destination for the operation.
+  * `handler`: A direct C function pointer pointing to the VM routine executing this specific opcode.
 
-* **SHM Segments:** Master processes allocate memory once via `mmap()` or IPC shared memory blocks. Forked PHP-FPM workers read pre-compiled opcodes without cross-process locking overhead.
-* **Timestamp Validation (`opcache.validate_timestamps=0`):** In production environments, file modification checks (`stat()` system calls) are completely disabled. File modifications on disk have zero effect until a graceful FPM reload signals an SHM rebuild.
-* **Preloading (`opcache.preload`):** Introduced in PHP 7.4. Before any worker processes handle requests, a bootstrap PHP script compiles specified vendor libraries and framework classes into persistent engine memory. These classes and functions become globally immutable across all worker requests, eliminating autoloading overhead entirely.
+#### Step 4: Zend VM Execution Engine (The Executor)
+* The VM employs a direct-threaded code dispatch loop. Instead of an overhead-heavy `switch($opcode)` loop, execution jumps directly from the tail of one C handler function to the memory pointer of the next opcode's C handler via inline assembly or compiler extensions (`goto *handler`).
 
-```ini
-; Production OPcache Configuration (/etc/php/8.4/fpm/conf.d/10-opcache.ini)
-opcache.enable=1
-opcache.enable_cli=0
-opcache.memory_consumption=256
-opcache.interned_strings_buffer=16
-opcache.max_accelerated_files=20000
-opcache.validate_timestamps=0
-opcache.save_comments=1
-opcache.preload=/var/www/app/config/preload.php
-opcache.preload_user=www-data
+---
+
+### 1.2 OPcache Architecture, Shared Memory (SHM) & Preloading
+
+Without OPcache, every HTTP request repeats Steps 1 through 3, consuming substantial CPU cycles on string parsing and memory allocations.
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                    Shared Memory (SHM)                       │
+│  ┌────────────────────────────────────────────────────────┐  │
+│  │ Immutable Interned Strings Table ("stdClass", "id", …) │  │
+│  └────────────────────────────────────────────────────────┘  │
+│  ┌────────────────────────────────────────────────────────┐  │
+│  │ Compiled `zend_op_array` Store                         │  │
+│  │   ├── Controller::index()                              │  │
+│  │   └── UserRepository::findById()                       │  │
+│  └────────────────────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────────────────┘
+       ▲                                 ▲
+       │ Read (Lock-Free)                │ Read (Lock-Free)
+┌──────────────┐                  ┌──────────────┐
+│ FPM Worker 1 │                  │ FPM Worker 2 │
+└──────────────┘                  └──────────────┘
 ```
 
-### SAPI Implementations & The Shared-Nothing Model
+#### Interned Strings
+OPcache maintains a specialized memory buffer for deduplicating repeated string literals (class names, function names, property names, and string constants). Instead of allocating duplicate copies of `'status'` across 200 files, every zval points to the identical C pointer in shared memory, with reference counting disabled (`IS_STR_INTERNED`).
 
-The **Server API (SAPI)** defines the communication bridge between the Zend engine and the environment:
+#### Preloading (`opcache.preload`)
+* Introduced in PHP 7.4. Runs a designated bootstrap script inside CLI mode **before** PHP-FPM opens its socket and accepts traffic.
+* Preloaded classes, interfaces, traits, and functions are linked directly into the Zend core table (`CG(class_table)`, `CG(function_table)`).
+* **Architectural Trade-Off:** Preloaded code is globally available to all worker processes without needing `include`, `require`, or Composer's PSR-4 autoloader. However, altering any preloaded file requires a complete restart of the parent PHP-FPM master process (`SIGUSR2` / `kill -USR2`).
 
-* **PHP-FPM (FastCGI Process Manager):** Uses a pre-forked worker pool receiving binary FastCGI packets through Unix domain sockets or loopback TCP.
-* **CLI:** Ephemeral single-execution execution mode.
-* **Async Application Engines (FrankenPHP, RoadRunner, Swoole):** Break the classical shared-nothing paradigm. The application bootstrap is performed once, and workers process thousands of successive HTTP requests in memory via a long-lived worker loop.
+---
+
+### 1.3 SAPI Implementations & The Shared-Nothing Model
+
+The **Server API (SAPI)** abstract layer decouples the Zend Engine from the underlying communication protocol.
+
+| SAPI Mode | Concurrency Model | Lifecycle Duration | Process State Sharing |
+| :--- | :--- | :--- | :--- |
+| **PHP-FPM** | Multi-process worker pool (`pm = static/dynamic`) | Ephemeral per HTTP request (10–300 ms) | Shared-Nothing. State resets completely on request termination. |
+| **CLI** | Single process; synchronous or async event loop | Script duration (milliseconds to months for daemons) | Persistent state within single OS process space. |
+| **FrankenPHP / RoadRunner** | Long-lived worker pool (Worker Mode) | Long-lived across tens of thousands of requests | State persists across requests. High danger of state leakage. |
 
 > [!danger] Architectural Hazard: Long-Lived Engine State
-> Under FrankenPHP, RoadRunner, or Swoole, static class variables, dependency injection containers, and database connections persist across subsequent client requests. Leaking request-specific data into static properties creates critical security exploits and cross-tenant memory corruption.
+> Under modern high-performance runtimes (FrankenPHP, RoadRunner, Swoole), your application remains resident in memory. Static properties, Singleton service containers, and open database connections **do not reset** between client hits. Failing to reset state leads to cross-tenant memory leakage (User A seeing User B's cart or authorization tokens).
 
 ---
 
 ## 2. Memory Model: zval, Copy-on-Write, References & Garbage Collection
 
-### The Anatomy of `zval` (Zend Value)
+### 2.1 The Internal Structure of `zval` (Zend Value)
 
-In PHP 8.x, a `zval` is a 16-byte C structure designed to maximize CPU cache-line alignment.
+In PHP 8.x, variables are represented by a 16-byte C structure (`zval`) carefully aligned to 64-bit CPU cache boundaries:
 
 ```c
 struct _zval_struct {
-    zend_value value; // 8 bytes: raw scalar or pointer to heap structure
+    zend_value value;            // 8 bytes: scalar literal or pointer to heap structure
     union {
         struct {
-            zend_uchar type;         // Data type identifier (IS_STRING, IS_ARRAY, etc.)
-            zend_uchar type_flags;   // Constant, Reference Counted, Immutable flags
+            zend_uchar type;         // Data type identifier (IS_STRING, IS_ARRAY, IS_OBJECT...)
+            zend_uchar type_flags;   // Reference-counted, interned, immutable flags
             union {
-                uint16_t extra;      // Call-frame & structural flags
+                uint16_t extra;      // Call-frame & scope flags
             } u;
         } v;
         uint32_t type_info;
     } u1;
     union {
-        uint32_t next;               // Hash collisions (HashTable buckets)
-        uint32_t cache_slot;         // JIT runtime caching slots
-    } u2; // 4 bytes
+        uint32_t next;               // Hash collision chaining within HashTables
+        uint32_t cache_slot;         // JIT runtime inline caching slots
+    } u2;                            // 4 bytes
 };
 ```
 
-#### Primitives Stored Directly in the Stack
-Scalar types (`IS_LONG`, `IS_DOUBLE`, `IS_TRUE`, `IS_FALSE`, `IS_NULL`) do **not** perform heap allocations. Their values reside directly inside the 8-byte `zend_value` payload. They do not maintain a reference counter (`refcount`).
+#### Pure Stack Values vs. Heap References
+* **Stack Values (Zero-Allocation Primitives):** `int`, `float`, `bool`, and `null` store their data directly within the 8-byte `zend_value` payload. They trigger zero heap allocations and do not maintain a reference counter (`refcount`).
+* **Heap References:** `string`, `array`, `object`, `resource`, and `reference` allocate separate memory blocks inside Zend MM (Zend Memory Manager) and embed a `zend_refcounted_h` header containing `refcount` and garbage collector flags.
 
-### Copy-on-Write (CoW) Mechanics
+---
 
-Complex types (`zend_string`, `zend_array`, `zend_reference`) reside on the heap and track references through an embedded `zend_refcounted_h` header.
+### 2.2 Copy-on-Write (CoW) Theoretical Proof
+
+Copy-on-Write is a memory optimization strategy that avoids allocating duplicate physical RAM when assigning or passing complex structures until an explicit write/mutation occurs.
+
+```mermaid
+sequenceDiagram
+    participant A as Variable $a
+    participant Struct as Heap Array Memory
+    participant B as Variable $b
+
+    Note over A,Struct: Step 1: Initialize array
+    A->>Struct: Points to zend_array (refcount = 1)
+    
+    Note over A,B: Step 2: Assign $b = $a
+    B->>Struct: Points to identical zend_array (refcount = 2)
+    Note over A,B: No memory duplicated. Zero allocation cost.
+
+    Note over B,Struct: Step 3: Write attempt ($b[] = 99)
+    Struct-->>Struct: Check: refcount > 1? YES
+    create participant NewStruct as New Heap Array Memory
+    B->>NewStruct: Allocates duplicated zend_array (refcount = 1)
+    Struct->>Struct: Original zend_array decrements refcount to 1
+    Note over A,NewStruct: Separation complete. $a and $b are now decoupled.
+```
 
 ```php
 <?php
@@ -153,7 +190,7 @@ declare(strict_types=1);
 // Step 1: Heap allocation for array; refcount = 1
 $original = range(1, 100_000); 
 
-// Step 2: No memory duplicated! Both variables point to the identical zend_array.
+// Step 2: No memory duplicated. Both variables point to the identical zend_array.
 // refcount increments to 2.
 $copy = $original; 
 
@@ -168,12 +205,14 @@ inspectMemory($copy);
 // Engine checks: refcount > 1.
 // zend_array is physically duplicated in memory.
 // $original remains unchanged; $copy points to the newly allocated array.
-$copy[] = 100_001; 
+$copy[] = 100_001;
 ```
 
-### The Hazard of References (`&`)
+---
 
-Assigning an explicit reference (`$b = &$a;`) wraps the underlying value in a `zend_reference` structure. This forces both `zval` containers to switch to `IS_REFERENCE`, circumventing standard Copy-on-Write optimizations.
+### 2.3 The Dangers of Explicit References (`&`)
+
+When `$b = &$a;` is executed, PHP wraps the value in a `zend_reference` structure. Both variables become `IS_REFERENCE` types pointing to this intermediary container.
 
 ```php
 <?php
@@ -195,73 +234,49 @@ foreach ($source as $item) {
 print_r($source);
 // Output: [10, 20, 20] instead of [10, 20, 30]
 // Remediation: unset($item) MUST immediately follow reference loops.
+unset($item);
 ```
 
-### Garbage Collection & Cycle Collection Algorithm
+---
 
-PHP utilizes immediate reference-counting supplemented by the **Bacon-Rajan Cycle Detection Algorithm**:
+### 2.4 The Garbage Collection & Cycle Collection Algorithm
 
-```
-[ Variable Destroyed / Decremented ]
-                 │
-          refcount == 0?
-             /        \
-          Yes          No
-          /              \
-[ Memory Freed ]      [ Mark Object Purple ]
-                      [ Add to GC Root Buffer ]
-                                 │
-                     Root Buffer Full (10,000)?
-                                 │
-                     [ Run Cycle Collector ]
-                     ├── Step 1: Decrement simulated refcounts (Grey)
-                     ├── Step 2: Live objects restored (Black)
-                     └── Step 3: Zero-refcount loops purged (White)
-```
-
-```php
-<?php
-
-declare(strict_types=1);
-
-class GraphNode
-{
-    public ?GraphNode $linkedNode = null;
-}
-
-$a = new GraphNode(); // Refcount = 1
-$b = new GraphNode(); // Refcount = 1
-
-$a->linkedNode = $b;  // $b refcount = 2
-$b->linkedNode = $a;  // $a refcount = 2
-
-unset($a, $b); 
-// Variables severed, but both objects maintain an internal refcount of 1!
-// The standard refcounter CANNOT free this memory.
-// Objects are marked PURPLE and queued into the Garbage Collection Root Buffer.
-// Manual trigger for CLI daemons/workers:
-gc_collect_cycles();
-```
+* **Reference Counting Limitations:** Normal refcounting frees memory instantly when `refcount == 0`. However, cyclic references (Object A referencing Object B, which references Object A) prevent `refcount` from reaching zero, even after all user-space variable identifiers have been unset.
+* **Bacon-Rajan Synchronous Cycle Detection:**
+  1. **Buffer Collection:** When any composite zval's `refcount` decrements but remains $> 0$, it is flagged as suspect (color **Purple**) and pushed into the GC Root Buffer (10,000 slots).
+  2. **Trial Deletion (Mark Grey):** Once the buffer reaches capacity, the collector traverses the reference graph, speculatively decrementing refcounts by 1 for internal connections.
+  3. **Live Reversion (Mark Black):** If an object's simulated refcount remains $> 0$, it has active external roots. The collector traverses back, restoring its counts and marking it Black.
+  4. **Purge Allocation (Mark White):** Any subgraph whose simulated refcounts reach 0 has no external roots. The collector marks these nodes White and frees them in a sweep phase.
 
 ---
 
 ## 3. Type System & Engine Evolution (PHP 8.0 – 8.4+)
 
-### Evolution Matrix
+### 3.1 Type System Evolution Breakdown
 
-| Feature | PHP Version | Architectural Impact |
-| :--- | :---: | :--- |
-| **Union Types (`A\|B`)** | 8.0 | Formalizes multi-type parameters without verbose DocBlock contracts. |
-| **Constructor Promotion** | 8.0 | Eliminates boilerplate assignment within class constructors. |
-| **`match` Expressions** | 8.0 | Enforces strict comparison (`===`), functional returns, and exhaustive matches. |
-| **Intersection Types (`A&B`)**| 8.1 | Enforces multiple interface contracts on incoming arguments. |
-| **First-Class Callables (`fn(...)`)**| 8.1 | Direct, syntax-checked compilation of methods to `Closure` objects. |
-| **Disjunctive Normal Form (DNF)**| 8.2 | Enables complex intersection-union hierarchies: `(A&B)|null`. |
-| **Typed Class Constants** | 8.3 | Eliminates polymorphic type drift within derived class constants. |
-| **Asymmetric Visibility** | 8.4 | Separate access control for reading (`public`) vs writing (`private(set)`). |
-| **Property Hooks** | 8.4 | Native computed and validated property interception without custom accessors. |
+```
+        PHP 7.0 ──► Scalar Types & Return Types
+           │
+        PHP 7.1 ──► Nullable Types (?T), void, iterable
+           │
+        PHP 8.0 ──► Union Types (A|B), mixed, static return
+           │
+        PHP 8.1 ──► Intersection Types (A&B), never, Enums
+           │
+        PHP 8.2 ──► DNF Types ((A&B)|null), standalone true/false/null
+           │
+        PHP 8.3 ──► Typed Class Constants
+           │
+        PHP 8.4 ──► Asymmetric Visibility, Property Hooks, new without parens
+```
 
-### Modern Type System Implementation
+### 3.2 Strict Types vs. Coercive Types Implementation
+
+* **Coercive Mode (Default):** PHP implicitly converts scalar inputs where feasible (e.g., passing `"123"` to an `int` parameter silently casts it to integer `123`).
+* **Strict Mode (`declare(strict_types=1);`):**
+  * Placed as the very first execution statement of a file.
+  * **Critical Engine Rule:** `strict_types` applies to the **caller file**, not the callee declaration file. If File A (without strict types) invokes a function located in File B (with strict types), PHP executes coercively.
+  * Only one single conversion is permitted under strict typing: widening `int` to `float`. Passing `float` to `int` or `string` to `int` throws a `TypeError`.
 
 ```php
 <?php
@@ -283,7 +298,7 @@ interface Loggable
     public function getLogPayload(): array;
 }
 
-// Complex DNF (Disjunctive Normal Form) Type Definition
+// Disjunctive Normal Form (DNF) Type Definition
 final readonly class ComponentManager
 {
     /**
@@ -305,14 +320,16 @@ final readonly class ComponentManager
 
 ## 4. Functional Constructs: Closures, First-Class Callables & Scope Manipulation
 
-### The Architectural Divide: `callable` vs `Closure`
+### 4.1 Theoretical Divergence: `callable` vs. `Closure`
 
-* `callable`: A loose type alias encompassing strings (`'strlen'`), arrays (`[$obj, 'method']`), invocable objects, and closures. It cannot be used as a typed class property: `public callable $handler;` triggers a fatal compilation error.
-* `Closure`: A concrete, final internal class representing an anonymous function or a converted callable. It is fully valid as a strongly-typed class property: `public \Closure $handler;`.
+* **`callable`:** A runtime type alias satisfying the engine's invocation checks. It accepts strings (`'trim'`), arrays (`[$instance, 'action']`), invocable objects, and closures. Because its validity depends on state resolution, **it cannot be used as a typed class property** (`public callable $fn;` causes a fatal compilation error).
+* **`\Closure`:** A concrete, final internal class. It encapsulates lexical scope, bound parameters, and bound object contexts (`$this`). It can be typed as class properties and parameters.
 
-### First-Class Callable Mechanics (`...`)
+### 4.2 First-Class Callable Mechanics (`...`)
 
-First-class callables convert any function or method into a standard `\Closure` object.
+Introduced in PHP 8.1, `fn(...)` converts functions or methods into a first-class `\Closure` at compile time via the `ZEND_CALLABLE_CONVERT` opcode:
+* Validates method visibility (`public`, `protected`, `private`) **at the point of reference**, not at invocation.
+* Replaces legacy string/array syntax (`[$this, 'action']`) with syntax that IDEs and static analyzers (PHPStan, Psalm) can trace.
 
 ```php
 <?php
@@ -333,7 +350,7 @@ final class Normalizer
 
 $normalizer = new Normalizer();
 
-// The ellipsis creates a Closure bound to the $normalizer instance
+// Ellipsis syntax directly builds a Closure bound to $normalizer
 $pipelineStage = $normalizer->trimAndLower(...);
 
 $collection = ['  DATA_ONE ', ' Data_Two   '];
@@ -341,9 +358,9 @@ $cleaned = array_map($pipelineStage, $collection);
 // Output: ['data_one', 'data_two']
 ```
 
-### Scope Hijacking: `Closure::bind` and `Closure::call`
+### 4.3 Scope Manipulation: `Closure::bind` and `Closure::call`
 
-The Zend Engine allows anonymous functions to break through `private` and `protected` encapsulation boundaries using closure binding. This mechanism is central to ORM hydrators (e.g., Doctrine) to hydrate private properties without invoking constructor logic.
+The Zend Engine allows anonymous functions to break encapsulation boundaries through closure rebinding. This enables ORM hydrators (e.g., Doctrine) to populate private properties without running constructors:
 
 ```php
 <?php
@@ -380,26 +397,12 @@ echo $extractedHash; // Outputs: $2y$12$securehashvalue
 
 ## 5. Streaming & Concurrency: Generators, Coroutines & Fibers
 
-### Generator State Machine & Memory Constraints
+### 5.1 Generator State Machine Architecture
 
-A generator function does not return an array; it returns an instance of the built-in `\Generator` class, which implements `\Iterator`.
-
-```
-Function Entry ──► zend_create_generator() ──► Suspended State
-                          │
-                   $generator->next()
-                          │
-                          ▼
-            Resume VM Execution Context
-                          │
-                     yield $value;
-                          │
-                          ▼
-            Freeze Frame (Registers, Stack, VM State)
-                          │
-                          ▼
-                 Suspend to Caller
-```
+When a function contains the `yield` keyword, the compiler replaces its return mechanism with a `\Generator` object implementing `\Iterator`.
+* **State Machine:** Generators act as stackless coroutines. When `yield` executes, the local CPU registers, instruction pointer, and stack frame variables are saved inside an internal heap buffer (`zend_generator_context`), and execution control returns to the caller.
+* **Memory Complexity:** Consumes $\mathcal{O}(1)$ constant memory regardless of whether it emits 10 or 10,000,000 records.
+* **Limitation:** Generators are forward-only and **cannot be rewound** after iteration begins.
 
 ```php
 <?php
@@ -446,9 +449,11 @@ final class BatchStreamer
 }
 ```
 
-### Bidirectional Coroutines: `send()` & `throw()`
+### 5.2 Coroutines via Generator API: `send()`, `throw()`, `getReturn()`
 
-Generators can act as bidirectional data pipelines (coroutines), receiving values via `send()` and exceptions via `throw()`.
+* `$generator->send($val)`: Resumes generator execution, injecting `$val` as the return value of the paused `yield` expression.
+* `$generator->throw($exception)`: Injects an exception directly into the generator's pause point, allowing `try/catch` recovery.
+* `$generator->getReturn()`: Retrieves the value passed to `return` inside the generator. Calling this while `$generator->valid() === true` throws an uncaught `Exception`.
 
 ```php
 <?php
@@ -492,9 +497,11 @@ $consumer->send(null);
 echo $consumer->getReturn(); // Outputs: 2
 ```
 
-### True Cooperative Multitasking: Fibers (PHP 8.1+)
+### 5.3 Fibers (PHP 8.1+): True Cooperative Stackful Coroutines
 
-Unlike generators, which can only yield control to their immediate caller, **Fibers** represent full-fledged cooperative coroutines with their own dedicated, stackable execution frames.
+Unlike Generators (which are stackless and can only pause themselves at the top level), **Fibers** possess an isolated execution stack allocated directly on the OS heap:
+* Execution can be suspended via `Fiber::suspend()` deeply nested within arbitrary sub-function calls without modifying intermediate method signatures.
+* Fibers form the foundation of non-blocking frameworks (Amp v3, Revolt PHP) to write asynchronous I/O with standard synchronous syntax.
 
 ```php
 <?php
@@ -526,9 +533,9 @@ $fiber->resume("Main Execution Token");
 
 ## 6. Advanced OOP Architecture, Property Hooks & Metaprogramming
 
-### Asymmetric Visibility & Property Hooks (PHP 8.4)
+### 6.1 Property Hooks & Asymmetric Visibility (PHP 8.4)
 
-PHP 8.4 removes standard accessor boilerplate by allowing direct hook declarations on class properties.
+PHP 8.4 introduces **Property Hooks** and **Asymmetric Visibility**, removing traditional getter/setter boilerplate while keeping properties fully encapsulated.
 
 ```php
 <?php
@@ -572,7 +579,10 @@ final class LedgerEntry
 }
 ```
 
-### Late Static Binding (LSB) Mechanics: `self` vs `static`
+### 6.2 Late Static Binding (LSB) Mechanics: `self` vs. `static`
+
+* `self::`: Resolved at **compile time** to the exact class where the keyword was written.
+* `static::`: Resolved at **runtime** using the class name through which the static method was called (the dynamic call target).
 
 ```php
 <?php
@@ -606,7 +616,28 @@ echo get_class($customer); // Outputs: App\Core\Patterns\CustomerUser
 
 ## 7. SOLID Principles & Robust Design Patterns
 
-### The Inversion of Control & Dependency Inversion Pattern (DIP)
+### 7.1 SOLID Deep-Dive for Backend Engineering
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                       SOLID PRINCIPLES                      │
+├─────────────────────────┬───────────────────────────────────┤
+│ S - Single Resp.        │ One actor / reason to change      │
+│ O - Open/Closed         │ Open for extension, closed for mod│
+│ L - Liskov Substitution │ Child honors parent contracts     │
+│ I - Interface Segreg.   │ Fine-grained, role-based contracts│
+│ D - Dependency Invers.  │ Depend on abstractions, not detail│
+└─────────────────────────┴───────────────────────────────────┘
+```
+
+1. **S (Single Responsibility Principle):** A class should serve one single actor or business domain. Splitting computation, data access, and transport encoding into separate classes prevents changes to one layer (like a database migration) from breaking others (like PDF generation).
+2. **O (Open/Closed Principle):** Avoid giant `match` or `switch` statements when adding new business rules. Define an interface strategy; add new behaviors by introducing new classes rather than modifying existing code.
+3. **L (Liskov Substitution Principle):** Subtypes must remain substitutable for their base types without breaking application behavior.
+   * *Covariance:* Return types can be narrowed in subclasses.
+   * *Contravariance:* Parameter types can be widened in subclasses.
+   * *Subtyping Contracts:* Subclasses must not tighten preconditions (e.g., throwing new validation errors) or weaken postconditions.
+4. **I (Interface Segregation Principle):** Favor multiple small, focused interfaces (`Stringable`, `Countable`) over broad, bloated ones. Clients should not be forced to implement methods they do not need.
+5. **D (Dependency Inversion Principle):** High-level policy modules should not depend on low-level infrastructure details. Both must depend on abstractions (interfaces).
 
 ```php
 <?php
@@ -649,53 +680,13 @@ final readonly class FetchUserProfileUseCase
 }
 ```
 
-### Dynamic Strategy Pattern via First-Class Callables
-
-```php
-<?php
-
-declare(strict_types=1);
-
-namespace App\Domain\Billing;
-
-use Closure;
-
-final class InvoiceSettlement
-{
-    /**
-     * @param Closure(int): int $discountStrategy
-     */
-    public function __construct(
-        private Closure $discountStrategy
-    ) {}
-
-    public function calculateFinalTotal(int $subtotal): int
-    {
-        return ($this->discountStrategy)($subtotal);
-    }
-}
-
-// Concrete Strategy Implementations defined as pure, decoupled functions
-function calculateVipDiscount(int $subtotal): int {
-    return (int) round($subtotal * 0.80);
-}
-
-function calculateStandardDiscount(int $subtotal): int {
-    return (int) round($subtotal * 0.95);
-}
-
-// Composing strategies cleanly via first-class callables
-$vipSettlement = new InvoiceSettlement(calculateVipDiscount(...));
-echo $vipSettlement->calculateFinalTotal(10000); // 8000
-```
-
 ---
 
 ## 8. Error Architecture: Engine Errors, Exceptions & Control Flow
 
-### Strict Handling: Error-to-Exception Conversion
+### 8.1 Converting Warnings to Exceptions
 
-Modern PHP applications treat warnings and notices as fatal deviations by mapping them into `ErrorException` instances.
+Legacy procedural warnings (like undefined array keys) are converted to `ErrorException` instances using a custom handler. This provides unified, modern error handling across the application:
 
 ```php
 <?php
@@ -712,7 +703,6 @@ final class ErrorBridge
     {
         set_error_handler(
             static function (int $severity, string $message, string $file, int $line): bool {
-                // Respect error_reporting settings
                 if (!(error_reporting() & $severity)) {
                     return false;
                 }
@@ -725,7 +715,12 @@ final class ErrorBridge
 }
 ```
 
-### `finally` Block Control Flow Dynamics
+### 8.2 The Control Flow Hazard of `finally`
+
+A `finally` block executes unconditionally: when an exception is thrown, when `catch` runs, and even after an explicit `return` in `try`.
+
+> [!warning] Architecture Hazard: `return` inside `finally`
+> Putting a `return` inside a `finally` block **discards any unhandled exceptions** thrown in `try` and overrides previous returns. Static analysis tools (PHPStan Level 6+) flag this as a critical issue.
 
 ```php
 <?php
@@ -757,21 +752,27 @@ echo verifyExecutionFlow(); // Outputs: "finally_override"
 
 ## 9. Storage & Transactions: PDO, Concurrency, Isolation & Locks
 
-### Concurrency Hazards & Database Locks
+### 9.1 ACID & The Isolation-Level Spectrum
 
 ```
-Transaction A (Balance: $1000)               Transaction B (Balance: $1000)
-       │                                            │
-1. SELECT balance (Reads 1000)               1. SELECT balance (Reads 1000)
-2. Verify: 1000 >= 800 (OK)                  2. Verify: 1000 >= 800 (OK)
-3. UPDATE balance = 200                      │ [Waiting / Interleaving]
-4. COMMIT                                    3. UPDATE balance = 200
-                                             4. COMMIT
-       ▼                                            ▼
-[ RACE CONDITION: Account lost $1600; balance reads $200! ]
+Isolation Level     Dirty Read?   Non-Repeatable Read?   Phantom Read?
+──────────────────────────────────────────────────────────────────────
+READ UNCOMMITTED        YES               YES                YES
+READ COMMITTED          NO                YES                YES
+REPEATABLE READ         NO                NO                 YES (In standard; protected in InnoDB)
+SERIALIZABLE            NO                NO                 NO
 ```
 
-### Pessimistic Locking with Deadlock Prevention
+* **Dirty Read:** Transaction A reads uncommitted modifications made by Transaction B. If B rolls back, A holds corrupt data.
+* **Non-Repeatable Read:** Transaction A reads a row value. Transaction B updates and commits that row. Transaction A reads it again and sees different data.
+* **Phantom Read:** Transaction A executes a ranged query (`WHERE count > 5`). Transaction B inserts a new row matching the condition and commits. Transaction A re-executes and sees an unexpected new row.
+* **InnoDB Multi-Version Concurrency Control (MVCC):** InnoDB implements `REPEATABLE READ` without phantom reads during non-locking reads by querying historical snapshots via Undo Logs.
+
+---
+
+### 9.2 Race Conditions & Pessimistic Row Locking
+
+When multiple concurrent requests process updates to the same balance or inventory item, standard `SELECT` followed by `UPDATE` causes critical race conditions. Use pessimistic locking (`SELECT ... FOR UPDATE`) along with deterministic lock ordering to prevent deadlocks:
 
 ```php
 <?php
@@ -853,18 +854,18 @@ final readonly class SafeFundTransfer
 
 ## 10. Enterprise Security & Attack Vectors (OWASP Top 10)
 
-### Security Defense Cheat Sheet
+### 10.1 Security Defense Matrix
 
-| Threat Vector | Root Cause | Primary Enterprise Defense |
+| Threat | Vulnerability Vector | Modern PHP Defense Architecture |
 | :--- | :--- | :--- |
-| **SQLi** | Dynamic input embedded into SQL text | Native Prepared Statements (`ATTR_EMULATE_PREPARES = false`). |
-| **XSS** | Unescaped context reflection in browser | Contextual output encoding (`htmlspecialchars(..., ENT_QUOTES)`), CSP. |
-| **CSRF** | Implicit browser cookie dispatch | Cryptographic session tokens (`hash_equals()`), `SameSite=Lax/Strict`. |
-| **IDOR** | Direct database keys exposed without ACL checks | Domain-level subject-to-resource ownership validation. |
-| **Object Injection** | `unserialize()` execution of arbitrary POP chains | Use structured JSON (`json_decode`) exclusively for data interchange. |
-| **Timing Attack** | Variable-time string comparison (`===`) | Constant-time comparison using `hash_equals()`. |
+| **SQLi** | Dynamic query string interpolation | Real Prepared Statements (`PDO::ATTR_EMULATE_PREPARES => false`). Whitelists for column names/order directions. |
+| **XSS** | Rendering untrusted user input directly into HTML/JS | Output context encoding via `htmlspecialchars(..., ENT_QUOTES \| ENT_SUBSTITUTE, 'UTF-8')`. Content Security Policy (CSP). |
+| **CSRF** | State-changing actions triggered via third-party cross-site requests | Cryptographic tokens validated via `hash_equals()`. Session cookies configured with `SameSite=Lax` or `Strict`. |
+| **IDOR** | Unprotected resource identifiers in URLs/payloads | Domain-driven ACL validation: `WHERE id = :id AND user_id = :authenticatedUserId`. |
+| **Object Injection**| Deserialization of untrusted data through `unserialize()` | Use `json_encode()` / `json_decode()` exclusively. Disable class instantiation if `unserialize()` is required: `['allowed_classes' => false]`. |
+| **Timing Attacks** | Leaking secrets via character-by-character string comparisons (`===`) | Constant-time evaluations using `hash_equals()`. |
 
-### Timing-Safe Evaluation & CSRF Pipeline
+### 10.2 Timing-Safe Evaluation & CSRF Architecture
 
 ```php
 <?php
@@ -899,7 +900,9 @@ final class CsrfProtection
 
 ## 11. HTTP Ecosystem, Output Buffering & PSR Standards
 
-### Streaming Raw HTTP Input
+### 11.1 Parsing JSON Payloads via `php://input`
+
+The `$_POST` superglobal is only populated by PHP for `application/x-www-form-urlencoded` or `multipart/form-data` requests. Raw JSON API payloads must be read directly from the read-only input stream:
 
 ```php
 <?php
@@ -935,7 +938,9 @@ final class RawJsonReader
 }
 ```
 
-### PSR-15 Middleware Architecture
+### 11.2 PSR-15 Middleware Onion Pattern
+
+PSR-15 defines the standard request handling pipeline using the Onion Architecture pattern:
 
 ```php
 <?php
@@ -970,7 +975,9 @@ final readonly class ResponseTimingMiddleware implements MiddlewareInterface
 
 ## 12. Performance Diagnostics, Profiling & PHP-FPM Orchestration
 
-### PHP-FPM Process Pool Architecture
+### 12.1 PHP-FPM Process Pool Architecture
+
+In high-throughput environments, set `pm = static` to avoid the overhead of dynamically spawning worker processes during traffic spikes:
 
 ```ini
 ; Production Pool Configuration (/etc/php/8.4/fpm/pool.d/www.conf)
@@ -986,6 +993,7 @@ listen.mode = 0660
 
 ; Use static process pooling on dedicated application servers
 pm = static
+; Formula: (Total RAM - OS/DB Reserved) / Average Memory Usage per Worker
 pm.max_children = 120
 
 ; Recycle worker processes periodically to neutralize internal C-level memory leaks
@@ -999,9 +1007,9 @@ slowlog = /var/log/php-fpm/slow.log
 request_terminate_timeout = 30s
 ```
 
-### Memory Exhaustion Safety Net
+### 12.2 Handling Out-of-Memory (OOM) Errors Gracefully
 
-When a script hits the memory limit (`Allowed memory size exhausted`), execution terminates abruptly without standard catch handling. You can reserve emergency memory on startup to allow logging and alerting before process exit:
+Standard `try/catch` blocks cannot intercept memory limit exhaustion (`Allowed memory size exhausted`). You can reserve an emergency memory buffer during startup, freeing it within a shutdown handler to complete logging before process exit:
 
 ```php
 <?php
@@ -1041,13 +1049,13 @@ final class EmergencyShutdownHandler
 
 ## 13. Technical Interview Edge-Case Matrix
 
-| # | Code Construct | Evaluated Result | Internal Architecture Explanation |
+| # | Code Construct | Result | Architectural Explanation |
 | :---: | :--- | :--- | :--- |
-| **1** | `0.1 + 0.2 == 0.3` | `false` | IEEE 754 binary floating-point representation discrepancy. Precision must be verified with epsilon tolerances (`PHP_FLOAT_EPSILON`). |
-| **2** | `"0" == false` | `true` | The string `"0"` is explicitly categorized as falsy within the Zend engine truth table. |
-| **3** | `"abc" == 0` | PHP 8+: `false`<br>PHP 7: `true` | Modern PHP casts the integer to a string and evaluates `"abc" === "0"`. PHP 7 converted the string into an integer (`0 == 0`). |
-| **4** | `[] + [1, 2]` vs `array_merge([], [1, 2])` | Both produce `[1, 2]` | The union operator (`+`) keeps keys from the left operand. `array_merge()` renumbers numeric keys and overwrites matching string keys. |
-| **5** | `$a = [1]; $b = &$a[0]; $c = $a;` | CoW disabled for index 0 | Referencing an array element marks it with `IS_REFERENCE`, preventing standard Copy-on-Write optimizations on that index. |
-| **6** | `empty("0.0")` | `false` | Only `""` and `"0"` evaluate to true for empty string checks. `"0.0"` has length > 0 and is not equal to `"0"`. |
-| **7** | `strlen("тест")` | `8` | Standard string functions count raw bytes. UTF-8 multi-byte characters take 2 bytes per Cyrillic character. Use `mb_strlen()` for character counts. |
-| **8** | `$o2 = $o1;` | Copy of Object Handle | Both variables reference the same `zend_object` in the global heap. `clone` is required to instantiate a distinct object. |
+| **1** | `var_dump(0.1 + 0.2 == 0.3);` | `bool(false)` | Binary floating-point representation discrepancy (IEEE 754). Always compare floats using an epsilon: `abs($a - $b) < PHP_FLOAT_EPSILON` or use BCMath for monetary values. |
+| **2** | `var_dump("0" == false);` | `bool(true)` | In loose comparisons, `"0"` evaluates to a falsy string. In PHP 8.0+, string comparisons with numbers treat non-numeric strings as strings, but numeric `"0"` still evaluates to `false`. |
+| **3** | `var_dump("0e123" == "0e456");` | `bool(true)` | **Magic Hash vulnerability**: Both strings match scientific notation for zero ($0 \times 10^{123} = 0$). Evaluates to `0 == 0`. Always compare hashes and secrets using `hash_equals()`. |
+| **4** | `var_dump(in_array("1e1", ["10"]));` | `bool(true)` | Default `in_array` performs loose checking (`$strict = false`). "1e1" parses as numeric $10$. Always pass the third parameter: `in_array($val, $arr, true)`. |
+| **5** | `$a = [1]; $b = &$a; $b[] = 2; echo count($a);` | `2` | Explicit reference creation converts `$a` and `$b` into a shared `zend_reference`. |
+| **6** | `empty("0.0")` vs `empty("0")` | `false` vs `true` | The string `"0"` is explicitly designated as falsy in PHP. The string `"0.0"` is considered truthy. |
+| **7** | `[1, 2] + [3, 4, 5]` | `[1, 2, 5]` | The union operator (`+`) keeps left-hand keys. Keys `0` and `1` from the left array win; only missing key `2` is appended. Unlike `array_merge()`, numeric keys are not re-indexed. |
+| **8** | `array_filter([0, 1, false, '', 2])` | `[1 => 1, 4 => 2]` | Without a callback, `array_filter()` removes all falsy values. Crucially, original array keys are preserved, which can break client lists unless re-indexed with `array_values()`. |
