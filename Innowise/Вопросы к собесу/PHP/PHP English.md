@@ -1,5 +1,5 @@
 ---
-title: "PHP 8.4+ Senior Technical Interview & Systems Architecture Manual"
+title: PHP 8.4+ Senior Technical Interview & Systems Architecture Manual
 created: 2026-11-09
 tags:
   - php
@@ -10,6 +10,7 @@ tags:
   - security
 cssclasses:
   - wide-page
+custom-width: 80
 ---
 
 # PHP 8.4+ Senior Technical Handbook & Systems Architecture Manual
