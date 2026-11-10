@@ -1,8 +1,6 @@
 ---
 custom-width: 80
 ---
-# PHP Interview Cheat Sheet — Junior to Senior
-
 ## 1. PHP Fundamentals
 
 ### What is PHP?

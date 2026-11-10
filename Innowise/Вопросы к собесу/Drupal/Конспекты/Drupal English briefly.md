@@ -1,8 +1,6 @@
 ---
 custom-width: 80
 ---
-# Drupal Interview Cheat Sheet — Junior to Senior
-
 ## 1. Drupal Fundamentals
 
 ### What is Drupal?
