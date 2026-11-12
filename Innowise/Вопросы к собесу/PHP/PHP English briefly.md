@@ -11,15 +11,6 @@ PHP is a server-side scripting language mainly used for web development. It can 
 
 PHP is compiled into bytecode (opcodes) and executed by the Zend Engine. OPcache can store compiled bytecode to avoid recompilation on every request.
 
-### What is the difference between PHP and JavaScript?
-
-- PHP usually runs on the server.
-    
-- JavaScript usually runs in the browser, but it can also run on the server using Node.js.
-    
-- PHP handles backend logic, while JavaScript is commonly used for frontend interactions.
-    
-
 ### What are the main PHP data types?
 
 - **Scalar:** int, float, string, bool.
