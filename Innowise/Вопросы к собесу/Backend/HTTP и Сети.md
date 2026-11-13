@@ -3,546 +3,389 @@ custom-width: 80
 ---
 ## Оглавление
 
-1. [[#1. Что такое HTTP, модель клиент-сервер и стек TCP/IP]]
-2. [[#2. Жизненный цикл HTTP-запроса: DNS, TCP, TLS]]
-3. [[#3. Структура HTTP-сообщения и заголовки]]
-4. [[#4. Методы HTTP, безопасность и идемпотентность]]
-5. [[#5. Коды состояния HTTP (Status Codes)]]
-6. [[#6. Эволюция протокола: HTTP/1.1, HTTP/2 и HTTP/3]]
-7. [[#7. Состояние в Stateless-протоколе: Cookies, Сессии и JWT]]
-8. [[#8. HTTP-кэширование и условные запросы]]
-9. [[#9. Безопасность HTTP: HTTPS, CORS, CSP, CSRF]]
-10. [[#10. Проектирование API: REST, GraphQL, gRPC, WebSockets]]
-11. [[#11. Шпаргалка перед собеседованием]]
+1. [[#1. HTTP Basics: Что такое HTTP, URI/URL/URN и стек TCP/IP]]
+2. [[#2. Жизненный цикл HTTP-запроса: DNS и TCP Handshake]]
+3. [[#3. HTTPS и TLS: Как работает шифрование, сертификаты и HSTS]]
+4. [[#4. Структура HTTP-сообщения, Content-Type и заголовки]]
+5. [[#5. HTTP Request Methods: Методы, безопасность и идемпотентность]]
+6. [[#6. Response Codes: Коды состояния HTTP]]
+7. [[#7. HTTP Cookies, Сессии и JWT]]
+8. [[#8. Эволюция протокола: HTTP/1.1, HTTP/2 и HTTP/3]]
+9. [[#9. HTTP-кэширование и условные запросы]]
+10. [[#10. Безопасность HTTP: SOP, CORS и Security-заголовки]]
+11. [[#11. Проектирование API: REST, GraphQL, gRPC, WebSockets]]
+12. [[#12. Шпаргалка перед собеседованием]]
 
 ---
 
-## 1. Что такое HTTP, модель клиент-сервер и стек TCP/IP
+## 1. HTTP Basics: Что такое HTTP, URI/URL/URN и стек TCP/IP
 
 > [!abstract] Коротко
-> HTTP — протокол прикладного уровня для передачи гипертекста и данных, работающий по схеме «запрос — ответ» поверх транспортного протокола (TCP в HTTP/1.1–2, UDP/QUIC в HTTP/3). Главная особенность — **stateless** (сервер не помнит предыдущие запросы).
+> HTTP — протокол прикладного уровня для передачи данных по схеме «клиент — сервер». Он **stateless** (не помнит прошлые запросы) и работает поверх транспортного протокола (TCP или QUIC).
 
 ### Теория (🇷🇺 Русский)
 
-- **Что такое HTTP (HyperText Transfer Protocol)**: протокол прикладного уровня (7-й уровень модели OSI / 4-й уровень TCP/IP), определяющий правила, по которым клиент (браузер, мобильное приложение, другой сервис) запрашивает ресурсы, а сервер их отдаёт.
-- **Модель «Клиент — Сервер»**: инициатором общения всегда выступает клиент. Сервер пассивно слушает порт (обычно `80` для HTTP и `443` для HTTPS) и отвечает на входящие запросы.
-- **Stateless (без сохранения состояния)**: каждый HTTP-запрос абсолютно независим от предыдущего. Сервер не хранит контекст между запросами на уровне самого протокола. Это упрощает горизонтальное масштабирование (любой сервер за балансировщиком может обработать любой запрос), но требует искусственных механизмов для «узнавания» пользователя (Cookies, сессии, токены).
-- **Место в стеке протоколов**:
-  - *Канальный уровень (Link)*: Ethernet, Wi-Fi (MAC-адреса, передача кадров).
-  - *Сетевой уровень (Internet)*: IP (маршрутизация пакетов между сетями по IP-адресам).
-  - *Транспортный уровень (Transport)*: TCP (надёжная доставка с гарантией порядка и повторной отправкой) или UDP (быстрая доставка без гарантий и установки соединения).
-  - *Прикладной уровень (Application)*: HTTP, DNS, TLS, SSH.
+- **Что такое HTTP (HyperText Transfer Protocol)**: текстовый (в 1.1) или бинарный (в 2/3) протокол прикладного уровня, определяющий формат сообщений, которыми обмениваются клиент (браузер, мобильное приложение, сервис) и веб-сервер.
+- **Модель «Клиент — Сервер»**: инициатором всегда выступает клиент, отправляющий запрос (Request). Сервер слушает порт (`80` для HTTP, `443` для HTTPS) и возвращает ответ (Response).
+- **Stateless (без сохранения состояния)**: протокол не хранит историю запросов. Каждый запрос содержит всю необходимую информацию для его обработки. Это позволяет легко масштабировать бэкенд горизонтально (добавляя новые серверы за балансировщиком нагрузки).
+- **Разница между URI, URL и URN**:
+  - **URI (Uniform Resource Identifier)** — унифицированный идентификатор ресурса (общее понятие, включающее в себя URL и URN).
+  - **URL (Uniform Resource Locator)** — указатель местоположения ресурса, описывающий *как* и *где* его найти.
+    - Структура URL: `https://user:pass@api.example.com:8443/v1/users?active=1#top`
+      - `https` — схема (протокол);
+      - `api.example.com` — хост (доменное имя или IP);
+      - `:8443` — порт;
+      - `/v1/users` — путь (path);
+      - `?active=1` — параметры запроса (query string);
+      - `#top` — фрагмент (якорь, **не отправляется на сервер**, обрабатывается только браузером!).
+  - **URN (Uniform Resource Name)** — имя ресурса без указания его местоположения (например, `urn:isbn:0451450523`).
+- **Место в сетевом стеке (TCP/IP)**:
+  - *Канальный (Link)*: Ethernet, Wi-Fi (MAC-адреса).
+  - *Сетевой (Internet)*: IP (маршрутизация пакетов между сетями).
+  - *Транспортный (Transport)*: **TCP** (надёжная доставка с гарантией порядка и повторной отправкой потерянных пакетов) или **UDP** (быстрая доставка без гарантий и установки соединения).
+  - *Прикладной (Application)*: HTTP, DNS, TLS.
 
 ### Theory (🇬🇧 English)
 
-- **What is HTTP (HyperText Transfer Protocol)**: An application-layer protocol (Layer 7 in OSI / Layer 4 in TCP/IP) defining how clients request resources and how servers respond.
-- **Client-Server Model**: Communication is always initiated by the client. The server passively listens on a port (`80` for HTTP, `443` for HTTPS) and responds to incoming requests.
-- **Stateless Nature**: Every HTTP request is completely independent; the protocol itself retains no memory of previous requests. While this makes horizontal scaling easy (any backend node behind a load balancer can handle any request), it requires mechanisms like Cookies, Sessions, or Tokens to maintain user state.
-- **Protocol Stack**:
-  - *Link Layer*: Ethernet, Wi-Fi (MAC addressing).
-  - *Internet Layer*: IP (packet routing via IP addresses).
-  - *Transport Layer*: TCP (reliable, ordered byte-stream delivery) or UDP (connectionless, low-latency datagrams).
-  - *Application Layer*: HTTP, DNS, TLS.
-
-### Вопросы и ответы
-
-> [!question] Почему HTTP сделали stateless и какие у этого плюсы и минусы?
-> 
-> **Зачем**: протокол создавался для передачи статических документов, где хранить состояние на сервере было избыточно и дорого.
-> 
-> | Плюсы | Минусы |
-> | :--- | :--- |
-> | Простое горизонтальное масштабирование (любой сервер обработает запрос) | Приходится передавать идентификатор состояния (куку или токен) в **каждом** запросе |
-> | Отказоустойчивость: падение одного узла не теряет контекст протокола | Для хранения сессий в кластере нужно внешнее общее хранилище (Redis/БД) |
-> | Упрощение кэширования на прокси-серверах и CDN | Увеличение размера заголовков при передаче больших токенов |
+- **HTTP Basics**: An application-layer protocol following the Request-Response client-server model. It is inherently **stateless**, meaning the server retains no session state between requests at the protocol level, enabling seamless horizontal scaling.
+- **URI vs URL vs URN**:
+  - **URI** (*Identifier*): Umbrella term identifying a resource by location, name, or both.
+  - **URL** (*Locator*): Specifies both the resource identifier and the protocol/location to access it (`scheme://host:port/path?query#fragment`). Note: the `#fragment` is never sent to the server.
+  - **URN** (*Name*): Persistent, location-independent resource name (e.g., `urn:isbn:0451450523`).
 
 ---
 
-## 2. Жизненный цикл HTTP-запроса: DNS, TCP, TLS
+## 2. Жизненный цикл HTTP-запроса: DNS и TCP Handshake
 
 > [!abstract] Коротко
-> Прежде чем отправится первый байт HTTP, клиент должен узнать IP-адрес (DNS), открыть надёжный канал (TCP 3-way handshake) и зашифровать его (TLS handshake).
+> Перед отправкой HTTP-запроса клиент находит IP-адрес сервера через DNS и устанавливает надёжное TCP-соединение через трёхстороннее рукопожатие (3-way handshake).
+
+### Теория (🇷🇺 Русский & 🇬🇧 English)
+
+1. **DNS Lookup (Разрешение доменного имени)**:
+   - Браузер ищет IP-адрес домена по цепочке кэшей: **Кэш браузера** → **Кэш ОС (`/etc/hosts`)** → **Кэш роутера** → **DNS-резолвер провайдера**.
+   - Если записи нет, резолвер опрашивает иерархию DNS-серверов: **Root DNS (`.`)** → **TLD DNS (`.com`, `.ru`)** → **Authoritative DNS** (сервер, хранящий A/AAAA-записи конкретного домена).
+2. **TCP 3-Way Handshake (Трёхстороннее рукопожатие)**:
+   - **`SYN`**: клиент отправляет пакет с начальным порядковым номером `seq = x`.
+   - **`SYN-ACK`**: сервер отвечает подтверждением `ack = x + 1` и своим номером `seq = y`.
+   - **`ACK`**: клиент подтверждает `ack = y + 1`. Надёжный дуплексный канал установлен.
+3. **Keep-Alive (`Connection: keep-alive`)**: в HTTP/1.1+ TCP-соединение не разрывается после одного запроса, а переиспользуется для следующих запросов, экономя время на TCP/TLS handshake.
+
+---
+
+## 3. HTTPS и TLS: Как работает шифрование, сертификаты и HSTS
+
+> [!abstract] Коротко
+> HTTPS — это обычный HTTP, передаваемый внутри зашифрованного криптографического канала **TLS (Transport Layer Security)**. Он обеспечивает конфиденциальность, целостность данных и подлинность сервера.
 
 ### Теория (🇷🇺 Русский)
 
-1. **DNS Lookup (Разрешение доменного имени)**: перевод человекочитаемого домена (`api.example.com`) в IP-адрес (`93.184.216.34`).
-   - Проверка кэша браузера → кэша ОС (`/etc/hosts`) → кэша роутера → DNS-резолвера провайдера.
-   - Если в кэше нет, резолвер делает рекурсивный обход: **Root DNS (`.`)** → **TLD DNS (`.com`)** → **Authoritative DNS (`example.com`)**.
-2. **TCP Handshake (Трёхстороннее рукопожатие)**: установка надёжного соединения:
-   - `SYN`: клиент отправляет пакет с начальным порядковым номером (ISN).
-   - `SYN-ACK`: сервер подтверждает получение и отправляет свой ISN.
-   - `ACK`: клиент подтверждает получение ISN сервера. Соединение открыто.
-3. **TLS Handshake (для HTTPS)**: создание защищённого канала поверх TCP:
-   - *ClientHello*: клиент шлёт поддерживаемую версию TLS, список шифров (Cipher Suites) и случайное число.
-   - *ServerHello*: сервер выбирает шифр, отправляет своё случайное число и **SSL/TLS-сертификат** (с публичным ключом).
-   - *Проверка сертификата*: клиент проверяет цепочку доверия до корневого центра сертификации (CA), срок действия и совпадение домена.
-   - *Обмен ключами*: стороны вырабатывают общий **симметричный сессионный ключ** (через алгоритм Диффи — Хеллмана / ECDHE). Симметричное шифрование используется дальше, так как оно в сотни раз быстрее асимметричного.
-4. **HTTP Request & Response**: отправка запроса и получение ответа.
-5. **Keep-Alive или закрытие (`FIN`)**: в HTTP/1.1+ TCP-соединение не закрывается сразу (`Connection: keep-alive`), чтобы не тратить время на повторные TCP/TLS рукопожатия.
+- **Зачем нужен HTTPS (3 главные гарантии)**:
+  1. *Конфиденциальность (Encryption)*: перехваченный трафик (в публичном Wi-Fi или у провайдера) невозможно прочитать.
+  2. *Целостность (Integrity)*: злоумышленник (MITM — Man-in-the-Middle) не может незаметно подменить данные в ответе (например, вшить рекламу или подменить реквизиты оплаты).
+  3. *Аутентификация (Authentication)*: клиент точно знает, что общается с настоящим сервером банка, а не с фишинговым двойником.
+- **Почему используются два вида шифрования (Гибридное шифрование)**:
+  - *Асимметричное шифрование (RSA, ECDSA, ECDHE)*: пара ключей (публичный и приватный). Очень надёжно для обмена ключами и проверки подписи, но **очень медленное** для больших объёмов данных.
+  - *Симметричное шифрование (AES-GCM, ChaCha20)*: один общий секретный ключ у клиента и сервера. Работает **в сотни раз быстрее**, используется для шифрования всего HTTP-трафика после рукопожатия.
+- **Как проходит TLS Handshake (TLS 1.2 / 1.3)**:
+  1. **ClientHello**: клиент отправляет поддерживаемые версии TLS, список шифров (Cipher Suites) и случайное число (`Client Random`).
+  2. **ServerHello + Certificate**: сервер выбирает шифр, отправляет своё случайное число (`Server Random`) и свой **SSL/TLS-сертификат** (в котором содержится публичный ключ сервера, домен и цифровая подпись центра сертификации).
+  3. **Проверка сертификата клиентом**: браузер проверяет:
+     - не истёк ли срок действия сертификата;
+     - совпадает ли домен в сертификате с адресом в строке браузера;
+     - подписан ли сертификат доверенным **Центром Сертификации (CA — Certificate Authority)** (Let's Encrypt, DigiCert и др.), чей корневой сертификат вшит в ОС/браузер.
+  4. **Генерация сессионного ключа**: стороны с помощью алгоритма Диффи — Хеллмана на эллиптических кривых (**ECDHE**) вырабатывают общий симметричный ключ (обеспечивая **Perfect Forward Secrecy** — даже если приватный ключ сервера украдут в будущем, расшифровать старый записанный трафик не получится).
+  5. **Finished**: стороны обмениваются зашифрованными тестовыми сообщениями. Далее идёт обычный HTTP внутри TLS.
+- **SSL Termination (Терминация SSL)**: на практике PHP-FPM не занимается расшифровкой HTTPS. Этим занимается обратный прокси (**Nginx**, Cloudflare или Load Balancer), который расшифровывает трафик и передаёт чистый HTTP в PHP-FPM по внутренней сети, добавляя заголовок `X-Forwarded-Proto: https`.
+- **HSTS (HTTP Strict Transport Security)**: заголовок `Strict-Transport-Security: max-age=31536000; includeSubDomains`, который запрещает браузеру делать незашифрованные `http://` запросы к сайту (защита от атаки SSL Stripping).
 
 ### Theory (🇬🇧 English)
 
-1. **DNS Lookup**: Resolving a domain name (`api.example.com`) into an IP address:
-   - Checks Browser cache → OS cache (`/etc/hosts`) → Router cache → ISP Recursive Resolver.
-   - On cache miss, the resolver queries: **Root DNS** → **TLD DNS (`.com`)** → **Authoritative DNS (`example.com`)**.
-2. **TCP 3-Way Handshake**: Establishing a reliable connection:
-   - `SYN`: Client sends a synchronize packet with its Initial Sequence Number (ISN).
-   - `SYN-ACK`: Server acknowledges client's ISN and sends its own ISN.
-   - `ACK`: Client acknowledges server's ISN. Connection is established.
-3. **TLS Handshake (for HTTPS)**: Securing the channel:
-   - *ClientHello*: Client sends supported TLS versions, cipher suites, and client random.
-   - *ServerHello*: Server selects cipher suite, sends server random, and provides its **SSL/TLS Certificate** (containing the public key).
-   - *Verification & Key Exchange*: Client validates the certificate chain against trusted Certificate Authorities (CAs). Both sides derive a shared **symmetric session key** (via ECDHE) for fast bulk encryption.
-4. **HTTP Exchange & Keep-Alive**: Request is transmitted, response is returned, and the TCP socket is kept open (`keep-alive`) for subsequent requests.
+- **HTTPS = HTTP over TLS**: Provides **Encryption** (privacy), **Integrity** (tamper detection), and **Authentication** (server identity verification via X.509 certificates signed by trusted Certificate Authorities).
+- **Hybrid Encryption**: Uses asymmetric cryptography (ECDHE/RSA) during the **TLS Handshake** to verify identity and securely negotiate a shared key, then switches to fast symmetric encryption (AES-GCM / ChaCha20) for bulk HTTP payload transfer.
+- **Perfect Forward Secrecy (PFS)**: Achieved via ephemeral key exchange (ECDHE), ensuring past recorded sessions cannot be decrypted even if the server's long-term private key is later compromised.
+- **SSL Termination**: Reverse proxies (Nginx/ALB) handle TLS decryption and forward plain HTTP to backend workers (PHP-FPM) with `X-Forwarded-Proto: https`.
 
-### Схема рукопожатия (HTTPS)
+### Схема TLS Handshake
 
 ```mermaid
 sequenceDiagram
     participant C as Клиент (Browser)
-    participant D as DNS Server
     participant S as Сервер (Nginx)
 
-    C->>D: DNS Query (example.com)
-    D-->>C: IP Address (93.184.216.34)
-    Note over C,S: TCP 3-Way Handshake
-    C->>S: SYN
-    S-->>C: SYN-ACK
-    C->>S: ACK
-    Note over C,S: TLS 1.3 Handshake (1-RTT)
-    C->>S: ClientHello + Key Share
-    S-->>C: ServerHello + Certificate + Key Share
-    Note over C,S: Зашифрованный канал готов
-    C->>S: HTTP Request (GET /api/users)
-    S-->>C: HTTP Response (200 OK + JSON)
+    C->>S: 1. ClientHello (TLS 1.3, Cipher Suites, Client Random)
+    S-->>C: 2. ServerHello (Chosen Cipher, Server Random)
+    S-->>C: 3. Certificate (Public Key + CA Signature)
+    Note over C: Проверка цепочки CA, домена и срока действия
+    C->>S: 4. Key Exchange (ECDHE) + ChangeCipherSpec
+    S-->>C: 5. ChangeCipherSpec + Finished
+    Note over C,S: Симметричный сессионный ключ готов (AES)
+    C->>S: Зашифрованный HTTP-запрос
+    S-->>C: Зашифрованный HTTP-ответ
 ````
 
-## 3. Структура HTTP-сообщения и заголовки
+## 4. Структура HTTP-сообщения, Content-Type и заголовки
 
 > [!abstract] Коротко
 > 
-> HTTP-сообщение состоит из стартовой строки, заголовков (`Key: Value`), пустой строки-разделителя и опционального тела (payload).
-
-### Теория (🇷🇺 Русский)
-
-- **Структура запроса (Request)**:
-    
-    1. _Стартовая строка (Request Line)_: `POST /api/v1/orders HTTP/1.1` (Метод, URI, версия протокола).
-        
-    2. _Заголовки (Headers)_: метаданные запроса (`Host`, `User-Agent`, `Accept`, `Authorization`, `Content-Type`).
-        
-    3. _Пустая строка (`\r\n`)_: отделяет заголовки от тела.
-        
-    4. _Тело (Body)_: передаваемые данные (JSON, form-data, бинарные файлы).
-        
-- **Структура ответа (Response)**:
-    
-    1. _Строка состояния (Status Line)_: `HTTP/1.1 201 Created` (Версия, статус-код, текстовая расшифровка).
-        
-    2. _Заголовки ответа_: `Content-Type`, `Content-Length`, `Set-Cookie`, `Cache-Control`, `Location`.
-        
-    3. _Пустая строка_ и _Тело ответа_.
-        
-- **Важные заголовки для Backend-разработчика**:
-    
-    - `Host`: обязателен в HTTP/1.1. Позволяет одному серверу (Nginx) обслуживать десятки разных доменов на одном IP (Virtual Hosting).
-        
-    - `Content-Type`: формат тела (`application/json`, `application/x-www-form-urlencoded`, `multipart/form-data`).
-        
-    - `Accept`: какие форматы ответа готов принять клиент (`application/json`).
-        
-    - `Authorization`: передача учётных данных (`Bearer <token>`, `Basic <base64>`).
-        
-    - `X-Forwarded-For` / `X-Real-IP`: реальный IP клиента, который добавляет обратный прокси (Nginx/Cloudflare), так как для PHP-FPM прямым клиентом является сам прокси.
-        
-    - `X-Request-ID` / `X-Correlation-ID`: сквозной идентификатор запроса для трассировки в логах микросервисов.
-        
-
-### Theory (🇬🇧 English)
-
-- **Request Structure**:
-    
-    1. _Request Line_: `POST /api/v1/orders HTTP/1.1` (Method, Request Target, HTTP Version).
-        
-    2. _Headers_: Key-value metadata (`Host`, `Accept`, `Authorization`, `Content-Type`).
-        
-    3. _Empty Line (`\r\n`)_: Separates headers from the body.
-        
-    4. _Body_: Optional payload (JSON, form data, binary stream).
-        
-- **Response Structure**:
-    
-    1. _Status Line_: `HTTP/1.1 201 Created` (HTTP Version, Status Code, Reason Phrase).
-        
-    2. _Headers_: `Content-Type`, `Set-Cookie`, `Cache-Control`, `Location`.
-        
-    3. _Empty Line_ and _Response Body_.
-        
-- **Critical Backend Headers**:
-    
-    - `Host`: Mandatory in HTTP/1.1; enables virtual hosting (multiple domains sharing a single IP).
-        
-    - `Content-Type` / `Accept`: Content negotiation headers defining payload media types.
-        
-    - `Authorization`: Carries credentials (`Bearer <token>`).
-        
-    - `X-Forwarded-For` / `X-Forwarded-Proto`: Added by reverse proxies (Nginx, Load Balancers) to preserve the original client IP and protocol (`https`).
-        
-
-## 4. Методы HTTP, безопасность и идемпотентность
-
-> [!abstract] Коротко
-> 
-> Методы определяют семантику действия над ресурсом. Критически важно различать **безопасные** (не меняют данные) и **идемпотентные** (повторный вызов даёт тот же результат) методы.
-
-### Теория (🇷🇺 Русский)
-
-- **Безопасный метод (Safe)**: выполнение запроса не изменяет состояние сервера (операция только для чтения). Допустимы логирование и кэширование, но не изменение записей в БД.
-    
-- **Идемпотентный метод (Idempotent)**: многократное выполнение одного и того же запроса приводит к **точно такому же состоянию сервера**, как и его однократное выполнение. Это критично для надёжности сетей: если клиент отправил запрос и не получил ответ из-за обрыва связи, идемпотентный запрос можно безопасно повторить (retry).
-    
-
-|**Метод**|**Назначение**|**Безопасный**|**Идемпотентный**|**Кэшируемый**|**Тело запроса**|
-|---|---|---|---|---|---|
-|**GET**|Получение представления ресурса|Да|Да|Да|Нет (не реком.)|
-|**HEAD**|Получение только заголовков (проверка размера/существования)|Да|Да|Да|Нет|
-|**OPTIONS**|Запрос поддерживаемых методов и политик CORS|Да|Да|Нет|Нет|
-|**PUT**|Полная замена ресурса по известному URI|Нет|Да|Нет|Да|
-|**DELETE**|Удаление ресурса|Нет|Да|Нет|Опционально|
-|**POST**|Создание нового ресурса или запуск процесса|Нет|**Нет**|Почти нет|Да|
-|**PATCH**|Частичное обновление ресурса|Нет|**Нет***|Нет|Да|
-
-### Theory (🇬🇧 English)
-
-- **Safe Method**: Read-only operation that does not alter server state.
-    
-- **Idempotent Method**: Making multiple identical requests leaves the server in the **exact same state** as making a single request. Crucial for network reliability, allowing clients to safely retry failed requests without unintended side effects.
-    
-
-|**Method**|**Purpose**|**Safe**|**Idempotent**|**Cacheable**|**Request Body**|
-|---|---|---|---|---|---|
-|**GET**|Retrieve a resource representation|Yes|Yes|Yes|No|
-|**HEAD**|Retrieve response headers only|Yes|Yes|Yes|No|
-|**OPTIONS**|Describe communication options (CORS)|Yes|Yes|No|No|
-|**PUT**|Full replacement of a resource|No|Yes|No|Yes|
-|**DELETE**|Remove a resource|No|Yes|No|Optional|
-|**POST**|Create a subordinate resource / trigger action|No|**No**|Rarely|Yes|
-|**PATCH**|Partial modification of a resource|No|**No***|No|Yes|
-
-### Вопросы и ответы
-
-> [!question] Почему `DELETE` считается идемпотентным, если первый запрос вернёт `200 OK`, а второй — `404 Not Found`?
-> 
-> **Объяснение**: идемпотентность определяется **состоянием сервера**, а не кодом ответа. После первого `DELETE /users/5` пользователя с ID 5 в базе нет. После второго `DELETE /users/5` пользователя в базе по-прежнему нет — состояние сервера не изменилось.
-
-> [!question] Как сделать операцию создания платежа (`POST /payments`) идемпотентной?
-> 
-> **Решение**: использовать **ключ идемпотентности (Idempotency Key)**.
-> 
-> 1. Клиент генерирует UUID и передаёт его в заголовке `Idempotency-Key: 550e8400-e29b-...`.
->     
-> 2. Сервер проверяет наличие этого ключа в Redis или таблице БД (с уникальным индексом).
->     
-> 3. Если ключ новый — сервер проводит платёж, сохраняет результат ответа под этим ключом и возвращает клиенту.
->     
-> 4. Если запрос пришёл повторно с тем же ключом — сервер не списывает деньги повторно, а сразу возвращает сохранённый ответ первого запроса.
->     
-
-## 5. Коды состояния HTTP (Status Codes)
-
-> [!abstract] Коротко
-> 
-> Трёхзначные числа, разделённые на 5 классов: `1xx` (информация), `2xx` (успех), `3xx` (редирект), `4xx` (ошибка клиента), `5xx` (ошибка сервера).
+> HTTP-сообщение состоит из стартовой строки, набора заголовков (`Key: Value`), пустой строки-разделителя и опционального тела (body).
 
 ### Теория (🇷🇺 Русский & 🇬🇧 English)
 
-|**Код**|**Название**|**Описание (🇷🇺)**|**Description (🇬🇧)**|
-|---|---|---|---|
-|**200**|OK|Стандартный успешный ответ|Standard successful response|
-|**201**|Created|Ресурс создан (в ответ на `POST`), часто с заголовком `Location`|Resource created; often includes `Location` header|
-|**202**|Accepted|Запрос принят в обработку (асинхронно через очередь), но ещё не выполнен|Request accepted for async processing|
-|**204**|No Content|Успешно выполнено, тело ответа отсутствует (типично для `DELETE`)|Success with no response payload|
-|**301**|Moved Permanently|Постоянный редирект. Кэшируется браузером, может менять `POST` на `GET`|Permanent redirect; cached, may downgrade `POST` to `GET`|
-|**302**|Found|Временный редирект (исторически также меняет `POST` на `GET`)|Temporary redirect (historically changes method to `GET`)|
-|**304**|Not Modified|Ресурс не изменился, клиент может взять его из своего кэша|Resource unchanged; use cached version|
-|**307 / 308**|Temporary / Permanent Redirect|Временный / постоянный редирект с **строгим сохранением** метода и тела|Redirect strictly preserving HTTP method and body|
-|**400**|Bad Request|Синтаксическая ошибка (битый JSON, неверный формат заголовка)|Malformed request syntax (e.g., invalid JSON)|
-|**401**|Unauthorized|Клиент не аутентифицирован (нет токена, токен протух)|Unauthenticated (missing or invalid credentials)|
-|**403**|Forbidden|Клиент аутентифицирован, но не имеет прав доступа (ошибка авторизации)|Authenticated, but lacks permissions (authorization failure)|
-|**404**|Not Found|Ресурс не найден|Resource does not exist|
-|**405**|Method Not Allowed|URI существует, но метод не поддерживается (например, `DELETE` на `/login`)|Endpoint exists, but HTTP method is unsupported|
-|**409**|Conflict|Конфликт состояния (например, дубликат email или конфликт версий)|State conflict (e.g., duplicate unique key)|
-|**422**|Unprocessable Entity|Синтаксис верный (валидный JSON), но не прошла бизнес-валидация полей|Valid syntax, but semantic/validation errors|
-|**429**|Too Many Requests|Превышен лимит запросов (Rate Limiting), желателен заголовок `Retry-After`|Rate limit exceeded; often paired with `Retry-After`|
-|**500**|Internal Server Error|Необработанное исключение или фатальная ошибка в коде сервера|Unhandled server exception or crash|
-|**502**|Bad Gateway|Reverse proxy (Nginx) получил невалидный ответ от upstream (PHP-FPM упал)|Reverse proxy received an invalid response from upstream|
-|**503**|Service Unavailable|Сервер временно перегружен или закрыт на техобслуживание|Server overloaded or in maintenance mode|
-|**504**|Gateway Timeout|Reverse proxy не дождался ответа от upstream за установленный таймаут|Reverse proxy timed out waiting for upstream|
+- **Формат Request (Запроса)**:
+    
+    
+    ```HTTP
+    POST /api/v1/users HTTP/1.1
+    Host: example.com
+    Content-Type: application/json
+    Accept: application/json
+    Authorization: Bearer eyJhbGciOiJIUzI1Ni...
+    
+    {"name": "Alex", "email": "alex@example.com"}
+    ```
+    
+- **Формат Response (Ответа)**:
+    
+    
+    ```HTTP
+    HTTP/1.1 201 Created
+    Content-Type: application/json; charset=utf-8
+    Location: /api/v1/users/42
+    Cache-Control: no-store
+    
+    {"id": 42, "name": "Alex"}
+    ```
+    
+- **Основные типы `Content-Type` при отправке данных**:
+    
+    - `application/json`: стандарт для REST API (в PHP читается из `php://input`, в Laravel — через `$request->all()` / `$request->input()`).
+        
+    - `application/x-www-form-urlencoded`: стандартная HTML-форма без файлов (`key1=val1&key2=val2`, попадает в `$_POST`).
+        
+    - `multipart/form-data`: форма с загрузкой бинарных файлов (разделяется строкой `boundary`, файлы попадают в `$_FILES`).
+        
+- **Ключевые заголовки**:
+    
+    - `Host`: обязателен в HTTP/1.1 (позволяет одному IP обслуживать много сайтов).
+        
+    - `User-Agent`: информация о клиенте (браузер, ОС, версия приложения).
+        
+    - `Accept` / `Accept-Language` / `Accept-Encoding`: согласование контента (формат ответа, язык, сжатие `gzip`/`br`).
+        
+    - `X-Forwarded-For` / `X-Real-IP`: реальный IP-адрес клиента за балансировщиком/Nginx.
+        
 
-### Вопросы и ответы
+## 5. HTTP Request Methods: Методы, безопасность и идемпотентность
 
-> [!question] В чём разница между `400 Bad Request` и `422 Unprocessable Entity`?
-> 
-> - **`400`**: сервер не смог распарсить сам запрос (например, невалидный синтаксис JSON `{name: }` или повреждённый multipart-запрос).
->     
-> - **`422`**: запрос распарсен корректно, структура понятна, но данные не прошли правила валидации (например, `email` имеет неверный формат или `age` отрицательный). В Laravel `FormRequest` по умолчанию возвращает именно `422`.
->     
-
-> [!question] Как диагностировать `502 Bad Gateway` и `504 Gateway Timeout` в связке Nginx + PHP-FPM?
-> 
-> - **`502 Bad Gateway`**: Nginx попытался связаться с PHP-FPM (через сокет или порт), но соединение оборвалось или вернуло мусор. Причины: PHP-FPM не запущен, упал по `segfault` или превышению памяти, неверный путь к `.sock` файлу, исчерпана очередь `listen.backlog`.
->     
-> - **`504 Gateway Timeout`**: PHP-FPM принял запрос, но выполнял его слишком долго (например, тяжёлый SQL-запрос или зависший внешний API), и Nginx разорвал ожидание по директиве `fastcgi_read_timeout`.
->     
-
-## 6. Эволюция протокола: HTTP/1.1, HTTP/2 и HTTP/3
-
-> [!abstract] Коротко
-> 
-> HTTP/1.1 — текстовый и последовательный; HTTP/2 — бинарный с мультиплексированием поверх одного TCP; HTTP/3 — работает поверх QUIC (UDP), решая проблему блокировки на уровне TCP.
+> [!abstract] Коротко 
+> Методы задают действие над ресурсом. На собеседованиях обязательно спрашивают различия между `PUT` и `PATCH`, а также понятия **безопасности** и **идемпотентности**.
 
 ### Теория (🇷🇺 Русский)
 
-- **HTTP/1.1 (1997)**:
+- **Безопасный метод (Safe)**: метод, который предназначен только для чтения и не изменяет состояние сервера.
     
-    - Текстовый формат (легко читать глазами, но избыточен).
-        
-    - **Persistent Connections (`keep-alive`)**: переиспользование TCP-соединения.
-        
-    - **Проблема Head-of-Line (HOL) Blocking**: в рамках одного TCP-соединения запросы и ответы идут строго по очереди (FIFO). Если первый запрос «завис» на 5 секунд, остальные ждут. Чтобы обойти это, браузеры открывают по **6 параллельных TCP-соединений** на один домен.
-        
-    - Заголовки передаются в каждом запросе открытым текстом без сжатия.
-        
-- **HTTP/2 (2015)**:
+- **Идемпотентный метод (Idempotent)**: многократное выполнение одного и того же запроса даёт **точно такой же эффект на состояние сервера**, что и однократное выполнение. Критично для безопасных повторных попыток (retries) при сбоях сети.
     
-    - **Бинарный протокол**: данные разбиваются на бинарные фреймы (frames).
-        
-    - **Мультиплексирование (Multiplexing)**: множество независимых потоков (streams) передаются параллельно внутри **одного TCP-соединения**. Решает проблему HOL Blocking на уровне HTTP.
-        
-    - **Сжатие заголовков (HPACK)**: динамическая таблица заголовков устраняет дублирование.
-        
-    - **Ограничение**: остаётся **TCP HOL Blocking**. Поскольку всё идёт через один TCP-поток, потеря хотя бы одного TCP-пакета заставляет ОС приостановить доставку всех потоков до повторной передачи потерянного пакета.
-        
-- **HTTP/3 (2022)**:
+
+|**Метод**|**Описание**|**Безопасный**|**Идемпотентный**|**Кэшируемый**|**Тело запроса**|
+|---|---|---|---|---|---|
+|**GET**|Запрос представления ресурса|Да|Да|Да|Нет|
+|**HEAD**|Запрос только заголовков ответа (без тела)|Да|Да|Да|Нет|
+|**OPTIONS**|Запрос поддерживаемых методов и CORS-политик|Да|Да|Нет|Нет|
+|**PUT**|Полная замена ресурса по указанному URI|Нет|Да|Нет|Да|
+|**DELETE**|Удаление указанного ресурса|Нет|Да|Нет|Опционально|
+|**POST**|Создание нового ресурса или запуск операции|Нет|**Нет**|Почти нет|Да|
+|**PATCH**|Частичное изменение полей ресурса|Нет|**Нет***|Нет|Да|
+
+### Theory (🇬🇧 English)
+
+- **Safe Method**: Read-only operation that does not modify server state (`GET`, `HEAD`, `OPTIONS`).
     
-    - Работает поверх **QUIC (поверх UDP)** вместо TCP.
+- **Idempotent Method**: Repeating the exact same request multiple times produces the **same server state** as executing it once (`GET`, `HEAD`, `OPTIONS`, `PUT`, `DELETE`).
+    
+- **`PUT` vs `PATCH`**: `PUT` replaces the entire resource representation (idempotent), whereas `PATCH` applies partial updates (not strictly idempotent if applying relative deltas like `{"increment": 1}`).
+    
+- **Making `POST` Idempotent**: Achieved via an `Idempotency-Key` header (UUID) stored in Redis/DB so duplicate network retries return the cached response of the first execution without duplicating side effects (e.g., double charging).
+    
+
+## 6. Response Codes: Коды состояния HTTP
+
+> [!abstract] Коротко 
+> Трёхзначный код в первой строке ответа сервера, сообщающий клиенту результат обработки запроса: `1xx` (информация), `2xx` (успех), `3xx` (перенаправление), `4xx` (ошибка клиента), `5xx` (ошибка сервера).
+
+### Теория (🇷🇺 Русский & 🇬🇧 English)
+
+|**Код**|**Название**|**Смысл (🇷🇺)**|**Meaning (🇬🇧)**|
+|---|---|---|---|
+|**101**|Switching Protocols|Переключение протокола (например, на WebSockets)|Protocol upgrade (e.g., HTTP to WebSockets)|
+|**200**|OK|Успешный запрос|Standard successful request|
+|**201**|Created|Ресурс успешно создан (обычно на `POST`)|Resource created (typically after `POST`)|
+|**202**|Accepted|Запрос принят в фоновую обработку (очередь)|Accepted for asynchronous processing|
+|**204**|No Content|Успешно, тело ответа отсутствует (обычно на `DELETE`)|Success with empty response body|
+|**301**|Moved Permanently|Постоянный редирект (кэшируется, может сменить `POST` на `GET`)|Permanent redirect (cached; may change `POST` to `GET`)|
+|**302**|Found|Временный редирект (исторически меняет `POST` на `GET`)|Temporary redirect|
+|**304**|Not Modified|Ресурс не изменился (клиент берёт из кэша)|Resource unchanged; use cached copy|
+|**307 / 308**|Temp / Perm Redirect|Временный / постоянный редирект **с сохранением метода и тела**|Redirect strictly preserving HTTP method and body|
+|**400**|Bad Request|Синтаксическая ошибка в запросе (битый JSON)|Malformed request syntax|
+|**401**|Unauthorized|Не аутентифицирован (нет или неверный токен/сессия)|Unauthenticated (missing/invalid credentials)|
+|**403**|Forbidden|Аутентифицирован, но нет прав на это действие|Authenticated, but forbidden (authorization error)|
+|**404**|Not Found|Ресурс не найден|Resource not found|
+|**405**|Method Not Allowed|Метод не разрешён для этого URL|HTTP method unsupported for endpoint|
+|**409**|Conflict|Конфликт состояния (дубликат уникального поля, конфликт версий)|State conflict (e.g., duplicate record)|
+|**422**|Unprocessable Entity|Синтаксис верный, но не прошла валидация данных|Valid syntax, but semantic/validation errors|
+|**429**|Too Many Requests|Превышен лимит запросов (Rate Limit)|Rate limit exceeded|
+|**500**|Internal Server Error|Необработанная ошибка/исключение на сервере|Unhandled server exception|
+|**502**|Bad Gateway|Прокси (Nginx) получил плохой ответ от PHP-FPM (воркер упал)|Reverse proxy received invalid response from upstream|
+|**503**|Service Unavailable|Сервер перегружен или на техобслуживании|Server overloaded or in maintenance mode|
+|**504**|Gateway Timeout|Прокси не дождался ответа от PHP-FPM за отведённый таймаут|Upstream timed out|
+
+## 7. HTTP Cookies, Сессии и JWT
+
+> [!abstract] Коротко 
+> Cookies — механизм хранения небольших данных на стороне браузера (до ~4 КБ), который автоматически прикрепляется к запросам. Используется для идентификации сессий и хранения токенов.
+
+### Теория (🇷🇺 Русский)
+
+- **Как работают HTTP Cookies**:
+    
+    1. Сервер присылает заголовок `Set-Cookie: session_id=xyz123; Path=/; HttpOnly; Secure; SameSite=Lax`.
         
-    - **Независимые потоки на уровне транспорта**: потеря пакета в одном потоке не блокирует остальные потоки.
+    2. Браузер сохраняет куку и при каждом последующем запросе на подходящий домен и путь автоматически добавляет заголовок `Cookie: session_id=xyz123`.
         
-    - **Быстрое рукопожатие (0-RTT / 1-RTT)**: TLS 1.3 встроен прямо в QUIC, установка соединения происходит за 1 шаг вместо 2–3 (TCP + TLS).
+- **Все атрибуты `Set-Cookie`**:
+    
+    - `Expires` / `Max-Age`: срок жизни куки. Если не указаны — кука является **сессионной (Session Cookie)** и удаляется при закрытии браузера.
         
-    - **Connection Migration**: при переключении телефона с Wi-Fi на 4G соединение не рвётся, так как идентифицируется по `Connection ID`, а не по паре IP:Port.
+    - `Domain`: для каких доменов/поддоменов отправлять куку (например, `Domain=.example.com` сделает куку доступной на всех поддоменах).
+        
+    - `Path`: ограничивает отправку куки конкретным путём (например, `Path=/admin`).
+        
+    - `HttpOnly`: запрещает чтение/запись куки через JavaScript (`document.cookie`) — **защита от XSS**.
+        
+    - `Secure`: передавать куку только по HTTPS.
+        
+    - `SameSite`: защита от **CSRF**:
+        
+        - `Strict`: не отправлять при любых переходах со сторонних сайтов.
+            
+        - `Lax` (дефолт в браузерах): отправлять при обычном переходе по ссылке (`GET`), но блокировать при кросс-сайтовых `POST`/AJAX-запросах.
+            
+        - `None`: отправлять всегда (обязательно требует флаг `Secure`).
+            
+- **Сессии (Stateful) vs JWT (Stateless)**:
+    
+    - _Сессии_: в куке только случайный ID, данные лежат в Redis/БД на сервере. Легко мгновенно разлогинить пользователя, но нужен запрос в Redis на каждый HTTP-запрос.
+        
+    - _JWT (`Header.Payload.Signature`)_: вся информация внутри подписанного токена. Payload только закодирован в Base64 (не зашифрован!), поэтому секреты туда не кладём. Отзыв токена до истечения срока (`exp`) требует чёрного списка в Redis.
         
 
 ### Theory (🇬🇧 English)
 
-- **HTTP/1.1**: Text-based protocol. Introduced `keep-alive`, but suffers from **HTTP Head-of-Line (HOL) Blocking** (requests on a single connection are processed sequentially, forcing browsers to open up to 6 parallel TCP connections per domain). Headers are uncompressed.
+- **HTTP Cookies Lifecycle**: Server sets a cookie via `Set-Cookie`; browser automatically includes it in subsequent matching requests via `Cookie`.
     
-- **HTTP/2**: Binary framing layer. Introduces **Multiplexing** (multiple concurrent streams over a single TCP connection) and **HPACK** header compression. Eliminates HTTP-level HOL blocking, but still suffers from **TCP-level HOL blocking** (one dropped TCP packet stalls all multiplexed streams).
+- **Cookie Attributes**:
     
-- **HTTP/3**: Runs over **QUIC (UDP)** instead of TCP. Solves TCP HOL blocking (packet loss affects only the individual stream), integrates TLS 1.3 natively for **0-RTT/1-RTT** handshakes, and supports **Connection Migration** across network changes.
-    
+    - `Max-Age` / `Expires`: Persistence duration (omitting both creates a session cookie cleared on browser close).
+        
+    - `Domain` & `Path`: Scope restrictions defining which hosts and URL paths receive the cookie.
+        
+    - `HttpOnly`: Blocks `document.cookie` access in JS (mitigates XSS session hijacking).
+        
+    - `Secure`: Restricts transmission to HTTPS only.
+        
+    - `SameSite` (`Strict` / `Lax` / `None`): Controls cross-site cookie sending (mitigates CSRF).
+        
 
-### Сравнительная таблица
+## 8. Эволюция протокола: HTTP/1.1, HTTP/2 и HTTP/3
+
+> [!abstract] Коротко
+> 
+> HTTP/1.1 — текстовый и последовательный; HTTP/2 — бинарный с мультиплексированием поверх одного TCP; HTTP/3 — работает поверх QUIC (UDP), убирая блокировки на уровне TCP.
+
+### Теория (🇷🇺 Русский & 🇬🇧 English)
 
 |**Характеристика**|**HTTP/1.1**|**HTTP/2**|**HTTP/3**|
 |---|---|---|---|
-|**Формат данных**|Текстовый|Бинарный|Бинарный|
-|**Транспорт**|TCP|TCP|QUIC (UDP)|
-|**Мультиплексирование**|Нет (6 TCP-соединений)|Да (1 TCP-соединение)|Да (независимые QUIC-потоки)|
-|**HOL Blocking**|На уровне HTTP и TCP|Только на уровне TCP|Отсутствует|
+|**Формат данных**|Текстовый|Бинарный (фреймы)|Бинарный (фреймы)|
+|**Транспорт**|TCP|TCP|**QUIC (поверх UDP)**|
+|**Мультиплексирование**|Нет (браузер открывает до 6 TCP-соединений на домен)|Да (много потоков в 1 TCP-соединении)|Да (независимые QUIC-потоки)|
+|**HOL Blocking**|На уровне HTTP и TCP|Только на уровне TCP (потеря 1 пакета тормозит все потоки)|**Полностью отсутствует**|
 |**Сжатие заголовков**|Нет|HPACK|QPACK|
-|**Рукопожатие (HTTPS)**|2–3 RTT (TCP + TLS)|2–3 RTT|0–1 RTT (встроенный TLS 1.3)|
+|**Рукопожатие (HTTPS)**|2–3 RTT (TCP + TLS)|2–3 RTT|**0–1 RTT** (TLS 1.3 встроен в QUIC)|
 
-## 7. Состояние в Stateless-протоколе: Cookies, Сессии и JWT
-
-> [!abstract] Коротко
-> 
-> Так как HTTP не хранит состояние, идентификация пользователя строится либо через **Stateful-сессии** (ID в Cookie + данные в Redis/БД), либо через **Stateless-токены** (подписанный JWT).
-
-### Теория (🇷🇺 Русский)
-
-- **HTTP Cookies**: небольшие фрагменты данных (до ~4 КБ), которые сервер отправляет в заголовке `Set-Cookie`, а браузер автоматически прикрепляет ко всем последующим запросам на этот домен в заголовке `Cookie`.
-    
-    - `HttpOnly`: запрещает доступ к куке из JavaScript (`document.cookie`) — **защита от кражи сессии при XSS**.
-        
-    - `Secure`: передавать куку только по зашифрованному HTTPS.
-        
-    - `SameSite`: управляет отправкой куки при кросс-сайтовых запросах — **защита от CSRF**:
-        
-        - `Strict`: кука не шлётся ни при каких внешних переходах.
-            
-        - `Lax` (дефолт в современных браузерах): шлётся при безопасной навигации (`GET` по ссылке), но блокируется для кросс-доменных `POST`/AJAX.
-            
-        - `None`: шлётся всегда (требует флага `Secure`).
-            
-- **Серверные сессии (Stateful)**: в куке лежит только случайный `session_id`, а сами данные пользователя (ID, роли) хранятся на сервере (в Redis, Memcached или БД).
-    
-- **JWT (JSON Web Token — Stateless)**: самодостаточный подписанный токен формата `Header.Payload.Signature` (три части в Base64Url).
-    
-    - _Header_: алгоритм подписи (`HS256`, `RS256`) и тип токена.
-        
-    - _Payload_: полезная нагрузка (claims: `sub`, `exp`, `iat`, роли). **Важно**: Payload не зашифрован, а только закодирован в Base64 — класть туда пароли или секреты нельзя!
-        
-    - _Signature_: криптографическая подпись `HMACSHA256(base64(header) + "." + base64(payload), secret)`. Гарантирует, что токен не был подделан.
-        
-    - **Схема Access + Refresh токенов**: Access-токен живёт мало (5–15 минут), Refresh-токен живёт долго (дни/недели), хранится в БД/Redis и в `HttpOnly` cookie, позволяя выпустить новую пару токенов и при необходимости отозвать доступ.
-        
-
-### Theory (🇬🇧 English)
-
-- **Cookies**: Small key-value pairs (`Set-Cookie` / `Cookie` headers) automatically sent by browsers.
-    
-    - `HttpOnly`: Blocks `document.cookie` access in JS (mitigates XSS token theft).
-        
-    - `Secure`: Transmits only over HTTPS.
-        
-    - `SameSite` (`Strict` / `Lax` / `None`): Controls cross-site cookie transmission (mitigates CSRF).
-        
-- **Server-Side Sessions (Stateful)**: Cookie holds only an opaque `session_id`; user state resides on the server (Redis/DB). Instant revocation, minimal payload overhead.
-    
-- **JWT (JSON Web Token — Stateless)**: Signed token structured as `Header.Payload.Signature`.
-    
-    - Payload is Base64Url-encoded (readable by anyone), **not encrypted**.
-        
-    - Signature prevents tampering.
-        
-    - Uses short-lived **Access Tokens** (5–15m) paired with revocable long-lived **Refresh Tokens** stored in `HttpOnly` cookies.
-        
-
-### Вопросы и ответы
-
-> [!question] Что выбрать для SPA/Mobile API: Cookies + Сессии или JWT?
-> 
-> |**Критерий**|**Сессии (Cookie + Redis)**|**JWT (Access + Refresh)**|
-> |---|---|---|
-> |**Отзыв доступа (Logout / Бан)**|Мгновенный (удаляем ключ в Redis)|Сложный (Access-токен валиден до истечения `exp`, нужен blacklist)|
-> |**Нагрузка на хранилище**|Запрос в Redis на каждый HTTP-запрос|Проверка подписи в CPU без обращения к БД|
-> |**Микросервисы**|Нужен общий Redis или сервис авторизации|Любой сервис сам проверяет подпись публичным ключом (`RS256`)|
-> |**Мобильные клиенты**|Менее удобно, чем заголовки|Стандарт (`Authorization: Bearer ...`)|
-
-## 8. HTTP-кэширование и условные запросы
+## 9. HTTP-кэширование и условные запросы
 
 > [!abstract] Коротко
 > 
-> HTTP-кэш позволяет не передавать неизменившиеся данные по сети. Бывает **свежим** (клиент даже не обращается к серверу) и **валидируемым** (сервер отвечает `304 Not Modified` без тела).
-
-### Теория (🇷🇺 Русский)
-
-- **Управляющий заголовок `Cache-Control`**:
-    
-    - `max-age=3600`: ресурс считается свежим 3600 секунд; в течение этого времени браузер берёт его из локального кэша без обращения к серверу.
-        
-    - `public` / `private`: `public` разрешает кэшировать промежуточным прокси и CDN; `private` — только в браузере конкретного пользователя (для персональных данных).
-        
-    - `no-cache`: **не запрещает кэшировать!** Означает: «сохрани в кэш, но перед каждым использованием обязательно спроси у сервера, не устарел ли ресурс».
-        
-    - `no-store`: строгий запрет на сохранение где-либо (для банковских выписок, секретов).
-        
-- **Валидация кэша (Условные запросы)**:
-    
-    - **По хэшу (`ETag`)**: сервер отдаёт заголовок `ETag: "v1-a8f9c"`. При следующем запросе клиент отправляет `If-None-Match: "v1-a8f9c"`. Если данные не изменились, сервер возвращает `304 Not Modified` с пустым телом.
-        
-    - **По времени (`Last-Modified`)**: сервер отдаёт дату изменения, клиент присылает `If-Modified-Since`.
-        
-
-### Theory (🇬🇧 English)
-
-- **`Cache-Control` Directives**:
-    
-    - `max-age=<seconds>`: Defines freshness lifetime; browser serves directly from cache without contacting the server.
-        
-    - `public` vs `private`: `public` allows shared caches (CDNs/proxies); `private` restricts caching to the end-user's browser.
-        
-    - `no-cache`: Caches the response, but requires **revalidation** with the origin server before reuse.
-        
-    - `no-store`: Completely prohibits storing the response anywhere.
-        
-- **Cache Revalidation (Conditional Requests)**:
-    
-    - `ETag` + `If-None-Match`: Content-hash validation. Returns `304 Not Modified` (empty body) if unchanged.
-        
-    - `Last-Modified` + `If-Modified-Since`: Timestamp-based validation.
-        
-
-## 9. Безопасность HTTP: HTTPS, CORS, CSP, CSRF
-
-> [!abstract] Коротко
-> 
-> Безопасность на уровне HTTP строится на шифровании трафика (HTTPS/HSTS), ограничении кросс-доменных запросов (SOP/CORS) и защите браузера через security-заголовки.
-
-### Теория (🇷🇺 Русский)
-
-- **SOP (Same-Origin Policy)**: базовое правило безопасности браузера. Скрипт со страницы `https://site-a.com` не может читать ответы от `https://site-b.com`, если отличается хотя бы одна часть **Origin**: **схема (протокол)**, **домен (хост)** или **порт**.
-    
-- **CORS (Cross-Origin Resource Sharing)**: механизм контролируемого ослабления SOP через HTTP-заголовки со стороны сервера.
-    
-    - _Простые запросы_ (`GET`, `HEAD`, `POST` со стандартными заголовками): браузер отправляет сразу, но блокирует чтение ответа в JS, если в ответе нет `Access-Control-Allow-Origin`.
-        
-    - _Сложные запросы (Preflight)_ (`PUT`, `DELETE`, `Content-Type: application/json`, заголовок `Authorization`): браузер сначала шлёт предварительный запрос **`OPTIONS`**. Сервер должен ответить заголовками `Access-Control-Allow-Origin`, `Access-Control-Allow-Methods`, `Access-Control-Allow-Headers` (и `Access-Control-Allow-Credentials: true`, если передаются куки).
-        
-- **Важные Security-заголовки**:
-    
-    - `Strict-Transport-Security (HSTS)`: приказывает браузеру всегда обращаться к сайту только по HTTPS.
-        
-    - `Content-Security-Policy (CSP)`: белый список источников, откуда разрешено загружать JS, CSS, картинки (главный барьер против XSS).
-        
-    - `X-Content-Type-Options: nosniff`: запрещает браузеру угадывать MIME-тип файла (защита от исполнения скрипта, замаскированного под картинку).
-        
-    - `X-Frame-Options: DENY`: запрещает встраивание сайта в `<iframe>` (защита от Clickjacking).
-        
-
-### Theory (🇬🇧 English)
-
-- **Same-Origin Policy (SOP)**: Browser security model restricting scripts on one origin from reading data from another origin (where Origin = **Scheme + Host + Port**).
-    
-- **CORS (Cross-Origin Resource Sharing)**: Server-driven headers relaxing SOP.
-    
-    - Non-simple requests (`PUT`, `DELETE`, `application/json`, `Authorization` header) trigger a **Preflight `OPTIONS`** request checking `Access-Control-Allow-Origin`, `-Methods`, and `-Headers`.
-        
-- **Key HTTP Security Headers**:
-    
-    - `Strict-Transport-Security (HSTS)`: Enforces HTTPS-only connections.
-        
-    - `Content-Security-Policy (CSP)`: Whitelists trusted sources for scripts/styles to mitigate XSS.
-        
-    - `X-Content-Type-Options: nosniff`: Prevents MIME-sniffing attacks.
-        
-    - `X-Frame-Options: DENY`: Prevents Clickjacking via `<iframe>` embedding.
-        
-
-### Вопросы и ответы
-
-> [!question] Защищает ли CORS мой API от запросов из Postman или cURL?
-> 
-> **Нет.** CORS — это политика, которую исполняет **только браузер** для защиты пользователя. Любой серверный скрипт, cURL или Postman игнорирует заголовки CORS и отправляет запросы напрямую. Для защиты API нужны аутентификация, авторизация и rate limiting.
-
-## 10. Проектирование API: REST, GraphQL, gRPC, WebSockets
-
-> [!abstract] Коротко
-> 
-> REST — стандарт для публичных API (ресурсы + HTTP-методы); GraphQL решает проблему over-fetching/under-fetching; gRPC идеален для быстрых внутренних микросервисов; WebSockets — для двустороннего real-time общения.
+> Позволяет не гонять неизменившиеся данные по сети через директивы `Cache-Control` и условные запросы (`ETag` / `Last-Modified` -> `304 Not Modified`).
 
 ### Теория (🇷🇺 Русский & 🇬🇧 English)
 
-|**Подход**|**Суть и транспорт**|**Плюсы**|**Минусы**|**Когда выбирать**|
-|---|---|---|---|---|
-|**REST**|Ресурсы (`/users/1`), HTTP-методы, JSON поверх HTTP/1.1–3|Простота, встроенное HTTP-кэширование, понятные статус-коды|Over-fetching (лишние поля) и Under-fetching (нужно много запросов)|Публичные API, стандартные веб- и мобильные бэкенды|
-|**GraphQL**|Один эндпоинт (`POST /graphql`), клиент сам описывает схему нужных полей|Нет лишних данных, строгая типизация схемы, удобно для сложных фронтендов|Сложное кэширование (всегда `200 OK`), риск тяжелых вложенных запросов (N+1)|Сложные UI с разными клиентами (Web, iOS, Android)|
-|**gRPC**|Бинарный протокол **Protobuf** поверх **HTTP/2**, генерация кода по `.proto` контракту|Максимальная скорость, строгий контракт, двусторонний стриминг|Не читается глазами в браузере, нужен gRPC-Web для фронтенда|Внутреннее общение между микросервисами|
-|**WebSockets**|Постоянное двустороннее (full-duplex) TCP-соединение после HTTP `101 Switching Protocols`|Мгновенная доставка событий от сервера к клиенту без polling|Stateful-соединения сложнее балансировать и масштабировать|Чаты, биржевые котировки, онлайн-игры, уведомления|
+- **`Cache-Control`**:
+    
+    - `max-age=3600`: ресурс свежий 1 час; браузер берёт его локально без запроса на сервер.
+        
+    - `public` / `private`: `public` — можно кэшировать в CDN/прокси; `private` — только в браузере пользователя.
+        
+    - `no-cache`: кэшировать можно, но перед использованием обязательно провалидировать на сервере.
+        
+    - `no-store`: полный запрет на кэширование (для конфиденциальных данных).
+        
+- **Валидация (Conditional Requests)**:
+    
+    - Сервер отдаёт `ETag: "hash123"` (или `Last-Modified`).
+        
+    - Клиент при повторном обращении шлёт `If-None-Match: "hash123"` (или `If-Modified-Since`).
+        
+    - Если данные не менялись, сервер возвращает `304 Not Modified` без тела ответа.
+        
 
-## 11. Шпаргалка перед собеседованием
+## 10. Безопасность HTTP: SOP, CORS и Security-заголовки
 
-> [!important] Ключевые тезисы по HTTP:
+> [!abstract] Коротко
 > 
-> 1. **Stateless**: HTTP не хранит состояние; состояние обеспечивается через `HttpOnly; Secure; SameSite` Cookies (сессии) или `Authorization: Bearer` (JWT).
+> **SOP** запрещает кросс-доменные запросы в браузере; **CORS** разрешает их через заголовки сервера (с предварительным `OPTIONS` для сложных запросов).
+
+### Теория (🇷🇺 Русский & 🇬🇧 English)
+
+- **Same-Origin Policy (SOP)**: запрещает скрипту с одного Origin (**Схема + Хост + Порт**) читать ответы с другого Origin.
+    
+- **CORS (Cross-Origin Resource Sharing)**:
+    
+    - Для сложных запросов (`PUT`, `DELETE`, `application/json`, `Authorization`) браузер сначала отправляет **Preflight-запрос `OPTIONS`**.
+        
+    - Сервер должен вернуть `Access-Control-Allow-Origin`, `Access-Control-Allow-Methods`, `Access-Control-Allow-Headers`.
+        
+    - Если передаются куки (`credentials: 'include'`), `Access-Control-Allow-Origin` нельзя ставить в `*` — нужно указывать точный домен и `Access-Control-Allow-Credentials: true`.
+        
+- **Security-заголовки**: `Strict-Transport-Security` (HSTS), `Content-Security-Policy` (CSP против XSS), `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY` (против Clickjacking).
+    
+
+## 11. Проектирование API: REST, GraphQL, gRPC, WebSockets
+
+> [!abstract] Коротко
+> 
+> Выбор архитектурного стиля зависит от задачи: REST — для стандартных публичных API, GraphQL — для гибких фронтендов, gRPC — для быстрых внутренних микросервисов, WebSockets — для real-time.
+
+|**Стиль**|**Протокол и формат**|**Плюсы**|**Минусы**|
+|---|---|---|---|
+|**REST**|HTTP + JSON, ресурсы в URL|Простота, кэширование HTTP, понятные коды|Over-fetching / Under-fetching|
+|**GraphQL**|HTTP (`POST /graphql`) + JSON|Клиент запрашивает только нужные поля|Сложное кэширование, риск N+1 запросов|
+|**gRPC**|HTTP/2 + Protobuf (бинарный)|Максимальная скорость, строгие контракты|Нужен gRPC-Web для браузеров|
+|**WebSockets**|TCP (после HTTP `101`)|Двусторонний real-time обмен без polling|Сложность масштабирования stateful-соединений|
+
+## 12. Шпаргалка перед собеседованием
+
+> [!important] Чек-лист по всем темам HTTP:
+> 
+> 1. **HTTP Basics**: Stateless-протокол; URL включает схему, хост, порт, путь, query и `#fragment` (который не уходит на сервер).
 >     
-> 2. **Безопасность и идемпотентность**: `GET/HEAD/OPTIONS` — безопасны и идемпотентны; `PUT/DELETE` — небезопасны, но идемпотентны; `POST` — не безопасен и не идемпотентен (лечится `Idempotency-Key`).
+> 2. **HTTPS / TLS**: Асимметричное шифрование (ECDHE + сертификат CA) нужно только для проверки подлинности и согласования ключа; сам трафик шифруется быстрым симметричным шифром (AES).
 >     
-> 3. **Статусы**: `401` (кто ты?), `403` (я знаю кто ты, но тебе нельзя), `422` (JSON валидный, но данные не прошли валидацию), `502` (упал upstream/PHP-FPM), `504` (PHP-FPM не уложился в таймаут).
+> 3. **Request Methods**: Безопасные (`GET, HEAD, OPTIONS`) не меняют данные; идемпотентные (`GET, PUT, DELETE`) дают одинаковый результат при повторе[cite: 2]; `POST` делают идемпотентным через `Idempotency-Key`[cite: 2].
 >     
-> 4. **HTTP/2 vs HTTP/3**: HTTP/2 убрал HTTP HOL Blocking через мультиплексирование в одном TCP, но оставил TCP HOL Blocking; HTTP/3 перешёл на QUIC (UDP) и решил проблему полностью.
+> 4. **Response Codes**: `201` (создано), `204` (успешно без тела), `304` (из кэша), `401` (не залогинен), `403` (нет прав), `422` (ошибка валидации), `502` (упал PHP-FPM), `504` (таймаут PHP-FPM)[cite: 2].
 >     
-> 5. **CORS**: браузерный механизм; `OPTIONS` (preflight) отправляется перед сложными запросами; `Access-Control-Allow-Origin: *` несовместим с передачей кук (`Allow-Credentials: true`).
+> 5. **HTTP Cookies**: `HttpOnly` защищает от XSS, `Secure` — только HTTPS, `SameSite=Lax/Strict` — от CSRF; отсутствие `Max-Age`/`Expires` делает куку сессионной[cite: 2].
 >
