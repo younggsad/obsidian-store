@@ -45,12 +45,12 @@ A single set of notes for interview preparation. Blocks 1–15 are the main topi
 
 Core modules:
 
-|Module|Purpose|
-|---|---|
-|`Language`|managing languages, determining the language context|
-|`Interface Translation` (`locale`)|translating interface strings|
-|`Content Translation`|translating content|
-|`Configuration Translation`|translating supported configuration values|
+| Module                             | Purpose                                              |
+| ---------------------------------- | ---------------------------------------------------- |
+| `Language`                         | managing languages, determining the language context |
+| `Interface Translation` (`locale`) | translating interface strings                        |
+| `Content Translation`              | translating content                                  |
+| `Configuration Translation`        | translating supported configuration values           |
 
 Minimal setup: enable the four modules → add languages → configure language negotiation → enable translation for the needed entity types and bundles (_Content language and translation_) and mark the translatable fields. Enabling the modules alone does nothing without these steps.
 
