@@ -166,9 +166,72 @@ $result = match ($status) {
 
 PHP has one flexible array type that can work as:
 
-- **Indexed array**: an array where elements are stored under numeric keys that start from 0 and go in order (`[10, 20, 30]`), and you access an element by its position number.
-- **Associative array**: an array where you set the keys yourself, usually as strings, so it stores “key => value” pairs (`['name' => 'Ivan', 'age' => 25]`), and you access an element by its key name.
-- **Multidimensional array**: an array whose elements are also arrays (`[['id' => 1], ['id' => 2]]`), and you reach nested values with a chain of keys (`$a[0]['id']`).
+### **1. Indexed Array**
+
+An **indexed array** is an array where elements are stored using numeric keys, starting from `0` by default. Each element is accessed by its numeric index (position).
+
+```
+$numbers = [10, 20, 30];
+
+echo $numbers[0]; // 10
+echo $numbers[1]; // 20
+echo $numbers[2]; // 30
+```
+
+**Key points:**
+
+- Numeric keys are assigned automatically if they are not specified.
+    
+- The first element has index `0`.
+    
+- You access elements using their numeric index.
+    
+
+### **2. Associative Array**
+
+An **associative array** is an array where elements are stored as `key => value` pairs. You define the keys yourself, usually using strings that describe the values.
+
+```
+$user = [
+    'name' => 'Ivan',
+    'age' => 25,
+    'email' => 'ivan@example.com',
+];
+
+echo $user['name']; // Ivan
+echo $user['age'];  // 25
+```
+
+**Key points:**
+
+- Keys are usually strings, but they can also be integers.
+    
+- Each value is associated with a specific key.
+    
+- You access elements using their keys instead of their positions.
+    
+
+### **3. Multidimensional Array**
+
+A **multidimensional array** is an array that contains other arrays as its elements. It is commonly used to represent structured data, such as lists of users, products, or orders.
+
+```
+$users = [
+    ['id' => 1, 'name' => 'Ivan'],
+    ['id' => 2, 'name' => 'Anna'],
+];
+
+echo $users[0]['id'];   // 1
+echo $users[1]['name']; // Anna
+```
+
+**Key points:**
+
+- An array can contain other arrays at any nesting level.
+    
+- You access nested values using a chain of keys or indexes.
+    
+- It is useful for storing collections of structured records.
 
 ### What is the difference between `array_map()`, `array_filter()`, and `array_reduce()`?
 
