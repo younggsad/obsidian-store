@@ -350,16 +350,16 @@ sequenceDiagram
 
 ### 🇬🇧 English
 
-| Term | Meaning |
-| :--- | :--- |
-| **MVCC** | Keeps multiple row versions so readers and writers don't block each other. |
-| **Snapshot** | The consistent view of data a transaction sees. |
-| **Dirty read** | Reading uncommitted changes from another transaction. |
-| **Non-repeatable read** | Re-reading a row gives a different value because another transaction committed a change. |
-| **Phantom read** | Re-running a range query returns new rows inserted by another transaction. |
-| **Lost update** | Two concurrent updates overwrite each other's result. |
-| **Write skew** | Two transactions each write different rows based on data that the other changes, breaking an invariant. |
-| **Serializable** | The strictest level: results are as if transactions ran one after another. |
+| Term                    | Meaning                                                                                                 |
+| :---------------------- | :------------------------------------------------------------------------------------------------------ |
+| **MVCC**                | Keeps multiple row versions so readers and writers don't block each other.                              |
+| **Snapshot**            | The consistent view of data a transaction sees.                                                         |
+| **Dirty read**          | Reading uncommitted changes from another transaction.                                                   |
+| **Non-repeatable read** | Re-reading a row gives a different value because another transaction committed a change.                |
+| **Phantom read**        | Re-running a range query returns new rows inserted by another transaction.                              |
+| **Lost update**         | Two concurrent updates overwrite each other's result.                                                   |
+| **Write skew**          | Two transactions each write different rows based on data that the other changes, breaking an invariant. |
+| **Serializable**        | The strictest level: results are as if transactions ran one after another.                              |
 
 > [!quote] Say it in English
 > «PostgreSQL uses Read Committed by default, and MySQL InnoDB uses Repeatable Read. Thanks to MVCC, readers don't block writers. If I need the strongest guarantees, I use Serializable, but I have to retry transactions on serialization errors.»
