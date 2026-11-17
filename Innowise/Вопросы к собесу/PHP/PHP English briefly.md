@@ -166,12 +166,9 @@ $result = match ($status) {
 
 PHP has one flexible array type that can work as:
 
-- Indexed array.
-    
-- Associative array.
-    
-- Multidimensional array.
-    
+- **Indexed array**: an array where elements are stored under numeric keys that start from 0 and go in order (`[10, 20, 30]`), and you access an element by its position number.
+- **Associative array**: an array where you set the keys yourself, usually as strings, so it stores “key => value” pairs (`['name' => 'Ivan', 'age' => 25]`), and you access an element by its key name.
+- **Multidimensional array**: an array whose elements are also arrays (`[['id' => 1], ['id' => 2]]`), and you reach nested values with a chain of keys (`$a[0]['id']`).
 
 ### What is the difference between `array_map()`, `array_filter()`, and `array_reduce()`?
 
