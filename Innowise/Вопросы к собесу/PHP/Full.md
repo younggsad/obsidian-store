@@ -1674,23 +1674,6 @@ A `void` function can use `return;` without a value.
 
 For example, a logging function can return `void`, while a function that always throws an exception can return `never`.
 
-### **What is object comparison in PHP?**
-
-PHP provides two common ways to compare objects:
-
-- `==` compares whether objects have the same class and equivalent property values.
-    
-- `===` checks whether both variables refer to the exact same object instance.
-    
-
-```
-$first = new stdClass();
-$second = new stdClass();
-
-$first == $second;  // true
-$first === $second; // false
-```
-
 ### **What is the difference between** `clone` **and assignment?**
 
 Assigning an object variable copies the object handle, so both variables refer to the same object.
