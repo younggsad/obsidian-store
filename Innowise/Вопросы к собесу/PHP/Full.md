@@ -868,7 +868,7 @@ For ordinary numeric-key arrays, the spread operator creates a combined array wi
 
 ### **What is a Generator?**
 
-A Generator allows you to iterate over values without storing the entire result in memory.
+A Generator allows you to iterate over values without storing the full result in memory.
 
 ```
 function getNumbers(): Generator
@@ -885,7 +885,7 @@ Generators are useful when processing large datasets because values are produced
 
 - `return` ends a function and returns one final value.
     
-- `yield` produces a value from a Generator and suspends execution until the next value is requested.
+- `yield` produces a value from a Generator and stop execution until the next value is requested.
     
 
 A Generator can produce many values without creating a complete array in memory.
