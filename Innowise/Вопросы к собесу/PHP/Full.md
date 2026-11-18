@@ -374,6 +374,7 @@ echo $users[1]['name']; // Anna
 - You access nested values using a chain of keys or indexes.
     
 - It is useful for storing collections of structured records.
+
 ### **How are PHP arrays implemented?**
 
 PHP arrays are ordered maps. They can use both integer and string keys and preserve insertion order.
