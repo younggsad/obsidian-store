@@ -1,0 +1,334 @@
+---
+custom-width: 80
+---
+---
+# Легенда проектов / Project Legends
+
+> [!warning] Важно 
+> Состав команды, спринты, нагрузка и AWS-детали додуманы для реалистичности. Это не факты из интервью. Проверь и поправь под то, что можешь защитить, особенно цифры. Если с AWS руками не работал, говори «участвовал в настройке деплоя».
+
+## Содержание
+
+- [[#Legend 1 DrupalJira]]
+- [[#Legend 2 Live Voting App]]
+- [[#Вопросы интервьюеру]]
+- [[#Советы по подаче]]
+
+---
+
+# Legend 1 DrupalJira
+
+## Context / Контекст
+
+**RU:** DrupalJira это внутренняя система управления проектами и задачами на Drupal 11 и PHP 8.4. Бизнес-проблема: команды вели задачи в таблицах и мессенджерах, не было прозрачности по статусам, спринтам и трудозатратам. Нужен был инструмент уровня Jira, но под наши процессы, без лицензионных расходов и с возможностью быстро дописывать кастомную логику.
+
+**EN:** DrupalJira is an internal project and issue tracking system built on Drupal 11 and PHP 8.4. The business problem: teams tracked tasks in spreadsheets and chats, so there was no visibility into statuses, sprints and time spent. We needed a Jira-like tool tailored to our processes, without license costs, and easy to extend with custom logic.
+
+## Responsibilities
+
+> [!question] What were your responsibilities on this project?
+> 
+> **RU:** Я был backend-ориентированным full-stack разработчиком на Drupal. Отвечал за кастомные модули: Kanban-доска, смена статусов задач, модальные окна и управление спринтами. Спроектировал сущность `time_log` (custom content entity со своими формами, access control и list builder). Реализовал жизненный цикл задачи на Workflows и Content Moderation и сервис статистики по проектам. Кроме кода, участвовал в ревью, настройке качества кода (PHPCS, PHPStan, GrumPHP) и писал Playwright-тесты.
+> 
+> **EN:** I was a backend-oriented full-stack Drupal developer. I owned the custom modules for the Kanban board, task status changes, modal views and sprint management. I designed the `time_log` custom content entity with its own forms, access control and list builder. I implemented the task lifecycle with Workflows and Content Moderation, and the project statistics service. Besides coding, I took part in code reviews, set up code quality tooling (PHPCS, PHPStan, GrumPHP) and wrote Playwright tests.
+
+## Features and way of working
+
+> [!question] What features did you build and how did you act on the project?
+> 
+> **RU:** Основные фичи:
+> 
+> - Kanban-доска: карточки переносятся между колонками, допустимые переходы определяет сервер.
+> - Спринты: создание, наполнение задачами, закрытие с переносом незавершённых задач в бэклог.
+> - Учёт времени через `time_log`.
+> - Статистика по проекту: задачи по статусам, затраченные часы, скорость команды.
+> - Импорт старых задач из CSV через Migrate API.
+> - Вложения через Media Library и Paragraphs.
+> 
+> Работал так: брал задачу, уточнял критерии приёмки у аналитика, коротко описывал подход в тикете. Если решение влияло на архитектуру (новая сущность или сервис), обсуждал с тимлидом до кода. Делал небольшие PR, чтобы ревью было быстрым, и добавлял тесты вместе с фичей.
+> 
+> **EN:** Main features:
+> 
+> - A Kanban board where cards move between columns and the server decides which transitions are allowed.
+> - Sprints: creating them, filling them with tasks, closing them and moving unfinished tasks back to the backlog.
+> - Time tracking through `time_log`.
+> - Project statistics: tasks per status, hours spent, team velocity.
+> - Import of legacy tasks from CSV via the Migrate API.
+> - Attachments through Media Library and Paragraphs.
+> 
+> My way of working: I took a ticket, clarified acceptance criteria with the analyst, and briefly described my approach in the ticket. If a decision affected the architecture (a new entity or service), I discussed it with the tech lead before coding. I kept PRs small so reviews were fast, and shipped tests together with the feature.
+
+## Gamechanger feature
+
+> [!question] Gamechanger feature that you created
+> 
+> **RU:** Kanban-доска, которая ощущается как SPA, но построена на стандартных инструментах Drupal. Карточка переносится, уходит AJAX-запрос, сервер проверяет через Workflows и Content Moderation, разрешён ли переход, и обновляется только нужный кусок страницы. Для бизнеса это дало две вещи: люди реально начали вести задачи в системе, потому что она быстрая, и нельзя перевести задачу в «Done», минуя ревью, потому что правило живёт на сервере, а не в интерфейсе. Вторая сильная фича: статистика по времени, менеджеры впервые увидели реальные трудозатраты по проектам.
+> 
+> **EN:** The Kanban board that feels like a SPA but is built with standard Drupal tools. A card is dropped, an AJAX request goes out, the server checks through Workflows and Content Moderation whether the transition is allowed, and only the necessary part of the page is refreshed. For the business this meant two things: people actually started using the system because it is fast, and nobody can move a task to "Done" bypassing review, because the rule lives on the server, not in the UI. The second strong feature is time statistics: managers saw real effort per project for the first time.
+
+## Uniqueness
+
+> [!question] What would change if you were not on the team? What is your uniqueness as a developer?
+> 
+> **RU:** Проект бы не развалился, но, скорее всего, было бы больше логики в формах и JavaScript, меньше сервисов и тестов, а Kanban обновлялся бы полной перезагрузкой. Моя особенность: я совмещаю глубокое знание Drupal API (Entity, Plugin, Queue, Batch, Access) с хорошей фронтенд-базой на TypeScript и React. Поэтому могу довести фичу от схемы БД до UX. Плюс активно использую AI-ассистентов (Claude Code, Codex), но всё проверяю тестами и статическим анализом: это ускоряет без потери качества.
+> 
+> **EN:** The project would not have collapsed, but there would probably be more logic in forms and JavaScript, fewer services and tests, and the Kanban board would refresh with a full page reload. My uniqueness is that I combine deep Drupal API knowledge (Entity, Plugin, Queue, Batch, Access) with a solid frontend background in TypeScript and React. So I can take a feature from the database schema to the UX. I also actively use AI assistants (Claude Code, Codex) while verifying results with tests and static analysis, which speeds me up without losing quality.
+
+## Initiative
+
+> [!question] Как проявлял активность, когда тимлид отсутствовал? / Initiative when the tech lead was absent
+> 
+> **RU:** Когда тимлид был в отпуске, я взял часть его задач. Провёл daily и планирование спринта, разобрал очередь code review, чтобы PR не простаивали. Обсудил с продакт-оунером приоритеты: часть пожеланий не влезала в спринт, я объяснил, что можно сделать сейчас, что перенести и почему. Когда прилетел срочный баг на проде, я координировал сам: воспроизвёл, подготовил хотфикс, согласовал релиз с QA и сообщил бизнесу, что и когда будет исправлено. После возвращения тимлида написал короткий отчёт о принятых решениях.
+> 
+> **EN:** When the tech lead was on vacation, I took over part of their duties. I ran the daily and sprint planning and cleared the code review queue so PRs would not stall. I discussed priorities with the product owner: some requests did not fit the sprint, so I explained what could be done now, what to postpone, and why. When an urgent production bug appeared, I coordinated it myself: reproduced it, prepared a hotfix, agreed the release with QA and told the business what would be fixed and when. After the lead came back, I wrote a short summary of the decisions made.
+
+## Deployment
+
+> [!question] How did you deploy this application (AWS)?
+> 
+> **RU:** Локально: DDEV (Docker). В CI на GitHub Actions на каждый PR шли PHPCS, PHPStan, PHPUnit и Playwright. Деплой в AWS:
+> 
+> - Docker-образ: Nginx + PHP-FPM.
+> - CI собирает образ, публикует в ECR, запуск в ECS (Fargate) или на EC2 за Application Load Balancer.
+> - MariaDB в RDS, Redis в ElastiCache.
+> - Файлы и медиа в S3 (модуль `s3fs`), раздача через CloudFront.
+> - Конфигурация Drupal в Git (config sync). Релиз: `drush deploy` (updatedb, config:import, cache:rebuild).
+> - Секреты в AWS Secrets Manager.
+> - Staging автоматически, прод по ручному подтверждению.
+> 
+> **EN:** Locally: DDEV (Docker). In GitHub Actions every PR ran PHPCS, PHPStan, PHPUnit and Playwright. AWS deployment:
+> 
+> - Docker image: Nginx + PHP-FPM.
+> - CI builds the image, pushes to ECR, runs on ECS (Fargate) or EC2 behind an Application Load Balancer.
+> - MariaDB on RDS, Redis on ElastiCache.
+> - Files and media on S3 (`s3fs` module), served through CloudFront.
+> - Drupal configuration in Git (config sync). Release runs `drush deploy` (updatedb, config:import, cache:rebuild).
+> - Secrets in AWS Secrets Manager.
+> - Automatic release to staging, manual approval for production.
+
+## Most interesting task
+
+> [!question] The most interesting task
+> 
+> **RU:** Обновление частей страницы через AJAX на Kanban-доске. При смене статуса или открытии модального окна должен обновляться только нужный блок. Я использовал Drupal AJAX и Drupal behaviors, чтобы после каждого обновления JavaScript корректно навешивался на новый DOM. Бизнес-логику оставил на сервере.
+> 
+> **EN:** Updating page parts through AJAX on the Kanban board. When a status changed or a modal opened, only the needed block had to refresh. I used Drupal AJAX and Drupal behaviors so JavaScript attaches correctly to the new DOM after every update. I kept the business logic on the server.
+
+> [!question] Why not React for the board? / Почему не React для доски?
+> 
+> **RU:** Хотели остаться в рамках стандартного Drupal: проще поддерживать, кэш, права доступа и серверный рендер работают из коробки, не нужен отдельный API.
+> 
+> **EN:** We wanted to stay within standard Drupal: easier to maintain, server-side cache, access control and rendering work out of the box, and no separate API is needed.
+
+> [!question] What if two users move the same card? / Что если два пользователя двигают одну карточку?
+> 
+> **RU:** Сервер проверяет текущий статус перед переходом, второй запрос получает ошибку и обновлённое состояние.
+> 
+> **EN:** The server checks the current state before the transition, so the second request gets an error plus the updated state.
+
+## Most interesting bug
+
+> [!question] The most interesting bug
+> 
+> **RU:** После нескольких перемещений карточек один клик начинал срабатывать дважды, потом трижды: приходили дублирующиеся запросы на смену статуса. Причина: behavior вызывается после каждого AJAX-ответа, и обработчики навешивались повторно на те же элементы. Нашёл через вкладку Network (число запросов росло) и отладку behaviors. Исправил через `once()` из Drupal core, чтобы обработчик навешивался один раз, и добавил `detach` для очистки. Написал Playwright-тест: перенести несколько карточек подряд и проверить, что на каждое действие уходит ровно один запрос. Урок: в Drupal любой JS должен быть идемпотентным.
+> 
+> **EN:** After several card moves, a single click started firing twice, then three times: duplicate status change requests were sent. The cause: a behavior runs after every AJAX response, so handlers were attached repeatedly to the same elements. I found it through the Network tab (the request count kept growing) and by debugging behaviors. I fixed it with `once()` from Drupal core so a handler attaches only once per element, and added `detach` for cleanup. Then I wrote a Playwright test: move several cards in a row and assert exactly one request per action. Lesson: in Drupal, any JavaScript must be idempotent.
+
+## High load and fault tolerance
+
+> [!question] Как бороться с высокой нагрузкой и сделать приложение отказоустойчивым? / High load and fault tolerance
+> 
+> **RU:** Нагрузка была умеренная (сотни активных пользователей), но часть мер мы применяли:
+> 
+> - **Кэширование:** render cache с cache tags и contexts, Dynamic Page Cache, Redis. Статистика кэшируется и инвалидируется только при изменении задач проекта.
+> - **Тяжёлые операции** (пересчёт статистики, импорт) через Queue API и Batch API, чтобы не держать HTTP-запрос.
+> - **Горизонтальное масштабирование:** stateless-контейнеры за балансировщиком, сессии и кэш в Redis, файлы в S3.
+> - **БД:** индексы, реплика на чтение при необходимости, slow query log.
+> - **Отказоустойчивость:** минимум два экземпляра в разных зонах доступности, Multi-AZ для RDS, health checks, автоперезапуск контейнеров, бэкапы с проверкой восстановления, логи и алерты.
+> - **Деградация:** при сбое внешней зависимости (почта) операция уходит в очередь и повторяется, пользователь не видит ошибку.
+> 
+> **EN:** Our load was moderate (hundreds of active users), but we applied some of these measures:
+> 
+> - **Caching:** render cache with cache tags and contexts, Dynamic Page Cache, Redis. Statistics are cached and invalidated only when the project's tasks change.
+> - **Heavy operations** (recalculating statistics, imports) via Queue API and Batch API, so no HTTP request is blocked.
+> - **Horizontal scaling:** stateless containers behind a load balancer, sessions and cache in Redis, files in S3.
+> - **Database:** indexes, a read replica if needed, slow query log.
+> - **Fault tolerance:** at least two instances in different availability zones, Multi-AZ RDS, health checks, automatic container restarts, backups with restore tests, logs and alerts.
+> - **Graceful degradation:** if an external dependency (email) fails, the operation goes into a queue and is retried instead of showing an error.
+
+## Database
+
+> [!question] Нормализация, денормализация, N+1, индексы / Normalization, denormalization, N+1, indexes
+> 
+> **RU:**
+> 
+> - _Нормализация._ `time_log` это отдельная сущность с entity reference на задачу и пользователя, а не массив внутри задачи. Одна задача имеет много записей времени, по ним удобно строить отчёты.
+> - _Денормализация._ `SUM(minutes)` по всем `time_log` на каждый показ карточки дорог. Поэтому на задаче хранится агрегированное поле «потрачено минут», его обновляет сервис при сохранении или удалении `time_log`. Компромисс: данные могут разойтись, поэтому добавил drush-команду пересчёта и тест на согласованность.
+> - _N+1._ Доска рендерила 50 карточек, и исполнитель, статус и вложения грузились отдельно для каждой: сотни запросов. Нашёл через Webprofiler/Devel (счётчик запросов). Исправил: EntityQuery получает ID, затем `loadMultiple()` грузит сущности пакетом; связанные сущности (пользователи) тоже пакетом заранее; для списков Views с relationships вместо циклов; результат кэшируется с cache tags. Запросов стало десятки вместо сотен (подставь свои цифры, если замерял).
+> - _Индексы._ Основные запросы: задачи проекта по статусу, записи времени по задаче и пользователю за период. Составные индексы, например `(task_id, logged_at)`, в схеме кастомной сущности, планы проверял через `EXPLAIN`. Правило: индекс под реальный запрос, не «на всякий случай», каждый индекс замедляет запись.
+> 
+> **EN:**
+> 
+> - _Normalization._ `time_log` is a separate entity with entity references to the task and the user, not an array inside the task. One task has many time records, and reporting is easy.
+> - _Denormalization._ Computing `SUM(minutes)` over all `time_log` records on every card render is expensive. So the task stores an aggregated "minutes spent" field, updated by a service when a `time_log` is saved or deleted. Trade-off: data can drift, so I added a drush recalculation command and a consistency test.
+> - _N+1._ The board rendered 50 cards, and the assignee, status and attachments were loaded separately for each: hundreds of queries. Found with Webprofiler/Devel (query counter). Fix: EntityQuery gets the IDs, then `loadMultiple()` loads entities in one batch; related entities (users) preloaded in bulk; Views with relationships instead of loops; result cached with cache tags. Queries dropped from hundreds to dozens (use your own numbers if measured).
+> - _Indexes._ Main queries: tasks of a project by status, time records by task and by user for a period. Composite indexes like `(task_id, logged_at)` in the custom entity schema, query plans checked with `EXPLAIN`. Rule: an index for a real query, not "just in case", because every index slows down writes.
+
+## Layers
+
+> [!question] Про слои в приложении, как они работают / Application layers
+> 
+> **RU:**
+> 
+> 1. **Presentation:** маршруты, контроллеры, формы, Twig, behaviors. Без бизнес-логики, только приём запроса и отрисовка.
+> 2. **Application/Service:** сервисы с DI (смена статуса задачи, статистика). Вся бизнес-логика здесь, легко покрывается юнит-тестами.
+> 3. **Domain:** сущности (task, sprint, time_log), Workflows и Content Moderation, правила переходов.
+> 4. **Data access:** entity storage, EntityQuery, миграции. Контроллеры не пишут SQL напрямую.
+> 5. **Cross-cutting:** access handlers, event subscribers, кэш, логирование.
+> 
+> Польза: контроллер можно заменить (например, добавить JSON:API эндпоинт), сервис остаётся. Тесты разделены: unit для сервисов, kernel для сущностей, Playwright для сценариев.
+> 
+> **EN:**
+> 
+> 6. **Presentation:** routes, controllers, forms, Twig, behaviors. No business logic, just receiving the request and rendering.
+> 7. **Application/Service:** dependency-injected services (task status change, statistics). All business logic lives here and is easy to unit test.
+> 8. **Domain:** entities (task, sprint, time_log), Workflows and Content Moderation, transition rules.
+> 9. **Data access:** entity storage, EntityQuery, migrations. Controllers never write SQL directly.
+> 10. **Cross-cutting:** access handlers, event subscribers, caching, logging.
+> 
+> Benefit: a controller can be replaced (say, adding a JSON:API endpoint) while the service stays. Tests are split: unit for services, kernel for entities, Playwright for user scenarios.
+
+## Team
+
+> [!question] Опиши команду на проекте, как работали, связи и взаимодействие / Describe the team
+> 
+> **RU:** Команда около шести человек: тимлид (он же архитектор), два Drupal-бэкенд разработчика (я и коллега), фронтенд/theming разработчик, QA-инженер и аналитик/продакт-оунер. Scrum, двухнедельные спринты: планирование, daily, демо, ретроспектива. Задачи вели в самой DrupalJira (dogfooding), для внешних заказчиков в Jira/Trello. Процесс: аналитик пишет требования, тимлид помогает с оценкой и архитектурой, разработчик берёт задачу в ветку, открывает PR, проходит CI и ревью минимум одного коллеги, QA тестирует на staging, затем релиз. С фронтендером заранее договаривались о контракте: какие данные отдаёт сервер и какие render-массивы/шаблоны использует тема. С QA обсуждали сценарии заранее, на критичные я добавлял автотесты.
+> 
+> **EN:** A team of about six: a tech lead (also the architect), two Drupal backend developers (me and a colleague), a frontend/theming developer, a QA engineer, and an analyst/product owner. Scrum with two-week sprints: planning, daily stand-up, demo, retrospective. Tasks were tracked in DrupalJira itself (dogfooding), and in Jira/Trello for external customers. Flow: the analyst writes requirements, the lead helps with estimation and architecture, a developer takes a ticket into a branch, opens a PR, passes CI and a review by at least one colleague, QA tests on staging, then release. With the frontend developer we agreed on a contract in advance: what data the server provides and which render arrays/templates the theme uses. With QA we discussed scenarios upfront, and I added automated tests for the critical ones.
+
+---
+
+# Legend 2 Live Voting App
+
+## Context / Контекст
+
+**RU:** Live Voting App это приложение для опросов с результатами в реальном времени. Идея: быстро провести голосование на встрече, лекции или в команде, без регистрации, и сразу видеть результат на экране. Монорепозиторий: React 19 + TypeScript + Vite на фронтенде, Express.js + PostgreSQL (Prisma) на бэкенде.
+
+**EN:** Live Voting App is a polling application with real-time results. The idea: quickly run a vote at a meeting, lecture or in a team, without registration, and see results on screen immediately. A monorepo: React 19 + TypeScript + Vite on the frontend, Express.js + PostgreSQL (Prisma) on the backend.
+
+## Responsibilities, features, way of working
+
+> [!question] Responsibilities, features and how you acted
+> 
+> **RU:** Я был единственным (или основным) разработчиком, поэтому отвечал за всё: архитектуру, API, фронтенд, тесты, CI и деплой. Фичи: создание опросов, одиночный и множественный выбор, анонимное голосование, срок действия, результаты в реальном времени, управление своими опросами. Начинал с модели данных и контрактов API (схемы Zod, общие для валидации), затем делал вертикальные срезы: от эндпоинта до UI и тестов. Так фича всегда работала end-to-end.
+> 
+> **EN:** I was the sole (or main) developer, so I was responsible for everything: architecture, API, frontend, tests, CI and deployment. Features: poll creation, single and multiple choice, anonymous voting, poll expiration, real-time results, management of one's own polls. I started with the data model and API contracts (Zod schemas used for validation), then built vertical slices: from the endpoint to the UI and tests. This way every feature was working end to end.
+
+## Gamechanger and uniqueness
+
+> [!question] Gamechanger feature
+> 
+> **RU:** Результаты в реальном времени. Организатор показывает экран, участники голосуют с телефонов, столбцы растут мгновенно. Опрос становится «живым» событием, это отличает продукт от обычных форм. Сервер пушит обновления клиентам через WebSocket/SSE, API не нагружается постоянным опросом.
+> 
+> **EN:** Real-time results. The organizer shows the screen, participants vote from their phones, and the bars grow instantly. A poll becomes a live event, which distinguishes the product from ordinary forms. The server pushes updates to clients via WebSocket/SSE, so the API is not loaded by constant polling.
+
+> [!question] What is your uniqueness as a developer?
+> 
+> **RU:** Я думаю о безопасности и честности данных, а не только о том, чтобы «работало»: защита от дублей, rate limiting, secure cookies, Helmet, единая валидация. И покрываю всё тестами (Vitest, RTL, MSW, Supertest), поэтому проект легко менять без страха сломать.
+> 
+> **EN:** I think about security and data integrity, not just "making it work": duplicate vote protection, rate limiting, secure cookies, Helmet, unified validation. And I cover everything with tests (Vitest, RTL, MSW, Supertest), so the project is easy to change without fear of breaking something.
+
+## Most interesting task: duplicate-vote protection
+
+> [!question] The most interesting task
+> 
+> **RU:** Нужно было сохранить анонимность и не дать проголосовать дважды. Решение многоуровневое: токен сессии в cookie (уникальное ограничение в БД на пару «опрос + сессия»), проверка IP на сервере, rate limiting на API. Клиент и API на разных origin, поэтому настроил CORS с credentials и cookie с `HttpOnly`, `Secure`, `SameSite`. Честно про ограничения: пользователь может очистить cookie или сменить сеть, поэтому защита снижает злоупотребления, но не даёт абсолютной гарантии. Для строгих голосований нужна аутентификация.
+> 
+> **EN:** We needed to keep voting anonymous while preventing double votes. The solution is layered: a session token in a cookie (a database unique constraint on the "poll + session" pair), a server-side IP check and API rate limiting. The client and API run on different origins, so I configured CORS with credentials and cookies with `HttpOnly`, `Secure` and `SameSite`. Honest limits: a user can clear cookies or switch networks, so the protection reduces abuse but is not an absolute guarantee. Strict voting would require authentication.
+
+## Bug: race condition on votes
+
+> [!question] The most interesting bug
+> 
+> **RU:** При нагрузочном тесте два одновременных запроса от одной сессии иногда оба проходили проверку «ещё не голосовал» и записывались дважды. Проверка в коде от гонки не защищает. Я перенёс гарантию в БД: уникальный индекс `(poll_id, session_id)` и обработка нарушения уникальности как «уже проголосовал». Подсчёт голосов делал в транзакции. Урок: инварианты должны обеспечиваться базой, а не только приложением.
+> 
+> **EN:** In a load test, two simultaneous requests from the same session sometimes both passed the "has not voted yet" check and were stored twice. A code-level check does not protect against a race. I moved the guarantee into the database: a unique index on `(poll_id, session_id)` and handling the uniqueness violation as "already voted". Vote counting happens in a transaction. Lesson: invariants must be enforced by the database, not only by the application.
+
+## High load and fault tolerance
+
+> [!question] Как бороться с высокой нагрузкой? / High load and fault tolerance
+> 
+> **RU:** Главный риск: много одновременных подключений к live-результатам и всплески голосов. Меры: агрегированные счётчики вместо `COUNT(*)` на каждое обновление; пуш пакетами с небольшим интервалом (throttling), а не событие на каждый голос; индексы по `poll_id`; пул соединений к PostgreSQL; rate limiting. Для нескольких инстансов Node нужен общий брокер (Redis pub/sub), чтобы событие дошло до клиентов на других инстансах. Отказоустойчивость: health checks, перезапуск контейнеров, логирование и мониторинг ошибок, бэкапы БД, клиент с автопереподключением.
+> 
+> **EN:** The main risk: many simultaneous connections to live results and bursts of votes. Measures: aggregated counters instead of `COUNT(*)` on every update; pushing updates in batches with a small interval (throttling) rather than an event per vote; indexes on `poll_id`; a PostgreSQL connection pool; rate limiting. To scale to multiple Node instances you need a shared broker (Redis pub/sub) so events reach clients on other instances. Fault tolerance: health checks, container restarts, logging and error monitoring, database backups, and a client with automatic reconnection.
+
+## Database
+
+> [!question] Normalization, denormalization, N+1, indexes
+> 
+> **RU:** Схема нормализована: `Poll` → `Option` → `Vote` (уникальность по сессии). _Денормализация:_ счётчик голосов хранится на варианте ответа и обновляется в той же транзакции, что и запись голоса, чтобы не считать агрегат на каждый запрос результатов. _N+1:_ типичная ловушка Prisma это цикл по опросам с отдельным запросом вариантов; использовал `include`/`select` для загрузки связей одним запросом и следил за логами запросов. _Индексы:_ по `poll_id` в `Option` и `Vote`, уникальный составной индекс на голос, индекс по `expires_at` для выборки активных опросов.
+> 
+> **EN:** The schema is normalized: `Poll` → `Option` → `Vote` (unique per session). _Denormalization:_ a vote counter is stored on the option and updated in the same transaction as the vote insert, so the results request does not compute an aggregate each time. _N+1:_ a typical Prisma trap is looping over polls and querying options separately; I used `include`/`select` to load relations in one query and watched Prisma query logs. _Indexes:_ on `poll_id` in `Option` and `Vote`, a unique composite index for votes, and an index on `expires_at` for selecting active polls.
+
+## Layers
+
+> [!question] Application layers
+> 
+> **RU:** Express: routes (маршруты и middleware) → controllers (разбор запроса, ответ) → services (бизнес-логика: правила голосования, сроки) → data access (Prisma) → общие слои (валидация Zod, единый обработчик ошибок, логирование, middleware безопасности). Фронтенд: роутинг (TanStack Router), слой данных (TanStack Query и API-клиент), UI-компоненты.
+> 
+> **EN:** Express: routes (routing and middleware) → controllers (parsing the request, responding) → services (business logic: voting rules, expiration) → data access (Prisma) → shared layers (Zod validation, a unified error handler, logging, security middleware). Frontend: routing (TanStack Router), a data layer (TanStack Query and the API client), UI components.
+
+## Deployment
+
+> [!question] How did you deploy this application?
+> 
+> **RU:** Локально всё в Docker Compose (фронтенд, API, PostgreSQL). Для облака: образы собираются в GitHub Actions, API в контейнере (ECS или EC2), PostgreSQL в RDS, статика фронтенда в S3 + CloudFront, перед API балансировщик с health checks. Миграции Prisma выполняются при релизе отдельным шагом. В CI: ESLint, Prettier, Husky (pre-commit), юнит- и интеграционные тесты. В проде: логи, health check эндпоинт, мониторинг ошибок.
+> 
+> **EN:** Locally everything runs in Docker Compose (frontend, API, PostgreSQL). For the cloud: images are built in GitHub Actions, the API runs in a container (ECS or EC2), PostgreSQL on RDS, frontend static files on S3 + CloudFront, and the API sits behind a load balancer with health checks. Prisma migrations run as a separate release step. CI runs ESLint, Prettier, Husky (pre-commit), unit and integration tests. In production: logs, a health check endpoint and error monitoring.
+
+## Team
+
+> [!question] Опиши команду / Describe the team
+> 
+> **RU:** Если проект сольный: «Я работал самостоятельно, но выстраивал процесс как в команде: задачи в трекере, ветки и PR с проверками CI, тесты и документация, чтобы проект мог подхватить любой разработчик». Для командной версии добавь дизайнера (макеты в Figma) и QA, синхронизация на еженедельных демо.
+> 
+> **EN:** If the project is solo: "I worked independently but organized the process as a team would: tickets in a tracker, branches and PRs with CI checks, tests and documentation, so any developer could pick the project up." For a team version, add a designer (Figma mockups) and QA, with weekly demos for sync.
+
+---
+
+# Вопросы интервьюеру
+
+> [!question] Questions to ask at the end of the interview
+> 
+> **RU:**
+> 
+> 1. Какие главные бизнес-проблемы сейчас решает продукт и какие метрики важны?
+> 2. Какие задачи ждут меня в первые 3–6 месяцев?
+> 3. Какой стек и версии (PHP, фреймворк, БД)? Есть ли план обновления или миграции?
+> 4. Как устроен процесс: ревью, CI/CD, тестирование, релизы?
+> 5. Есть ли технический долг и как с ним работают? Какая зона самая болезненная?
+> 6. Как устроена команда и с кем я буду взаимодействовать чаще всего?
+> 7. Как проходит онбординг и как оцениваются результаты на испытательном сроке?
+> 8. Какие практики по мониторингу, инцидентам и on-call?
+> 9. Как вы относитесь к AI-инструментам в разработке?
+> 
+> **EN:**
+> 
+> 10. What are the main business problems the product solves right now, and which metrics matter most?
+> 11. What tasks await me in the first 3–6 months?
+> 12. What is the tech stack and versions (PHP, framework, database)? Is there a plan for upgrades or migrations?
+> 13. How is the process organized: reviews, CI/CD, testing, releases?
+> 14. Is there technical debt and how do you handle it? What is the most painful area?
+> 15. How is the team structured and who will I work with most often?
+> 16. What does onboarding look like and how are results evaluated during probation?
+> 17. What are your practices for monitoring, incidents and on-call?
+> 18. What is your attitude toward AI tools in development?
+
+---
+
+# Советы по подаче
+
+- Не заучивать дословно: **проблема → решение → результат → урок**.
+- На «а что если» отвечать через компромиссы: «можно так, но цена такая».
+- Не знаешь цифру: говори «порядка десятков запросов», «заметно быстрее по замерам», не выдумывай точные значения.
+- Про AWS, если руками не работал: «участвовал в настройке деплоя, знаю архитектуру».
