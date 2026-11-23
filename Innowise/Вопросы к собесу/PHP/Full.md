@@ -944,7 +944,7 @@ function getUserName(): string
 }
 ```
 
-Return types make function contracts clearer and help static analysis tools detect errors.
+	Return types make function contracts clearer and help static analysis tools detect errors.
 
 ### **What is a nullable return type?**
 
