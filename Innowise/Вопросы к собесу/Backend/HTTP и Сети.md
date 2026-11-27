@@ -1049,7 +1049,8 @@ This is a classic question. The answer has eight steps.
 7. Приложение обрабатывает запрос (middleware, контроллер, база данных или кэш) и формирует ответ.
     
 8. Браузер получает ответ, разбирает HTML, запрашивает CSS, JS и изображения (с учётом кэша), строит DOM и рисует страницу.
-    
+
+
 9. The browser parses the URL and checks HSTS and the cache.
     
 10. DNS translates the domain into an IP: first the browser cache, then the OS, then the resolver, then the DNS hierarchy.
