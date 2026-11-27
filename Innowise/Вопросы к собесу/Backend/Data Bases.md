@@ -60,8 +60,6 @@ tags: [databases, sql, interview]
 
 ## Basic concepts
 
-**RU:**
-
 - **Database** — организованное хранилище данных.
     
 - **DBMS (Database Management System)** — программное обеспечение для управления базами данных.
@@ -81,8 +79,6 @@ tags: [databases, sql, interview]
 - **Query** — запрос к базе данных.
     
 
-**EN:**
-
 A database is an organized collection of data. A DBMS (Database Management System) is software that allows applications to store, retrieve, update, and manage this data.
 
 A table stores information about a particular type of entity. A column represents an attribute, while a row represents one record.
@@ -93,23 +89,13 @@ A schema defines the structure of the database, including tables, columns, data 
 
 ## Database vs DBMS
 
-**RU:**
-
 База данных — это сами данные, а DBMS — программное обеспечение, которое ими управляет. Например, PostgreSQL является DBMS, а конкретная база данных внутри PostgreSQL содержит таблицы и записи приложения.
-
-**EN:**
 
 A database contains the actual data, while a DBMS is the software responsible for managing it. PostgreSQL is a DBMS, and a single PostgreSQL server can manage multiple databases.
 
 ## How an application communicates with a database
 
-**RU:**
-
 Приложение устанавливает соединение с сервером базы данных, отправляет SQL-запрос и получает результат. Соединения имеют определённую стоимость, поэтому приложения обычно используют connection pooling для повторного использования соединений.
-
-Стандартные порты: PostgreSQL — 5432, MySQL — 3306.
-
-**EN:**
 
 An application connects to a database server, sends SQL queries, and receives results. Establishing database connections has overhead, so production applications commonly use connection pooling to reuse existing connections.
 
@@ -136,15 +122,15 @@ WHERE id = 1;
 
 **Q: What is the difference between a database and a DBMS?**
 
-**RU:** База данных содержит информацию, а DBMS предоставляет инструменты для её хранения, изменения, поиска и защиты.
+База данных содержит информацию, а DBMS предоставляет инструменты для её хранения, изменения, поиска и защиты.
 
-**EN:** A database stores information, while a DBMS provides the functionality to store, retrieve, modify, and protect that information.
+A database stores information, while a DBMS provides the functionality to store, retrieve, modify, and protect that information.
 
 **Q: What is a primary key?**
 
-**RU:** Primary Key — это столбец или комбинация столбцов, которые уникально идентифицируют каждую запись. Значения не могут повторяться или быть NULL.
+Primary Key — это столбец или комбинация столбцов, которые уникально идентифицируют каждую запись. Значения не могут повторяться или быть NULL.
 
-**EN:** A primary key is a column or a combination of columns that uniquely identifies every row in a table. It must contain unique, non-NULL values. A table can have only one primary key constraint, although that key may consist of multiple columns.
+A primary key is a column or a combination of columns that uniquely identifies every row in a table. It must contain unique, non-NULL values. A table can have only one primary key constraint, although that key may consist of multiple columns.
 
 ---
 
@@ -152,31 +138,21 @@ WHERE id = 1;
 
 ## Main idea
 
-**RU:**
-
 Реляционные базы данных хранят информацию в таблицах и используют связи между ними. NoSQL — это группа нереляционных моделей хранения, которые подходят для определённых сценариев, например кэширования, поиска, распределённого хранения и аналитики.
-
-**EN:**
 
 Relational databases store information in tables and use relationships between them. NoSQL is a broad category of non-relational database systems designed for different use cases, such as caching, document storage, distributed data processing, and analytics.
 
 ## Relational databases
 
-**RU:**
-
 PostgreSQL и MySQL используют реляционную модель данных. Они поддерживают SQL, JOIN, ограничения целостности, внешние ключи и транзакции.
 
 Их обычно выбирают для бизнес-приложений, где важны согласованность данных и сложные связи: платежи, заказы, пользователи, CRM и интернет-магазины.
-
-**EN:**
 
 Relational databases such as PostgreSQL and MySQL organize data into tables with a predefined schema. They support SQL, JOIN operations, constraints, foreign keys, and transactions.
 
 They are commonly used in business applications where data integrity and relationships are important, such as payment systems, e-commerce platforms, and CRM applications.
 
 ## NoSQL database types
-
-**RU:**
 
 Основные категории NoSQL:
 
@@ -190,8 +166,6 @@ They are commonly used in business applications where data integrity and relatio
     
 - **Graph databases:** Neo4j. Хранение сложных связей между сущностями.
     
-
-**EN:**
 
 The main NoSQL database categories are:
 
@@ -208,16 +182,12 @@ The main NoSQL database categories are:
 
 ## OLTP vs OLAP
 
-**RU:**
-
 - **OLTP (Online Transaction Processing)** — большое количество небольших операций: создание заказов, платежи, обновление пользователей.
     
 - **OLAP (Online Analytical Processing)** — аналитические запросы, обработка больших объёмов данных и построение отчётов.
     
 
 Реляционные row-oriented базы часто используются для OLTP, а columnar-системы, например ClickHouse, хорошо подходят для OLAP.
-
-**EN:**
 
 OLTP systems handle many short transactions, such as creating orders, processing payments, and updating user information.
 
@@ -227,11 +197,7 @@ Row-oriented databases are commonly used for OLTP, while columnar databases such
 
 ## Polyglot persistence
 
-**RU:**
-
 Polyglot persistence означает использование нескольких типов хранилищ в одном приложении. Например, PostgreSQL хранит основные данные, Redis используется для кэширования, а Elasticsearch обеспечивает полнотекстовый поиск.
-
-**EN:**
 
 Polyglot persistence means using different database technologies within the same application. For example, PostgreSQL can store the primary business data, Redis can handle caching, and Elasticsearch can provide full-text search.
 
@@ -239,15 +205,15 @@ Polyglot persistence means using different database technologies within the same
 
 **Q: Why not store everything in MongoDB?**
 
-**RU:** Гибкая структура не всегда является преимуществом. Если приложению нужны сложные JOIN, транзакции, ограничения целостности и строгие связи между сущностями, реляционная база часто будет более подходящим решением.
+Гибкая структура не всегда является преимуществом. Если приложению нужны сложные JOIN, транзакции, ограничения целостности и строгие связи между сущностями, реляционная база часто будет более подходящим решением.
 
-**EN:** A flexible schema is not always an advantage. Applications that require complex joins, relational constraints, and strong transactional guarantees often benefit more from relational databases.
+A flexible schema is not always an advantage. Applications that require complex joins, relational constraints, and strong transactional guarantees often benefit more from relational databases.
 
 **Q: When would you use Redis instead of PostgreSQL?**
 
-**RU:** Redis подходит для временных данных, кэширования, сессий и счётчиков. PostgreSQL лучше использовать как основное хранилище бизнес-данных.
+Redis подходит для временных данных, кэширования, сессий и счётчиков. PostgreSQL лучше использовать как основное хранилище бизнес-данных.
 
-**EN:** I would use Redis for caching, sessions, counters, and temporary data. PostgreSQL would be my primary database for persistent business data that requires relational queries and strong integrity guarantees.
+I would use Redis for caching, sessions, counters, and temporary data. PostgreSQL would be my primary database for persistent business data that requires relational queries and strong integrity guarantees.
 
 ---
 
@@ -255,17 +221,11 @@ Polyglot persistence means using different database technologies within the same
 
 ## Main idea
 
-**RU:**
-
 SQL-команды традиционно разделяют на пять групп в зависимости от их назначения: управление структурой, изменение данных, чтение данных, управление разрешениями и управление транзакциями.
-
-**EN:**
 
 SQL commands are traditionally divided into five groups based on their purpose: defining database structures, manipulating data, querying data, controlling permissions, and managing transactions.
 
 ## DDL — Data Definition Language
-
-**RU:**
 
 DDL отвечает за создание и изменение структуры объектов базы данных.
 
@@ -280,21 +240,15 @@ DDL отвечает за создание и изменение структу�
 - TRUNCATE
     
 
-**EN:**
-
 DDL is used to define and modify database structures, such as tables, indexes, and schemas.
 
 Common commands include CREATE, ALTER, DROP, and TRUNCATE.
 
 ## DML — Data Manipulation Language
 
-**RU:**
-
 DML отвечает за изменение данных внутри таблиц.
 
 Команды: INSERT, UPDATE, DELETE, MERGE.
-
-**EN:**
 
 DML is used to insert, update, and delete records in database tables.
 
@@ -302,47 +256,31 @@ Common commands include INSERT, UPDATE, DELETE, and MERGE.
 
 ## DQL — Data Query Language
 
-**RU:**
-
 DQL отвечает за получение информации из базы данных. Основная команда — SELECT.
-
-**EN:**
 
 DQL is used to retrieve information from database tables. The main command is SELECT.
 
 ## DCL — Data Control Language
 
-**RU:**
-
 DCL управляет разрешениями пользователей и ролей.
 
 Команды: GRANT и REVOKE.
-
-**EN:**
 
 DCL manages database access permissions through commands such as GRANT and REVOKE.
 
 ## TCL — Transaction Control Language
 
-**RU:**
-
 TCL управляет транзакциями.
 
 Команды: BEGIN, COMMIT, ROLLBACK, SAVEPOINT.
-
-**EN:**
 
 TCL controls database transactions using commands such as BEGIN, COMMIT, ROLLBACK, and SAVEPOINT.
 
 ## Important difference: PostgreSQL vs MySQL
 
-**RU:**
-
 В PostgreSQL большинство DDL-операций можно выполнять внутри транзакций и откатывать через ROLLBACK.
 
 В MySQL многие DDL-команды вызывают implicit commit, поэтому их нельзя откатить обычным ROLLBACK.
-
-**EN:**
 
 PostgreSQL supports transactional DDL for most common schema operations, which means that many DDL changes can be rolled back.
 
@@ -352,15 +290,15 @@ MySQL performs implicit commits for many DDL statements, so those operations gen
 
 **Q: Which SQL group does TRUNCATE belong to?**
 
-**RU:** Традиционно TRUNCATE относится к DDL, потому что удаляет данные на уровне структуры таблицы, а не отдельными строками.
+Традиционно TRUNCATE относится к DDL, потому что удаляет данные на уровне структуры таблицы, а не отдельными строками.
 
-**EN:** TRUNCATE is traditionally classified as DDL because it removes all rows by operating on the table as a whole rather than deleting individual rows.
+TRUNCATE is traditionally classified as DDL because it removes all rows by operating on the table as a whole rather than deleting individual rows.
 
 **Q: What is the difference between GRANT and REVOKE?**
 
-**RU:** GRANT предоставляет права доступа, а REVOKE отзывает ранее предоставленные права.
+GRANT предоставляет права доступа, а REVOKE отзывает ранее предоставленные права.
 
-**EN:** GRANT assigns database privileges, while REVOKE removes previously granted privileges.
+GRANT assigns database privileges, while REVOKE removes previously granted privileges.
 
 ---
 
@@ -368,21 +306,13 @@ MySQL performs implicit commits for many DDL statements, so those operations gen
 
 ## Main idea
 
-**RU:**
-
 Базовые SQL-запросы строятся вокруг SELECT, FROM, WHERE, ORDER BY и LIMIT. Важно понимать разницу между фильтрацией строк, группировкой данных и фильтрацией агрегированных результатов.
-
-**EN:**
 
 Basic SQL queries are built around SELECT, FROM, WHERE, ORDER BY, and LIMIT. It is important to understand the difference between filtering individual rows, grouping records, and filtering aggregated results.
 
 ## SELECT and WHERE
 
-**RU:**
-
 SELECT определяет, какие столбцы необходимо вернуть. WHERE фильтрует строки по заданным условиям.
-
-**EN:**
 
 SELECT specifies which columns should be returned, while WHERE filters individual rows based on specified conditions.
 
@@ -408,11 +338,7 @@ WHERE salary > 3000;
 |LIKE|Pattern matching|
 |IS NULL|Check for NULL|
 
-**RU:**
-
 LIKE использует `%` для произвольного количества символов и `_` для одного символа.
-
-**EN:**
 
 LIKE uses `%` to match any number of characters and `_` to match exactly one character.
 
@@ -424,11 +350,7 @@ WHERE name LIKE 'A%';
 
 ## ORDER BY, LIMIT and DISTINCT
 
-**RU:**
-
 ORDER BY сортирует результат. LIMIT ограничивает количество возвращаемых строк. DISTINCT удаляет повторяющиеся комбинации выбранных столбцов.
-
-**EN:**
 
 ORDER BY sorts the result set. LIMIT restricts the number of returned rows, while DISTINCT removes duplicate combinations of selected columns.
 
@@ -441,15 +363,11 @@ LIMIT 10;
 
 ## NULL
 
-**RU:**
-
 NULL означает неизвестное или отсутствующее значение. NULL не равен нулю, пустой строке или FALSE.
 
 SQL использует трёхзначную логику: TRUE, FALSE и UNKNOWN.
 
 Поэтому NULL = NULL возвращает UNKNOWN, а не TRUE. Для проверки NULL нужно использовать IS NULL или IS NOT NULL.
-
-**EN:**
 
 NULL represents a missing or unknown value. It is not the same as zero, an empty string, or FALSE.
 
@@ -465,11 +383,7 @@ WHERE department_id IS NULL;
 
 ## COALESCE
 
-**RU:**
-
 COALESCE возвращает первое значение, которое не является NULL. Часто используется для установки значения по умолчанию.
-
-**EN:**
 
 COALESCE returns the first non-NULL expression from its arguments. It is commonly used to provide default values.
 
@@ -481,8 +395,6 @@ FROM employees;
 ```
 
 ## Aggregate functions
-
-**RU:**
 
 Агрегатные функции вычисляют одно значение на основе набора строк.
 
@@ -499,8 +411,6 @@ FROM employees;
 
 COUNT(*) считает все строки, а COUNT(column) игнорирует NULL в указанном столбце.
 
-**EN:**
-
 Aggregate functions calculate a single result from multiple rows.
 
 COUNT counts rows or non-NULL values, SUM calculates a total, AVG calculates an average, and MIN and MAX return the smallest and largest values.
@@ -509,13 +419,9 @@ COUNT(*) counts all rows, while COUNT(column) ignores NULL values in that column
 
 ## GROUP BY
 
-**RU:**
-
 GROUP BY объединяет строки с одинаковыми значениями указанных столбцов в группы. После этого агрегатные функции вычисляют результат для каждой группы.
 
 Каждый столбец в SELECT должен быть сгруппирован или использоваться внутри агрегатной функции, за исключением случаев, когда СУБД может доказать функциональную зависимость.
-
-**EN:**
 
 GROUP BY groups rows that have the same values in specified columns. Aggregate functions then calculate results for each group.
 
@@ -529,13 +435,9 @@ GROUP BY department;
 
 ## WHERE vs HAVING
 
-**RU:**
-
 WHERE фильтрует отдельные строки до группировки. HAVING фильтрует уже сформированные группы после GROUP BY.
 
 WHERE не может непосредственно использовать агрегатные функции для фильтрации строк, а HAVING может использовать COUNT, SUM и AVG.
-
-**EN:**
 
 WHERE filters individual rows before grouping and aggregation. HAVING filters groups after GROUP BY has been applied.
 
@@ -550,8 +452,6 @@ HAVING AVG(salary) > 5000;
 ```
 
 ## Logical execution order
-
-**RU:**
 
 Логический порядок обработки SQL-запроса отличается от порядка написания команд.
 
@@ -576,8 +476,6 @@ HAVING AVG(salary) > 5000;
 
 Поэтому алиас из SELECT обычно нельзя использовать в WHERE: на логическом этапе WHERE он ещё не сформирован.
 
-**EN:**
-
 The logical execution order of a SQL query differs from the order in which its clauses are written.
 
 The typical logical order is FROM, JOIN, WHERE, GROUP BY, HAVING, SELECT, DISTINCT, ORDER BY, and finally LIMIT/OFFSET.
@@ -586,13 +484,9 @@ This explains why a SELECT alias generally cannot be referenced in WHERE: the SE
 
 ## INSERT, UPDATE and DELETE
 
-**RU:**
-
 INSERT добавляет новые строки, UPDATE изменяет существующие, а DELETE удаляет записи.
 
 Перед массовым UPDATE или DELETE полезно выполнить SELECT с тем же условием, чтобы проверить затрагиваемые строки. Для важных операций желательно использовать транзакцию.
-
-**EN:**
 
 INSERT adds new rows, UPDATE modifies existing records, and DELETE removes rows.
 
@@ -600,13 +494,9 @@ Before performing a bulk UPDATE or DELETE, it is good practice to run a SELECT q
 
 ## UPSERT
 
-**RU:**
-
 UPSERT — это операция, которая вставляет запись, если её ещё нет, либо обновляет существующую запись при конфликте уникальности.
 
 В PostgreSQL используется INSERT ... ON CONFLICT.
-
-**EN:**
 
 UPSERT is an operation that inserts a new row or updates an existing row when a uniqueness conflict occurs.
 
@@ -624,23 +514,23 @@ SET logins_count = user_stats.logins_count + 1;
 
 **Q: What is the difference between WHERE and HAVING?**
 
-**EN:** WHERE filters individual rows before grouping, while HAVING filters groups after aggregation.
+WHERE filters individual rows before grouping, while HAVING filters groups after aggregation.
 
 **Q: What is the difference between COUNT(*) and COUNT(column)?**
 
-**EN:** COUNT(*) counts all rows, while COUNT(column) counts only rows where the specified column is not NULL.
+COUNT(*) counts all rows, while COUNT(column) counts only rows where the specified column is not NULL.
 
 **Q: Why does NULL = NULL not return TRUE?**
 
-**EN:** Because NULL represents an unknown value. Comparisons involving NULL generally return UNKNOWN, so we must use IS NULL or IS NOT NULL.
+Because NULL represents an unknown value. Comparisons involving NULL generally return UNKNOWN, so we must use IS NULL or IS NOT NULL.
 
 **Q: What does COALESCE do?**
 
-**EN:** COALESCE returns the first non-NULL value from a list of expressions.
+COALESCE returns the first non-NULL value from a list of expressions.
 
 **Q: Why can't we use a SELECT alias in WHERE?**
 
-**EN:** Because WHERE is logically evaluated before SELECT, so the alias is not available at that stage.
+Because WHERE is logically evaluated before SELECT, so the alias is not available at that stage.
 
 ---
 
@@ -648,21 +538,13 @@ SET logins_count = user_stats.logins_count + 1;
 
 ## Main idea
 
-**RU:**
-
 JOIN объединяет таблицы горизонтально, добавляя столбцы из связанных таблиц. UNION объединяет результаты запросов вертикально, добавляя строки.
-
-**EN:**
 
 JOIN combines tables horizontally by adding columns from related tables. UNION combines query results vertically by adding rows from multiple SELECT statements.
 
 ## INNER JOIN
 
-**RU:**
-
 INNER JOIN возвращает только строки, для которых найдено совпадение в обеих таблицах. Если совпадения нет, строка не попадает в результат.
-
-**EN:**
 
 INNER JOIN returns only rows that have matching records in both tables. Rows without a matching record are excluded from the result.
 
@@ -675,33 +557,21 @@ INNER JOIN orders o
 
 ## LEFT JOIN
 
-**RU:**
-
 LEFT JOIN возвращает все строки левой таблицы и совпадающие строки правой таблицы. Если совпадения нет, столбцы правой таблицы содержат NULL.
-
-**EN:**
 
 LEFT JOIN returns every row from the left table and matching rows from the right table. If there is no match, the columns from the right table contain NULL.
 
 ## RIGHT JOIN
 
-**RU:**
-
 RIGHT JOIN работает аналогично LEFT JOIN, но сохраняет все строки правой таблицы. На практике часто переписывается через LEFT JOIN для читаемости.
-
-**EN:**
 
 RIGHT JOIN returns all rows from the right table and matching rows from the left table. In practice, it can often be rewritten using LEFT JOIN for readability.
 
 ## FULL OUTER JOIN
 
-**RU:**
-
 FULL OUTER JOIN возвращает все строки обеих таблиц. Если совпадения нет, недостающие столбцы заполняются NULL.
 
 В PostgreSQL поддерживается напрямую. В MySQL нет встроенного FULL OUTER JOIN.
-
-**EN:**
 
 FULL OUTER JOIN returns all rows from both tables, including unmatched records. Missing values from the other table are represented by NULL.
 
@@ -709,21 +579,13 @@ PostgreSQL supports FULL OUTER JOIN directly, while MySQL requires an alternativ
 
 ## CROSS JOIN
 
-**RU:**
-
 CROSS JOIN возвращает декартово произведение двух таблиц. Если первая таблица содержит N строк, а вторая M строк, результат содержит N × M строк.
-
-**EN:**
 
 CROSS JOIN produces the Cartesian product of two tables. If the first table contains N rows and the second contains M rows, the result contains N × M rows.
 
 ## SELF JOIN
 
-**RU:**
-
 SELF JOIN — соединение таблицы с самой собой. Используется, например, для получения сотрудника и его руководителя из одной таблицы.
-
-**EN:**
 
 A SELF JOIN joins a table with itself. It is commonly used to retrieve hierarchical relationships, such as employees and their managers.
 
@@ -738,11 +600,7 @@ LEFT JOIN employees m
 
 ## Anti-join
 
-**RU:**
-
 Anti-join — техника поиска записей, у которых отсутствует связанная запись. Обычно реализуется через LEFT JOIN с проверкой IS NULL или через NOT EXISTS.
-
-**EN:**
 
 An anti-join is a technique for finding rows that do not have matching records in another table. It is commonly implemented using LEFT JOIN with IS NULL or NOT EXISTS.
 
@@ -758,13 +616,9 @@ WHERE NOT EXISTS (
 
 ## LEFT JOIN trap
 
-**RU:**
-
 Если поместить условие на правую таблицу в WHERE, можно случайно превратить LEFT JOIN в INNER JOIN. Строки без совпадений будут исключены, потому что условие на NULL не даст TRUE.
 
 Если нужно сохранить все строки левой таблицы, условие на правую таблицу часто следует помещать в ON.
-
-**EN:**
 
 Placing a condition on the right-hand table in the WHERE clause can unintentionally turn a LEFT JOIN into an INNER JOIN. Unmatched rows are removed because comparisons with NULL do not evaluate to TRUE.
 
@@ -788,15 +642,11 @@ LEFT JOIN orders o
 
 ## UNION vs UNION ALL
 
-**RU:**
-
 Обе команды объединяют результаты нескольких SELECT-запросов. Количество столбцов должно совпадать, а соответствующие типы данных должны быть совместимы.
 
 UNION удаляет дубликаты. Для этого СУБД выполняет дополнительную обработку, например сортировку или hashing.
 
 UNION ALL сохраняет все строки, включая дубликаты, поэтому обычно работает быстрее.
-
-**EN:**
 
 Both UNION and UNION ALL combine the results of multiple SELECT statements. The queries must return the same number of columns with compatible data types.
 
@@ -805,8 +655,6 @@ UNION removes duplicate rows, which requires additional processing such as sorti
 UNION ALL preserves all rows, including duplicates, and is generally faster because it does not perform duplicate elimination.
 
 ## Subqueries
-
-**RU:**
 
 Subquery — это запрос, вложенный внутрь другого SQL-запроса.
 
@@ -822,8 +670,6 @@ Subquery — это запрос, вложенный внутрь другого
     
 - Non-correlated subquery — не зависит от внешнего запроса.
     
-
-**EN:**
 
 A subquery is a query nested inside another SQL query.
 
@@ -856,15 +702,11 @@ WHERE e.salary > (
 
 ## EXISTS and IN
 
-**RU:**
-
 EXISTS проверяет, возвращает ли подзапрос хотя бы одну строку. Часто применяется для проверки наличия связанных записей.
 
 IN проверяет, входит ли значение в набор результатов.
 
 NOT IN может дать неожиданный результат, если подзапрос возвращает NULL. Для проверки отсутствия связанных записей часто безопаснее использовать NOT EXISTS.
-
-**EN:**
 
 EXISTS checks whether a subquery returns at least one row. It is commonly used to check whether related records exist.
 
@@ -876,19 +718,19 @@ NOT IN can produce unexpected results when the subquery contains NULL values. NO
 
 **Q: What is the difference between INNER JOIN and LEFT JOIN?**
 
-**EN:** INNER JOIN returns only matching rows from both tables, while LEFT JOIN preserves every row from the left table and returns NULL for unmatched right-hand records.
+INNER JOIN returns only matching rows from both tables, while LEFT JOIN preserves every row from the left table and returns NULL for unmatched right-hand records.
 
 **Q: What is the difference between UNION and UNION ALL?**
 
-**EN:** UNION removes duplicates, while UNION ALL preserves them. UNION ALL is generally faster because it does not need duplicate elimination.
+UNION removes duplicates, while UNION ALL preserves them. UNION ALL is generally faster because it does not need duplicate elimination.
 
 **Q: What is a correlated subquery?**
 
-**EN:** A correlated subquery references columns from the outer query and logically depends on the current outer row.
+A correlated subquery references columns from the outer query and logically depends on the current outer row.
 
 **Q: What is the difference between EXISTS and IN?**
 
-**EN:** EXISTS checks whether a subquery returns at least one row, while IN checks whether a value matches one of the values returned by a subquery.
+EXISTS checks whether a subquery returns at least one row, while IN checks whether a value matches one of the values returned by a subquery.
 
 ---
 
@@ -896,23 +738,15 @@ NOT IN can produce unexpected results when the subquery contains NULL values. NO
 
 ## Main idea
 
-**RU:**
-
 DELETE удаляет выбранные строки, TRUNCATE очищает всю таблицу, сохраняя её структуру, а DROP удаляет саму таблицу вместе с её структурой.
-
-**EN:**
 
 DELETE removes selected rows, TRUNCATE removes all rows while preserving the table structure, and DROP removes the entire table, including its structure.
 
 ## DELETE
 
-**RU:**
-
 DELETE удаляет строки с использованием WHERE или без него. PostgreSQL обрабатывает удаление через MVCC: строки становятся невидимыми для новых снимков данных, а физическая очистка происходит позднее через VACUUM.
 
 DELETE записывает изменения в WAL и поддерживает транзакционный откат.
-
-**EN:**
 
 DELETE removes rows using an optional WHERE condition. In PostgreSQL, deleted rows become invisible to new transaction snapshots because of MVCC. Their physical space is reclaimed later by VACUUM.
 
@@ -920,15 +754,11 @@ DELETE generates WAL records and can be rolled back before the transaction is co
 
 ## TRUNCATE
 
-**RU:**
-
 TRUNCATE быстро удаляет все строки таблицы без индивидуальной обработки каждой записи. Структура таблицы остаётся.
 
 В PostgreSQL TRUNCATE транзакционный и может быть отменён через ROLLBACK. Он не удаляет каждую строку по отдельности и не вызывает обычные row-level DELETE triggers. PostgreSQL поддерживает отдельные ON TRUNCATE triggers.
 
 В PostgreSQL для сброса identity используется RESTART IDENTITY.
-
-**EN:**
 
 TRUNCATE removes all rows from a table without processing every row individually. The table structure remains unchanged.
 
@@ -938,13 +768,9 @@ The RESTART IDENTITY option resets associated identity sequences.
 
 ## DROP
 
-**RU:**
-
 DROP TABLE удаляет таблицу вместе с данными, индексами, ограничениями и другими объектами, принадлежащими таблице.
 
 В PostgreSQL операцию можно откатить внутри транзакции. В MySQL DROP TABLE обычно вызывает implicit commit.
-
-**EN:**
 
 DROP TABLE removes the table itself, including its data, indexes, constraints, and associated table objects.
 
@@ -962,11 +788,7 @@ In PostgreSQL, it can be rolled back inside a transaction. In MySQL, DROP TABLE 
 |MySQL rollback|Usually yes|No|No|
 |Typical performance|Slower for full-table deletion|Usually faster|Removes object|
 
-**RU:**
-
 TRUNCATE обычно быстрее DELETE без WHERE, потому что не выполняет индивидуальное удаление каждой строки. Однако точная стоимость зависит от СУБД, блокировок, внешних ключей и размера таблицы.
-
-**EN:**
 
 TRUNCATE is generally faster than DELETE without WHERE because it avoids processing every row individually. However, the exact performance depends on the database engine, locks, foreign-key dependencies, and table size.
 
@@ -974,15 +796,15 @@ TRUNCATE is generally faster than DELETE without WHERE because it avoids process
 
 **Q: Why is TRUNCATE faster than DELETE?**
 
-**EN:** TRUNCATE operates on the table as a whole instead of deleting rows individually. This reduces the amount of row-level processing and logging.
+TRUNCATE operates on the table as a whole instead of deleting rows individually. This reduces the amount of row-level processing and logging.
 
 **Q: Can TRUNCATE be rolled back?**
 
-**EN:** In PostgreSQL, TRUNCATE is transactional and can be rolled back. In MySQL, TRUNCATE causes an implicit commit and cannot normally be rolled back.
+In PostgreSQL, TRUNCATE is transactional and can be rolled back. In MySQL, TRUNCATE causes an implicit commit and cannot normally be rolled back.
 
 **Q: Which command would you use to clear a table?**
 
-**EN:** If I need to remove all rows but keep the table structure, I would use TRUNCATE. If I need to remove only specific rows, I would use DELETE.
+If I need to remove all rows but keep the table structure, I would use TRUNCATE. If I need to remove only specific rows, I would use DELETE.
 
 ---
 
@@ -990,23 +812,15 @@ TRUNCATE is generally faster than DELETE without WHERE because it avoids process
 
 ## Constraints
 
-**RU:**
-
 Constraints — это правила целостности данных, которые проверяются самой базой данных. Они позволяют защитить данные независимо от того, какое приложение выполняет запрос.
-
-**EN:**
 
 Constraints are rules enforced by the database to maintain data integrity. They protect the data regardless of which application or service performs the operation.
 
 ## PRIMARY KEY
 
-**RU:**
-
 PRIMARY KEY уникально идентифицирует каждую запись. Он объединяет свойства UNIQUE и NOT NULL.
 
 На таблицу можно определить только один PRIMARY KEY constraint, но он может включать несколько столбцов.
-
-**EN:**
 
 A PRIMARY KEY uniquely identifies every row in a table. It combines uniqueness and non-NULL requirements.
 
@@ -1014,23 +828,15 @@ A table can have only one primary key constraint, but that key can consist of mu
 
 ## FOREIGN KEY
 
-**RU:**
-
 FOREIGN KEY обеспечивает ссылочную целостность между таблицами. Он гарантирует, что значение внешнего ключа соответствует существующей записи в связанной таблице, если значение не NULL и ограничение не отключено.
-
-**EN:**
 
 A FOREIGN KEY enforces referential integrity between tables. It ensures that a non-NULL foreign key value references an existing record in the related table.
 
 ## UNIQUE
 
-**RU:**
-
 UNIQUE запрещает повторение значений. В PostgreSQL обычный UNIQUE допускает несколько NULL, потому что NULL по умолчанию считается отличным от другого NULL при проверке уникальности.
 
 Для альтернативного поведения PostgreSQL поддерживает UNIQUE NULLS NOT DISTINCT.
-
-**EN:**
 
 UNIQUE prevents duplicate values in a column or combination of columns. In PostgreSQL, a standard UNIQUE constraint allows multiple NULL values because NULL values are considered distinct by default for uniqueness checks.
 
@@ -1038,31 +844,19 @@ PostgreSQL also supports UNIQUE NULLS NOT DISTINCT when NULL values should be tr
 
 ## NOT NULL
 
-**RU:**
-
 NOT NULL запрещает хранение NULL в столбце.
-
-**EN:**
 
 NOT NULL prevents a column from containing NULL values.
 
 ## CHECK
 
-**RU:**
-
 CHECK проверяет заданное условие для каждой записи.
-
-**EN:**
 
 CHECK enforces a condition that must be satisfied by every inserted or updated row.
 
 ## DEFAULT
 
-**RU:**
-
 DEFAULT устанавливает значение по умолчанию, если при вставке значение столбца не указано.
-
-**EN:**
 
 DEFAULT provides a value when an INSERT statement does not explicitly specify one for the column.
 
@@ -1078,8 +872,6 @@ CREATE TABLE orders (
 
 ## Relationships
 
-**RU:**
-
 Существует три основных типа отношений между сущностями.
 
 - One-to-one: одна запись связана максимум с одной записью другой таблицы.
@@ -1091,13 +883,11 @@ CREATE TABLE orders (
 
 Для many-to-many используется промежуточная таблица с двумя внешними ключами.
 
-**EN:**
-
 There are three common relationship types:
 
 - One-to-one: one record is associated with at most one record in another table.
     
-- One-to-many: one record can be associated with multiple records.
+- One-to-many: one record can be associated with multiple records in another table.
     
 - Many-to-many: multiple records from one table can be associated with multiple records from another table.
     
@@ -1114,13 +904,9 @@ CREATE TABLE user_roles (
 
 ## Views
 
-**RU:**
-
 View — сохранённый SQL-запрос, который можно использовать как виртуальную таблицу. Обычный view не хранит результат запроса, а вычисляет его при обращении.
 
 Materialized View хранит результат запроса физически. Это ускоряет чтение, но данные необходимо периодически обновлять.
-
-**EN:**
 
 A view is a saved SQL query that can be used like a virtual table. A regular view does not store the query result; it evaluates the underlying query when accessed.
 
@@ -1143,15 +929,15 @@ REFRESH MATERIALIZED VIEW active_users_summary;
 
 **Q: What is the difference between PRIMARY KEY and UNIQUE?**
 
-**EN:** A primary key uniquely identifies each row and cannot contain NULL values. A table can have only one primary key constraint but multiple UNIQUE constraints.
+A primary key uniquely identifies each row and cannot contain NULL values. A table can have only one primary key constraint but multiple UNIQUE constraints.
 
 **Q: How do you implement a many-to-many relationship?**
 
-**EN:** I create a junction table containing foreign keys to both tables. I usually add a composite primary key or unique constraint to prevent duplicate relationships.
+I create a junction table containing foreign keys to both tables. I usually add a composite primary key or unique constraint to prevent duplicate relationships.
 
 **Q: What is the difference between a view and a materialized view?**
 
-**EN:** A regular view stores a query definition, while a materialized view stores the result of that query. Materialized views can improve read performance but require refreshing.
+A regular view stores a query definition, while a materialized view stores the result of that query. Materialized views can improve read performance but require refreshing.
 
 ---
 
@@ -1159,17 +945,11 @@ REFRESH MATERIALIZED VIEW active_users_summary;
 
 ## Main idea
 
-**RU:**
-
 Нормализация уменьшает дублирование данных и предотвращает аномалии вставки, обновления и удаления. Денормализация намеренно добавляет избыточность, когда это необходимо для улучшения производительности чтения.
-
-**EN:**
 
 Normalization reduces data redundancy and prevents insertion, update, and deletion anomalies. Denormalization intentionally introduces redundancy when it is necessary to improve read performance.
 
 ## Problems normalization solves
-
-**RU:**
 
 Представим таблицу заказов, в которой данные клиента повторяются в каждой записи.
 
@@ -1190,8 +970,6 @@ Normalization reduces data redundancy and prevents insertion, update, and deleti
 
 Решение — разделить клиентов и заказы на отдельные таблицы.
 
-**EN:**
-
 Consider an orders table where customer information is repeated in every order.
 
 This design creates three types of anomalies:
@@ -1207,23 +985,15 @@ The solution is to separate customers and orders into different tables.
 
 ## First Normal Form (1NF)
 
-**RU:**
-
 1NF требует, чтобы значения атрибутов соответствовали атомарной структуре выбранной реляционной модели. Также не должно быть повторяющихся групп столбцов вроде phone1, phone2, phone3.
-
-**EN:**
 
 First Normal Form requires attributes to contain atomic values according to the chosen relational model. Tables should not contain repeating groups of columns such as phone1, phone2, and phone3.
 
 ## Second Normal Form (2NF)
 
-**RU:**
-
 2NF требует соблюдения 1NF и отсутствия частичных зависимостей неключевых атрибутов от составного кандидатного ключа.
 
 Если первичный ключ состоит из student_id и course_id, student_name не должен зависеть только от student_id внутри этой таблицы.
-
-**EN:**
 
 Second Normal Form requires a table to satisfy 1NF and ensures that every non-key attribute depends on the entire candidate key rather than only part of a composite key.
 
@@ -1231,13 +1001,9 @@ For example, if the primary key consists of student_id and course_id, student_na
 
 ## Third Normal Form (3NF)
 
-**RU:**
-
 3NF требует соблюдения 2NF и отсутствия недопустимых транзитивных зависимостей неключевых атрибутов от кандидатных ключей.
 
 Например, если city_id определяет city_name, то city_name лучше хранить в отдельной таблице cities, а не дублировать в orders.
-
-**EN:**
 
 Third Normal Form requires a table to satisfy 2NF and eliminates problematic transitive dependencies of non-key attributes on candidate keys.
 
@@ -1245,31 +1011,21 @@ For example, if city_id determines city_name, city_name should generally be stor
 
 ## BCNF
 
-**RU:**
-
 BCNF — более строгая форма нормализации, чем 3NF. Для каждой нетривиальной функциональной зависимости детерминант должен быть суперключом.
-
-**EN:**
 
 Boyce-Codd Normal Form is stricter than 3NF. For every non-trivial functional dependency, the determinant must be a superkey.
 
 ## Denormalization
 
-**RU:**
-
 Денормализация намеренно дублирует данные для ускорения чтения. Например, можно хранить comments_count непосредственно в posts вместо постоянного COUNT по таблице comments.
 
 Но при изменении комментариев необходимо корректно обновлять счётчик. Это усложняет запись и создаёт риск рассинхронизации.
-
-**EN:**
 
 Denormalization intentionally duplicates data to improve read performance. For example, we may store comments_count directly in the posts table instead of calculating COUNT(*) from the comments table every time.
 
 However, the counter must be updated correctly whenever comments change. This makes writes more complex and introduces the risk of inconsistent data.
 
 ## Primary key choices
-
-**RU:**
 
 - BIGINT IDENTITY — компактный, простой и удобный для обычных приложений.
     
@@ -1279,8 +1035,6 @@ However, the counter must be updated correctly whenever comments change. This ma
     
 
 UUID не гарантирует безопасность API сам по себе. Защита ресурсов всё равно должна строиться на проверке авторизации.
-
-**EN:**
 
 BIGINT IDENTITY is compact and efficient for traditional applications.
 
@@ -1292,13 +1046,9 @@ UUIDs should not be treated as an authorization mechanism. Access control must s
 
 ## Money and numeric types
 
-**RU:**
-
 Для денежных значений лучше использовать NUMERIC/DECIMAL или BIGINT в минимальных денежных единицах, например в центах.
 
 FLOAT и DOUBLE PRECISION используют двоичное представление с плавающей точкой и могут давать ошибки округления.
-
-**EN:**
 
 For monetary values, NUMERIC/DECIMAL or BIGINT storing the smallest currency unit is generally preferable.
 
@@ -1306,13 +1056,9 @@ FLOAT and DOUBLE PRECISION use binary floating-point representation and may intr
 
 ## Soft delete
 
-**RU:**
-
 Soft delete — это логическое удаление, обычно реализованное через deleted_at. Запись физически остаётся в базе, но приложение считает её удалённой.
 
 В PostgreSQL можно использовать partial unique indexes для ограничения уникальности только среди активных записей.
-
-**EN:**
 
 Soft deletion means marking a record as deleted instead of physically removing it, usually through a deleted_at column.
 
@@ -1328,19 +1074,19 @@ WHERE deleted_at IS NULL;
 
 **Q: What is normalization?**
 
-**EN:** Normalization is the process of organizing relational data to reduce redundancy and prevent insertion, update, and deletion anomalies.
+Normalization is the process of organizing relational data to reduce redundancy and prevent insertion, update, and deletion anomalies.
 
 **Q: What is the difference between 2NF and 3NF?**
 
-**EN:** 2NF eliminates partial dependencies on composite keys, while 3NF eliminates problematic transitive dependencies between non-key attributes.
+2NF eliminates partial dependencies on composite keys, while 3NF eliminates problematic transitive dependencies between non-key attributes.
 
 **Q: When would you denormalize a database?**
 
-**EN:** I would denormalize only after identifying a real performance bottleneck. For example, I might store a precomputed counter to avoid an expensive aggregation on a frequently accessed page.
+I would denormalize only after identifying a real performance bottleneck. For example, I might store a precomputed counter to avoid an expensive aggregation on a frequently accessed page.
 
 **Q: Why store the product price in order_items?**
 
-**EN:** Because product prices can change over time, but an order must preserve the price that was valid at the moment of purchase. This is intentional duplication to preserve historical accuracy.
+Because product prices can change over time, but an order must preserve the price that was valid at the moment of purchase. This is intentional duplication to preserve historical accuracy.
 
 ---
 
@@ -1352,13 +1098,9 @@ WHERE deleted_at IS NULL;
 
 ## What is a transaction?
 
-**RU:**
-
 Транзакция — это последовательность операций, которые рассматриваются базой данных как одна логическая единица работы.
 
 Либо все операции успешно завершаются, либо изменения отменяются. Классический пример — перевод денег между счетами.
-
-**EN:**
 
 A transaction is a sequence of database operations treated as one logical unit of work.
 
@@ -1390,61 +1132,37 @@ ROLLBACK;
 
 ### Atomicity
 
-**RU:**
-
 Atomicity означает «всё или ничего». Если одна из операций транзакции завершается ошибкой, транзакция не должна частично сохранять свои изменения.
-
-**EN:**
 
 Atomicity means all or nothing. If a transaction fails, its changes are rolled back instead of being partially committed.
 
 ### Consistency
 
-**RU:**
-
 Consistency означает, что транзакция переводит базу данных из одного корректного состояния в другое, сохраняя ограничения целостности и бизнес-правила.
-
-**EN:**
 
 Consistency means that a transaction moves the database from one valid state to another while preserving integrity constraints and business rules.
 
 ### Isolation
 
-**RU:**
-
 Isolation контролирует взаимодействие параллельных транзакций. Уровень изоляции определяет, какие изменения других транзакций могут быть видны текущей транзакции.
-
-**EN:**
 
 Isolation controls how concurrent transactions interact with each other. The isolation level determines which changes made by other transactions are visible to the current transaction.
 
 ### Durability
 
-**RU:**
-
 Durability означает, что после успешного COMMIT изменения должны сохраняться даже после сбоя сервера. В PostgreSQL это обеспечивается в том числе механизмом WAL и настройками надёжной записи на диск.
-
-**EN:**
 
 Durability means that committed changes must survive database crashes. PostgreSQL provides this guarantee through mechanisms including WAL and durable disk synchronization, depending on the configuration.
 
 ## Autocommit
 
-**RU:**
-
 Autocommit означает, что каждый отдельный SQL-запрос автоматически выполняется как отдельная транзакция, если явно не открыта другая транзакция.
-
-**EN:**
 
 Autocommit means that each individual SQL statement is automatically committed as its own transaction unless an explicit transaction is opened.
 
 ## SAVEPOINT
 
-**RU:**
-
 SAVEPOINT создаёт точку внутри транзакции, к которой можно откатиться, не отменяя всю транзакцию.
-
-**EN:**
 
 SAVEPOINT creates a checkpoint inside a transaction, allowing us to roll back part of the transaction without cancelling everything.
 
@@ -1470,15 +1188,15 @@ COMMIT;
 
 **Q: What are ACID properties?**
 
-**EN:** ACID describes four transaction guarantees: Atomicity, Consistency, Isolation, and Durability. They help ensure that database operations remain reliable even when failures or concurrent transactions occur.
+ACID describes four transaction guarantees: Atomicity, Consistency, Isolation, and Durability. They help ensure that database operations remain reliable even when failures or concurrent transactions occur.
 
 **Q: Why should transactions be short?**
 
-**EN:** Long-running transactions can hold locks, retain old row versions, increase contention, and contribute to database bloat. They can also increase the risk of deadlocks.
+Long-running transactions can hold locks, retain old row versions, increase contention, and contribute to database bloat. They can also increase the risk of deadlocks.
 
 **Q: Is the C in ACID the same as the C in CAP?**
 
-**EN:** No. ACID consistency means preserving database integrity constraints. CAP consistency refers to consistency of replicated data in a distributed system.
+No. ACID consistency means preserving database integrity constraints. CAP consistency refers to consistency of replicated data in a distributed system.
 
 ---
 
@@ -1486,21 +1204,15 @@ COMMIT;
 
 ## What is an index?
 
-**RU:**
-
 Индекс — дополнительная структура данных, которая позволяет находить записи без полного сканирования таблицы.
 
 В PostgreSQL по умолчанию используется B-Tree. Индексы могут ускорять поиск, фильтрацию, сортировку и JOIN, но занимают место и увеличивают стоимость операций записи.
-
-**EN:**
 
 An index is an additional data structure that allows the database to locate records without scanning the entire table.
 
 PostgreSQL uses B-Tree indexes by default. Indexes can improve searching, filtering, sorting, and JOIN operations, but they require additional storage and introduce overhead for write operations.
 
 ## B-Tree
-
-**RU:**
 
 B-Tree — сбалансированная древовидная структура, которая хранит ключи в упорядоченном виде.
 
@@ -1519,8 +1231,6 @@ B-Tree — сбалансированная древовидная структ�
 
 B-Tree не является универсальным решением для поиска по произвольной подстроке, например `LIKE '%abc%'`.
 
-**EN:**
-
 B-Tree is a balanced tree structure that stores indexed keys in sorted order.
 
 It supports equality comparisons, range queries, BETWEEN, and many ORDER BY operations. It can also support prefix matching such as LIKE 'abc%' when the collation and operator class allow it.
@@ -1529,13 +1239,9 @@ However, a standard B-Tree is not generally suitable for arbitrary substring sea
 
 ## Hash index
 
-**RU:**
-
 Hash index предназначен для поиска по точному равенству. Он не поддерживает диапазоны и сортировку по индексированному значению.
 
 В PostgreSQL Hash indexes являются WAL-logged и могут использоваться для equality comparisons.
-
-**EN:**
 
 A Hash index is designed for equality comparisons. It does not support range scans or ordering by indexed values.
 
@@ -1543,45 +1249,29 @@ PostgreSQL Hash indexes are WAL-logged and can be used for equality lookups.
 
 ## GIN
 
-**RU:**
-
 GIN (Generalized Inverted Index) хранит обратные соответствия между элементами и строками. Подходит для массивов, JSONB и полнотекстового поиска.
-
-**EN:**
 
 GIN (Generalized Inverted Index) stores inverted mappings between indexed elements and rows. It is commonly used for arrays, JSONB, and full-text search.
 
 ## GiST
 
-**RU:**
-
 GiST — обобщённая индексная структура, используемая для специализированных типов данных, геопространственного поиска и поиска по диапазонам.
-
-**EN:**
 
 GiST is a generalized index framework used for specialized data types, geometric searches, spatial queries, and range operations.
 
 ## BRIN
 
-**RU:**
-
 BRIN хранит сводную информацию о диапазонах физических блоков таблицы. Особенно полезен для очень больших таблиц, где значения физически коррелируют с порядком хранения, например для временных данных.
-
-**EN:**
 
 BRIN stores summarized information about ranges of physical table blocks. It is useful for very large tables where indexed values correlate with physical row order, such as time-series data.
 
 ## Composite indexes
-
-**RU:**
 
 Composite index — индекс по нескольким столбцам.
 
 Например, индекс `(user_id, status)` может эффективно использоваться для условий по `user_id` и по комбинации `user_id` + `status`.
 
 Порядок столбцов важен. PostgreSQL использует ведущие столбцы индекса наиболее эффективно. В современных версиях PostgreSQL возможен skip scan при определённых условиях, поэтому нельзя утверждать, что поиск только по второму столбцу всегда абсолютно невозможен.
-
-**EN:**
 
 A composite index contains multiple columns.
 
@@ -1596,13 +1286,9 @@ ON orders (user_id, status);
 
 ## Covering indexes
 
-**RU:**
-
 Covering index содержит все столбцы, необходимые конкретному запросу. Это позволяет базе данных получить результат непосредственно из индекса, если условия видимости MVCC позволяют выполнить Index Only Scan.
 
 В PostgreSQL дополнительные столбцы можно добавить через INCLUDE.
-
-**EN:**
 
 A covering index contains all columns required by a particular query. This can allow the database to retrieve the result directly from the index using an Index Only Scan when MVCC visibility conditions permit it.
 
@@ -1616,11 +1302,7 @@ INCLUDE (total, created_at);
 
 ## Partial indexes
 
-**RU:**
-
 Partial index содержит только строки, которые удовлетворяют заданному условию. Это позволяет уменьшить размер индекса, если часто выполняются запросы по определённому подмножеству данных.
-
-**EN:**
 
 A partial index contains only rows that satisfy a specified condition. It can reduce index size when queries frequently access a particular subset of records.
 
@@ -1632,11 +1314,7 @@ WHERE status = 'new';
 
 ## Functional indexes
 
-**RU:**
-
 Functional index создаётся по выражению или функции. Он полезен, когда запросы регулярно используют функцию над столбцом.
-
-**EN:**
 
 A functional index is created on an expression or function. It is useful when queries frequently apply the same expression to an indexed column.
 
@@ -1653,13 +1331,9 @@ WHERE LOWER(email) = 'john@example.com';
 
 ## Selectivity
 
-**RU:**
-
 Selectivity показывает, насколько сильно условие уменьшает количество подходящих строк. Индекс по столбцу с малым количеством уникальных значений иногда оказывается неэффективным, потому что PostgreSQL может предпочесть Sequential Scan.
 
 Но низкая кардинальность сама по себе не означает, что индекс бесполезен: важны распределение данных и конкретный запрос.
-
-**EN:**
 
 Selectivity describes how effectively a condition reduces the number of matching rows.
 
@@ -1667,21 +1341,15 @@ An index on a low-cardinality column may be inefficient if a query returns a lar
 
 ## Clustered vs non-clustered indexes
 
-**RU:**
-
 В MySQL InnoDB таблица физически организована вокруг clustered primary key index. Вторичные индексы содержат значение первичного ключа для поиска записи.
 
 В PostgreSQL таблица хранится как heap, а индексы отдельно содержат ссылки на физические версии строк. Команда CLUSTER может физически переупорядочить таблицу по индексу, но это не поддерживает порядок автоматически после последующих изменений.
-
-**EN:**
 
 In MySQL InnoDB, the table is organized around the clustered primary key index. Secondary indexes store primary key values to locate the corresponding rows.
 
 In PostgreSQL, table data is stored in a heap, and indexes are separate structures containing references to physical row versions. The CLUSTER command can physically reorder a table according to an index, but this ordering is not automatically maintained after subsequent modifications.
 
 ## Why can an index not be used?
-
-**RU:**
 
 Возможные причины:
 
@@ -1699,8 +1367,6 @@ In PostgreSQL, table data is stored in a heap, and indexes are separate structur
     
 - Планировщик считает Sequential Scan дешевле.
     
-
-**EN:**
 
 An index may not be used for several reasons:
 
@@ -1723,23 +1389,23 @@ An index may not be used for several reasons:
 
 **Q: What is an index?**
 
-**EN:** An index is an additional data structure that improves data retrieval performance. It can reduce the amount of data scanned, but it requires storage and increases the cost of INSERT, UPDATE, and DELETE operations.
+An index is an additional data structure that improves data retrieval performance. It can reduce the amount of data scanned, but it requires storage and increases the cost of INSERT, UPDATE, and DELETE operations.
 
 **Q: What is the difference between B-Tree and Hash indexes?**
 
-**EN:** B-Tree supports equality, range queries, and ordering. Hash indexes are designed primarily for equality comparisons.
+B-Tree supports equality, range queries, and ordering. Hash indexes are designed primarily for equality comparisons.
 
 **Q: What is a composite index?**
 
-**EN:** A composite index contains multiple columns. Its column order matters because queries filtering by the leading columns can generally use it most effectively.
+A composite index contains multiple columns. Its column order matters because queries filtering by the leading columns can generally use it most effectively.
 
 **Q: Why are too many indexes bad?**
 
-**EN:** Every additional index requires storage and must be maintained during data modifications. Too many indexes increase write overhead and maintenance costs.
+Every additional index requires storage and must be maintained during data modifications. Too many indexes increase write overhead and maintenance costs.
 
 **Q: Can an index make a query slower?**
 
-**EN:** An index can introduce additional maintenance overhead and may lead to a less efficient execution plan if the planner chooses an unsuitable access path. For queries returning many rows, a sequential scan may be faster.
+An index can introduce additional maintenance overhead and may lead to a less efficient execution plan if the planner chooses an unsuitable access path. For queries returning many rows, a sequential scan may be faster.
 
 ---
 
@@ -1747,11 +1413,7 @@ An index may not be used for several reasons:
 
 ## Main idea
 
-**RU:**
-
 Параллельный доступ возникает, когда несколько транзакций одновременно работают с одними данными. Уровни изоляции определяют, какие аномалии могут возникнуть и насколько транзакции изолированы друг от друга.
-
-**EN:**
 
 Concurrent access occurs when multiple transactions operate on the same data at the same time. Isolation levels determine which concurrency anomalies are possible and how strongly transactions are isolated from one another.
 
@@ -1759,53 +1421,33 @@ Concurrent access occurs when multiple transactions operate on the same data at 
 
 ### Dirty Read
 
-**RU:**
-
 Dirty Read возникает, когда транзакция читает изменения другой транзакции, которые ещё не были подтверждены COMMIT и могут быть отменены.
-
-**EN:**
 
 A dirty read occurs when a transaction reads changes made by another transaction before those changes have been committed. The other transaction may still roll back.
 
 ### Non-Repeatable Read
 
-**RU:**
-
 Non-Repeatable Read возникает, когда транзакция повторно читает одну строку и получает другое значение из-за изменения и COMMIT другой транзакции.
-
-**EN:**
 
 A non-repeatable read occurs when a transaction reads the same row twice and gets different values because another transaction updated and committed the row between the two reads.
 
 ### Phantom Read
 
-**RU:**
-
 Phantom Read возникает, когда повторный запрос с тем же условием возвращает другое количество строк из-за конкурентных INSERT или DELETE.
-
-**EN:**
 
 A phantom read occurs when repeating a query with the same condition returns a different set of rows because another transaction inserted or deleted matching records.
 
 ### Lost Update
 
-**RU:**
-
 Lost Update возникает, когда две транзакции читают одно значение, независимо изменяют его и одна запись перезаписывает результат другой.
-
-**EN:**
 
 A lost update occurs when two transactions read the same value, independently modify it, and one transaction overwrites the changes made by the other.
 
 ### Write Skew
 
-**RU:**
-
 Write Skew возникает, когда транзакции читают пересекающиеся данные, но изменяют разные строки. В результате нарушается общее бизнес-правило.
 
 Например, две транзакции одновременно отключают разных дежурных врачей, не проверяя, что хотя бы один врач должен остаться на смене.
-
-**EN:**
 
 Write skew occurs when concurrent transactions read overlapping data but modify different rows, resulting in a violation of a shared business invariant.
 
@@ -1820,15 +1462,11 @@ For example, two transactions may independently deactivate different doctors eve
 |Repeatable Read|No|No|Possible by standard|
 |Serializable|No|No|No|
 
-**RU:**
-
 Это таблица стандартной модели SQL. Реальное поведение зависит от конкретной СУБД и реализации MVCC.
 
 PostgreSQL использует Read Committed по умолчанию. При Repeatable Read PostgreSQL обеспечивает snapshot isolation и предотвращает фантомные чтения, но допускает некоторые формы write skew.
 
 MySQL InnoDB использует Repeatable Read по умолчанию.
-
-**EN:**
 
 This table represents the standard SQL isolation model. Actual behavior depends on the database engine and its concurrency implementation.
 
@@ -1838,8 +1476,6 @@ MySQL InnoDB uses Repeatable Read by default.
 
 ## PostgreSQL isolation behavior
 
-**RU:**
-
 - Read Committed: каждый SQL statement получает собственный snapshot.
     
 - Repeatable Read: транзакция использует согласованный snapshot, созданный в начале её первого запроса.
@@ -1847,7 +1483,7 @@ MySQL InnoDB uses Repeatable Read by default.
 - Serializable: PostgreSQL отслеживает опасные зависимости и может отменить транзакцию с serialization failure. Приложение должно повторить всю транзакцию.
     
 
-**EN:**
+PostgreSQL isolation behavior:
 
 - Read Committed: each SQL statement receives its own snapshot.
     
@@ -1858,15 +1494,11 @@ MySQL InnoDB uses Repeatable Read by default.
 
 ## MVCC
 
-**RU:**
-
 MVCC (Multi-Version Concurrency Control) — механизм управления конкурентным доступом через несколько версий строк.
 
 В PostgreSQL при UPDATE создаётся новая версия строки, а старая остаётся доступной для транзакций, которым она ещё необходима согласно snapshot.
 
 Это позволяет читателям видеть согласованные данные, не блокируя обычные операции записи, и наоборот.
-
-**EN:**
 
 MVCC (Multi-Version Concurrency Control) is a concurrency mechanism that maintains multiple versions of database rows.
 
@@ -1876,23 +1508,15 @@ This allows ordinary readers and writers to work concurrently without blocking e
 
 ## xmin and xmax
 
-**RU:**
-
 PostgreSQL хранит служебную информацию о версиях строк. В частности, xmin связан с транзакцией, создавшей версию строки, а xmax — с транзакцией, удалившей или изменившей её в соответствующем контексте.
-
-**EN:**
 
 PostgreSQL stores system metadata for row versions. In particular, xmin identifies the transaction that created a row version, while xmax is associated with a transaction that deleted or otherwise invalidated that version.
 
 ## VACUUM and dead tuples
 
-**RU:**
-
 После UPDATE и DELETE старые версии строк не всегда могут быть удалены немедленно. Они становятся dead tuples после того, как больше не нужны активным snapshots.
 
 VACUUM освобождает пространство для повторного использования, а autovacuum выполняет обслуживание автоматически.
-
-**EN:**
 
 After UPDATE and DELETE operations, old row versions cannot always be removed immediately. They become dead tuples once they are no longer needed by active snapshots.
 
@@ -1902,19 +1526,19 @@ VACUUM makes their space available for reuse, while autovacuum performs this mai
 
 **Q: What is MVCC?**
 
-**EN:** MVCC is a concurrency control mechanism that maintains multiple versions of rows. It allows transactions to read consistent snapshots while other transactions modify data.
+MVCC is a concurrency control mechanism that maintains multiple versions of rows. It allows transactions to read consistent snapshots while other transactions modify data.
 
 **Q: What is the default isolation level in PostgreSQL?**
 
-**EN:** PostgreSQL uses Read Committed by default. Each statement receives a new snapshot of committed data.
+PostgreSQL uses Read Committed by default. Each statement receives a new snapshot of committed data.
 
 **Q: What is the difference between Repeatable Read and Serializable?**
 
-**EN:** Repeatable Read provides a stable snapshot for a transaction, while Serializable provides stronger guarantees by ensuring that committed concurrent transactions behave as if they were executed sequentially. Serializable transactions may need to be retried.
+Repeatable Read provides a stable snapshot for a transaction, while Serializable provides stronger guarantees by ensuring that committed concurrent transactions behave as if they were executed sequentially. Serializable transactions may need to be retried.
 
 **Q: What is VACUUM?**
 
-**EN:** VACUUM reclaims space occupied by obsolete row versions and helps PostgreSQL maintain database health. Autovacuum performs this maintenance automatically.
+VACUUM reclaims space occupied by obsolete row versions and helps PostgreSQL maintain database health. Autovacuum performs this maintenance automatically.
 
 ---
 
@@ -1922,13 +1546,9 @@ VACUUM makes their space available for reuse, while autovacuum performs this mai
 
 ## Main idea
 
-**RU:**
-
 Оптимизация SQL-запросов направлена на уменьшение времени выполнения, количества прочитанных данных, операций ввода-вывода и использования ресурсов.
 
 Первым шагом при расследовании медленного запроса обычно является анализ execution plan.
-
-**EN:**
 
 SQL query optimization aims to reduce execution time, the amount of data scanned, I/O operations, and resource consumption.
 
@@ -1936,23 +1556,15 @@ When investigating a slow query, the first step is usually to examine its execut
 
 ## EXPLAIN
 
-**RU:**
-
 EXPLAIN показывает предполагаемый план выполнения запроса, построенный планировщиком на основе статистики. Сам запрос при этом не выполняется.
-
-**EN:**
 
 EXPLAIN displays the estimated execution plan generated by the query planner using database statistics. The query itself is not executed.
 
 ## EXPLAIN ANALYZE
 
-**RU:**
-
 EXPLAIN ANALYZE реально выполняет запрос и показывает фактические показатели: время, количество строк и другие параметры выполнения.
 
 Важно: EXPLAIN ANALYZE для UPDATE или DELETE действительно изменяет данные, если не использовать транзакцию с последующим ROLLBACK.
-
-**EN:**
 
 EXPLAIN ANALYZE actually executes the query and reports real execution metrics, including execution time and actual row counts.
 
@@ -1971,8 +1583,6 @@ ROLLBACK;
 
 ## Important scan types
 
-**RU:**
-
 - Sequential Scan — чтение таблицы последовательно.
     
 - Index Scan — поиск через индекс с последующим чтением строк.
@@ -1983,8 +1593,6 @@ ROLLBACK;
     
 
 Sequential Scan не всегда является проблемой. Для маленьких таблиц или запросов, возвращающих большую часть данных, он может быть эффективнее индекса.
-
-**EN:**
 
 - Sequential Scan reads the table sequentially.
     
@@ -1999,21 +1607,15 @@ A Sequential Scan is not necessarily bad. It may be more efficient for small tab
 
 ## Estimated rows vs actual rows
 
-**RU:**
-
 Если estimated rows сильно отличаются от actual rows, планировщик может выбрать неоптимальный план.
 
 Нужно проверить статистику и при необходимости выполнить ANALYZE.
-
-**EN:**
 
 If estimated row counts differ significantly from actual row counts, the query planner may choose a suboptimal execution plan.
 
 We should check database statistics and run ANALYZE when necessary.
 
 ## JOIN algorithms
-
-**RU:**
 
 PostgreSQL использует несколько алгоритмов соединения:
 
@@ -2023,8 +1625,6 @@ PostgreSQL использует несколько алгоритмов соед
     
 - Merge Join — для уже отсортированных наборов данных или ситуаций, когда сортировка оправдана.
     
-
-**EN:**
 
 PostgreSQL supports several join algorithms:
 
@@ -2037,13 +1637,9 @@ PostgreSQL supports several join algorithms:
 
 ## OFFSET problem
 
-**RU:**
-
 Большой OFFSET может быть дорогим, потому что база данных должна обработать пропускаемые строки перед возвратом результата.
 
 Для больших наборов данных часто лучше использовать keyset pagination.
-
-**EN:**
 
 A large OFFSET can be expensive because the database must process the skipped rows before returning the requested result.
 
@@ -2059,21 +1655,15 @@ LIMIT 20;
 
 ## N+1 problem
 
-**RU:**
-
 N+1 возникает, когда приложение сначала получает список записей одним запросом, а затем выполняет отдельный запрос для каждой записи, чтобы получить связанные данные.
 
 Решения: JOIN, eager loading или получение связанных данных через IN.
-
-**EN:**
 
 The N+1 problem occurs when an application executes one query to retrieve a list of records and then performs an additional query for each record to load related data.
 
 Common solutions include JOIN operations, eager loading, and fetching related records using IN.
 
 ## Other optimization techniques
-
-**RU:**
 
 - Не использовать SELECT *, если нужны только несколько столбцов.
     
@@ -2089,8 +1679,6 @@ Common solutions include JOIN operations, eager loading, and fetching related re
     
 - Анализировать pg_stat_statements и медленные запросы.
     
-
-**EN:**
 
 Other optimization techniques include:
 
@@ -2113,15 +1701,15 @@ Other optimization techniques include:
 
 **Q: A query is slow. What would you do first?**
 
-**EN:** First, I would inspect the execution plan using EXPLAIN ANALYZE. I would check scan types, estimated versus actual row counts, JOIN algorithms, sorting operations, and index usage. Then I would identify the bottleneck and optimize the query or database structure.
+First, I would inspect the execution plan using EXPLAIN ANALYZE. I would check scan types, estimated versus actual row counts, JOIN algorithms, sorting operations, and index usage. Then I would identify the bottleneck and optimize the query or database structure.
 
 **Q: Why is a large OFFSET slow?**
 
-**EN:** Because the database still needs to process the skipped rows. Keyset pagination can be more efficient because it uses the last retrieved indexed value as the starting point.
+Because the database still needs to process the skipped rows. Keyset pagination can be more efficient because it uses the last retrieved indexed value as the starting point.
 
 **Q: What is the N+1 problem?**
 
-**EN:** It occurs when an application performs one query to retrieve a collection and then executes additional queries for each item. It can be solved using eager loading, JOINs, or batch queries.
+It occurs when an application performs one query to retrieve a collection and then executes additional queries for each item. It can be solved using eager loading, JOINs, or batch queries.
 
 ---
 
@@ -2129,13 +1717,9 @@ Other optimization techniques include:
 
 ## Main idea
 
-**RU:**
-
 SQL Injection — уязвимость, возникающая, когда пользовательский ввод напрямую включается в SQL-код. Злоумышленник может изменить логику запроса и получить несанкционированный доступ к данным.
 
 Основная защита — parameterized queries и prepared statements.
-
-**EN:**
 
 SQL injection is a security vulnerability that occurs when user input is directly included in SQL statements. An attacker may manipulate the query and gain unauthorized access to data.
 
@@ -2143,11 +1727,7 @@ The primary defense is to use parameterized queries and prepared statements.
 
 ## Dangerous example
 
-**RU:**
-
 Нельзя формировать SQL-запрос простым объединением строк с пользовательским вводом.
-
-**EN:**
 
 We should never build SQL queries by directly concatenating user input into SQL strings.
 
@@ -2158,11 +1738,7 @@ $sql = "SELECT * FROM users WHERE email = '$email'";
 
 ## Prepared statements
 
-**RU:**
-
 Prepared statements отделяют SQL-код от передаваемых значений. Параметры передаются отдельно и интерпретируются как данные, а не как SQL-команды.
-
-**EN:**
 
 Prepared statements separate SQL code from user-provided values. Parameters are supplied separately and treated as data rather than executable SQL code.
 
@@ -2180,13 +1756,9 @@ $user = $stmt->fetch();
 
 ## Important limitation
 
-**RU:**
-
 Параметры нельзя использовать вместо названий таблиц или столбцов. Если имя таблицы или столбца динамическое, необходимо использовать строгий whitelist допустимых значений.
 
 Также prepared statements не заменяют авторизацию, проверку прав и бизнес-валидацию.
-
-**EN:**
 
 Parameters cannot be used for table names or column names. If identifiers must be dynamic, we should use a strict whitelist of allowed values.
 
@@ -2196,11 +1768,11 @@ Prepared statements also do not replace authorization, access control, or busine
 
 **Q: How do you prevent SQL injection?**
 
-**EN:** I use prepared statements with bound parameters to separate SQL code from user input. I also apply least-privilege database permissions and validate dynamic identifiers using an allowlist.
+I use prepared statements with bound parameters to separate SQL code from user input. I also apply least-privilege database permissions and validate dynamic identifiers using an allowlist.
 
 **Q: Are prepared statements enough for application security?**
 
-**EN:** They protect against SQL injection in parameterized values, but they do not replace authorization, access control, input validation, or secure application design.
+They protect against SQL injection in parameterized values, but they do not replace authorization, access control, input validation, or secure application design.
 
 ---
 
@@ -2208,13 +1780,9 @@ Prepared statements also do not replace authorization, access control, or busine
 
 ## Window functions
 
-**RU:**
-
 Window functions вычисляют значения на основе набора связанных строк, но не объединяют строки в одну, как GROUP BY.
 
 Они особенно полезны для ранжирования, аналитики, расчёта накопительных сумм и сравнения текущих значений с предыдущими.
-
-**EN:**
 
 Window functions calculate values based on a set of related rows without collapsing them into a single row, unlike GROUP BY.
 
@@ -2222,33 +1790,21 @@ They are especially useful for ranking, analytics, running totals, and comparing
 
 ## OVER and PARTITION BY
 
-**RU:**
-
 OVER определяет окно строк, для которых будет выполняться вычисление. PARTITION BY разделяет данные на независимые группы, а ORDER BY задаёт порядок обработки внутри каждой группы.
-
-**EN:**
 
 OVER defines the window of rows used by a window function. PARTITION BY divides the data into independent groups, while ORDER BY defines the processing order within each group.
 
 ## ROW_NUMBER
 
-**RU:**
-
 ROW_NUMBER присваивает каждой строке уникальный порядковый номер внутри окна.
-
-**EN:**
 
 ROW_NUMBER assigns a unique sequential number to each row within a window.
 
 ## RANK
 
-**RU:**
-
 RANK присваивает одинаковый ранг строкам с одинаковыми значениями, но оставляет пропуски после совпадений.
 
 Например: 1, 1, 3.
-
-**EN:**
 
 RANK assigns the same rank to rows with equal values but leaves gaps after ties.
 
@@ -2256,13 +1812,9 @@ For example: 1, 1, 3.
 
 ## DENSE_RANK
 
-**RU:**
-
 DENSE_RANK также присваивает одинаковые ранги совпадающим значениям, но не оставляет пропусков.
 
 Например: 1, 1, 2.
-
-**EN:**
 
 DENSE_RANK assigns the same rank to tied values but does not leave gaps in the ranking.
 
@@ -2270,21 +1822,13 @@ For example: 1, 1, 2.
 
 ## LAG and LEAD
 
-**RU:**
-
 LAG позволяет получить значение предыдущей строки, а LEAD — следующей строки в рамках окна.
-
-**EN:**
 
 LAG retrieves a value from a previous row, while LEAD retrieves a value from a following row within the window.
 
 ## Running total
 
-**RU:**
-
 Running total — накопительная сумма. Она рассчитывается с использованием агрегатной функции как оконной.
-
-**EN:**
 
 A running total is a cumulative sum calculated by using an aggregate function as a window function.
 
@@ -2301,13 +1845,9 @@ FROM daily_revenue;
 
 ## CTE
 
-**RU:**
-
 CTE (Common Table Expression) — именованный временный результат запроса, определяемый через WITH.
 
 Он улучшает читаемость сложных запросов и позволяет разделить вычисления на логические этапы.
-
-**EN:**
 
 A CTE (Common Table Expression) is a named temporary result set defined using the WITH clause.
 
@@ -2325,11 +1865,7 @@ FROM high_salary;
 
 ## Recursive CTE
 
-**RU:**
-
 Recursive CTE позволяет выполнять рекурсивную обработку иерархических данных, например дерева категорий или организационной структуры.
-
-**EN:**
 
 A recursive CTE allows us to process hierarchical data, such as category trees or organizational structures.
 
@@ -2351,13 +1887,9 @@ FROM tree;
 
 ## Top N per group
 
-**RU:**
-
 Одна из распространённых задач SQL-собеседования — получить несколько самых высокооплачиваемых сотрудников в каждом отделе.
 
 Для этого удобно использовать DENSE_RANK или ROW_NUMBER в CTE.
-
-**EN:**
 
 A common SQL interview problem is retrieving the highest-paid employees in each department.
 
@@ -2384,15 +1916,15 @@ WHERE position <= 2;
 
 **Q: What is the difference between GROUP BY and window functions?**
 
-**EN:** GROUP BY combines rows into groups and returns one result per group. Window functions calculate values across related rows while preserving the individual rows.
+GROUP BY combines rows into groups and returns one result per group. Window functions calculate values across related rows while preserving the individual rows.
 
 **Q: What is the difference between RANK and DENSE_RANK?**
 
-**EN:** RANK leaves gaps after tied values, while DENSE_RANK does not.
+RANK leaves gaps after tied values, while DENSE_RANK does not.
 
 **Q: How would you find the second-highest salary?**
 
-**EN:** I would use DENSE_RANK with ORDER BY salary DESC and filter for rank 2. This also handles duplicate salary values correctly.
+I would use DENSE_RANK with ORDER BY salary DESC and filter for rank 2. This also handles duplicate salary values correctly.
 
 ---
 
@@ -2404,23 +1936,15 @@ WHERE position <= 2;
 
 ## Main idea
 
-**RU:**
-
 Блокировки управляют конкурентным доступом к данным. Pessimistic locking блокирует запись заранее, а optimistic locking обнаруживает конфликт в момент обновления.
-
-**EN:**
 
 Locks control concurrent access to database records. Pessimistic locking prevents conflicts by locking data in advance, while optimistic locking detects conflicts when an update is attempted.
 
 ## Pessimistic locking
 
-**RU:**
-
 Pessimistic locking предполагает, что конфликты вероятны. Поэтому приложение блокирует запись ещё на этапе чтения.
 
 В PostgreSQL для этого используется SELECT FOR UPDATE.
-
-**EN:**
 
 Pessimistic locking assumes that conflicts are likely to occur. Therefore, the application locks the record when reading it.
 
@@ -2443,13 +1967,9 @@ COMMIT;
 
 ## NOWAIT and SKIP LOCKED
 
-**RU:**
-
 NOWAIT немедленно возвращает ошибку, если запись уже заблокирована несовместимой блокировкой.
 
 SKIP LOCKED пропускает заблокированные записи. Это удобно для распределённых worker-ов, которые обрабатывают общую очередь задач.
-
-**EN:**
 
 NOWAIT returns an error immediately if a row is already locked by an incompatible lock.
 
@@ -2457,13 +1977,9 @@ SKIP LOCKED skips locked rows. It is useful when multiple workers process the sa
 
 ## Optimistic locking
 
-**RU:**
-
 Optimistic locking предполагает, что конфликты редки. Обычно в таблице есть version column.
 
 При обновлении приложение передаёт ожидаемую версию. Если обновлено ноль строк, значит запись уже изменилась и операцию необходимо повторить или обработать конфликт.
-
-**EN:**
 
 Optimistic locking assumes that conflicts are relatively rare. A common implementation uses a version column.
 
@@ -2479,11 +1995,7 @@ WHERE id = 10
 
 ## Atomic updates
 
-**RU:**
-
 Иногда отдельная блокировка не нужна. Можно использовать атомарный UPDATE с условием, чтобы изменение выполнялось только при соблюдении бизнес-правила.
-
-**EN:**
 
 Sometimes an explicit lock is unnecessary. We can use an atomic UPDATE with a condition to ensure that the modification happens only when the business rule is satisfied.
 
@@ -2496,15 +2008,11 @@ WHERE id = 1
 
 ## Deadlocks
 
-**RU:**
-
 Deadlock возникает, когда две или более транзакции ожидают блокировки, удерживаемые друг другом.
 
 Например, транзакция A заблокировала строку 1 и ждёт строку 2, а транзакция B заблокировала строку 2 и ждёт строку 1.
 
 СУБД обнаруживает deadlock и отменяет одну из транзакций.
-
-**EN:**
 
 A deadlock occurs when two or more transactions wait for locks held by each other.
 
@@ -2513,8 +2021,6 @@ For example, transaction A locks row 1 and waits for row 2, while transaction B 
 The database detects the deadlock and aborts one of the transactions.
 
 ## How to prevent deadlocks
-
-**RU:**
 
 - Блокировать ресурсы в одинаковом порядке.
     
@@ -2526,8 +2032,6 @@ The database detects the deadlock and aborts one of the transactions.
     
 - Использовать минимально необходимый уровень блокировки.
     
-
-**EN:**
 
 To reduce deadlocks, we should:
 
@@ -2544,13 +2048,9 @@ To reduce deadlocks, we should:
 
 ## Idempotency
 
-**RU:**
-
 Для финансовых операций важно не только блокировать конкурентные запросы, но и обеспечивать идемпотентность.
 
 Idempotency Key позволяет определить повторную отправку одного и того же запроса и не выполнить списание дважды.
-
-**EN:**
 
 For financial operations, preventing concurrent conflicts is not enough. We also need idempotency.
 
@@ -2560,15 +2060,15 @@ An Idempotency Key allows the application to recognize repeated requests and pre
 
 **Q: What is the difference between optimistic and pessimistic locking?**
 
-**EN:** Pessimistic locking prevents conflicts by locking records before modification. Optimistic locking allows concurrent operations and detects conflicts using a version column or another concurrency check.
+Pessimistic locking prevents conflicts by locking records before modification. Optimistic locking allows concurrent operations and detects conflicts using a version column or another concurrency check.
 
 **Q: What is a deadlock?**
 
-**EN:** A deadlock occurs when transactions wait for resources locked by each other, creating a circular dependency. The database detects the cycle and aborts one transaction.
+A deadlock occurs when transactions wait for resources locked by each other, creating a circular dependency. The database detects the cycle and aborts one transaction.
 
 **Q: How would you prevent double charging?**
 
-**EN:** I would use database transactions, atomic updates or row-level locks, and an idempotency key. This protects against both concurrent requests and repeated client submissions.
+I would use database transactions, atomic updates or row-level locks, and an idempotency key. This protects against both concurrent requests and repeated client submissions.
 
 ---
 
@@ -2576,13 +2076,9 @@ An Idempotency Key allows the application to recognize repeated requests and pre
 
 ## Main idea
 
-**RU:**
-
 WAL (Write-Ahead Logging) — механизм журналирования изменений, который позволяет PostgreSQL восстанавливать базу после сбоя и обеспечивать надёжность подтверждённых транзакций.
 
 Главный принцип: соответствующая запись WAL должна быть сохранена до записи изменённой страницы данных на диск.
-
-**EN:**
 
 WAL (Write-Ahead Logging) is a logging mechanism that allows PostgreSQL to recover the database after a crash and provide durability for committed transactions.
 
@@ -2590,15 +2086,11 @@ The main principle is that the corresponding WAL record must be safely written b
 
 ## How WAL works
 
-**RU:**
-
 При изменении данных PostgreSQL сначала изменяет страницы в shared buffers в памяти и формирует соответствующие записи WAL.
 
 При COMMIT необходимые WAL-записи сбрасываются на надёжное хранилище в соответствии с настройками durability.
 
 Сами изменённые страницы таблиц могут записываться позже, например во время checkpoint.
-
-**EN:**
 
 When data changes, PostgreSQL modifies pages in shared buffers and generates corresponding WAL records.
 
@@ -2608,41 +2100,25 @@ The modified table pages can be written later, for example during a checkpoint.
 
 ## Dirty pages
 
-**RU:**
-
 Dirty page — страница в памяти, которая была изменена, но ещё не записана в основной файл таблицы на диске.
-
-**EN:**
 
 A dirty page is a database page that has been modified in memory but has not yet been written to its corresponding data file on disk.
 
 ## Checkpoints
 
-**RU:**
-
 Checkpoint — процесс, во время которого PostgreSQL записывает изменённые страницы данных на диск и создаёт точку, от которой восстановление после сбоя становится проще.
-
-**EN:**
 
 A checkpoint is a process during which PostgreSQL writes modified data pages to disk and establishes a recovery point that reduces the amount of WAL that must be replayed after a crash.
 
 ## Crash recovery
 
-**RU:**
-
 После аварийного завершения PostgreSQL использует WAL для восстановления согласованного состояния базы. Необходимые изменения повторно применяются при восстановлении.
-
-**EN:**
 
 After an unexpected shutdown, PostgreSQL uses WAL during crash recovery to restore a consistent database state by replaying the necessary logged changes.
 
 ## MySQL comparison
 
-**RU:**
-
 В MySQL InnoDB похожую роль выполняет Redo Log. Undo Log используется для отката изменений и поддержки MVCC.
-
-**EN:**
 
 In MySQL InnoDB, the Redo Log provides functionality similar to PostgreSQL WAL. The Undo Log is used for rolling back changes and supporting MVCC.
 
@@ -2650,15 +2126,15 @@ In MySQL InnoDB, the Redo Log provides functionality similar to PostgreSQL WAL. 
 
 **Q: What is WAL?**
 
-**EN:** WAL is a write-ahead logging mechanism that records database changes before modified data pages are written to disk. It allows the database to recover committed changes after a crash.
+WAL is a write-ahead logging mechanism that records database changes before modified data pages are written to disk. It allows the database to recover committed changes after a crash.
 
 **Q: Why do we need WAL?**
 
-**EN:** WAL provides durability and crash recovery. It also supports replication and point-in-time recovery when combined with appropriate backup and archiving configuration.
+WAL provides durability and crash recovery. It also supports replication and point-in-time recovery when combined with appropriate backup and archiving configuration.
 
 **Q: What is a checkpoint?**
 
-**EN:** A checkpoint is a process that flushes modified data pages to disk and reduces the amount of WAL that must be replayed during recovery.
+A checkpoint is a process that flushes modified data pages to disk and reduces the amount of WAL that must be replayed during recovery.
 
 ---
 
@@ -2666,13 +2142,9 @@ In MySQL InnoDB, the Redo Log provides functionality similar to PostgreSQL WAL. 
 
 ## Main idea
 
-**RU:**
-
 Масштабирование базы данных необходимо, когда текущая инфраструктура не справляется с нагрузкой или объёмом данных.
 
 Обычно сначала оптимизируют запросы и индексы, затем рассматривают кэширование, репликацию, партиционирование и только после этого сложное горизонтальное распределение данных.
-
-**EN:**
 
 Database scaling becomes necessary when the current infrastructure cannot efficiently handle the workload or data volume.
 
@@ -2680,13 +2152,9 @@ A common approach is to optimize queries and indexes first, then consider cachin
 
 ## Vertical scaling
 
-**RU:**
-
 Vertical scaling — увеличение ресурсов одного сервера: CPU, RAM, дискового пространства и скорости дисков.
 
 Это самый простой способ масштабирования, но он ограничен возможностями оборудования.
-
-**EN:**
 
 Vertical scaling means increasing the resources of a single database server, such as CPU, RAM, storage capacity, and disk performance.
 
@@ -2694,13 +2162,9 @@ It is relatively simple to implement but is limited by the hardware capabilities
 
 ## Replication
 
-**RU:**
-
 Replication — копирование данных с основного сервера на один или несколько реплик-серверов.
 
 Primary обычно принимает записи, а replicas могут использоваться для чтения и повышения доступности.
-
-**EN:**
 
 Replication is the process of copying data from a primary database server to one or more replica servers.
 
@@ -2708,11 +2172,7 @@ The primary usually handles writes, while replicas can serve read requests and i
 
 ## Synchronous replication
 
-**RU:**
-
 При синхронной репликации primary ожидает подтверждения от синхронной реплики согласно выбранной политике подтверждения. Это повышает надёжность, но может увеличить задержку записи.
-
-**EN:**
 
 With synchronous replication, the primary waits for acknowledgment from the required synchronous replica or replicas according to the configured acknowledgment policy.
 
@@ -2720,13 +2180,9 @@ This improves durability guarantees but can increase write latency.
 
 ## Asynchronous replication
 
-**RU:**
-
 При асинхронной репликации primary может подтвердить транзакцию до получения подтверждения от реплики.
 
 Это снижает задержку, но создаёт replication lag и риск потери последних подтверждённых на primary изменений при определённых сценариях отказа.
-
-**EN:**
 
 With asynchronous replication, the primary can acknowledge a transaction before receiving confirmation from the replica.
 
@@ -2734,15 +2190,11 @@ This reduces write latency but introduces replication lag and may result in the 
 
 ## Replication lag
 
-**RU:**
-
 Replication lag — задержка между применением изменений на primary и их доступностью на replica.
 
 Из-за этого пользователь может записать новые данные, а затем прочитать устаревшую версию с реплики.
 
 Для критичных операций можно читать с primary или использовать стратегию read-your-writes.
-
-**EN:**
 
 Replication lag is the delay between changes being committed on the primary and becoming available on a replica.
 
@@ -2752,21 +2204,15 @@ For critical operations, we can read from the primary or implement a read-your-w
 
 ## Failover
 
-**RU:**
-
 Failover — переключение роли primary на другую реплику при отказе основного сервера.
 
 Для автоматизации используются специальные инструменты или возможности managed database services.
-
-**EN:**
 
 Failover is the process of promoting a replica to become the new primary when the original primary fails.
 
 It can be automated using dedicated tools or managed database services.
 
 ## Partitioning
-
-**RU:**
 
 Partitioning разделяет одну логическую таблицу на физические части внутри одной базы данных.
 
@@ -2780,8 +2226,6 @@ Partitioning разделяет одну логическую таблицу н�
     
 
 Это помогает обслуживать большие таблицы, удалять старые данные и сокращать объём сканирования через partition pruning.
-
-**EN:**
 
 Partitioning divides one logical table into multiple physical partitions within the same database system.
 
@@ -2807,15 +2251,11 @@ TO ('2026-02-01');
 
 ## Sharding
 
-**RU:**
-
 Sharding — распределение частей данных между несколькими независимыми серверами.
 
 Например, пользователи распределяются по shard на основании user_id.
 
 Sharding помогает масштабировать объём данных и операции записи, но усложняет JOIN, транзакции, балансировку и обслуживание.
-
-**EN:**
 
 Sharding distributes subsets of data across multiple independent database servers.
 
@@ -2834,21 +2274,15 @@ Sharding can improve write scalability and storage capacity, but it makes joins,
 
 ## Connection pooling
 
-**RU:**
-
 Connection pooling позволяет переиспользовать соединения с базой данных вместо создания нового соединения для каждого запроса.
 
 Для PostgreSQL широко используется PgBouncer. Это особенно важно для приложений с большим количеством PHP-FPM workers.
-
-**EN:**
 
 Connection pooling allows applications to reuse database connections instead of creating a new connection for every request.
 
 PgBouncer is commonly used with PostgreSQL. Connection pooling is particularly important for applications running many PHP-FPM workers.
 
 ## Backups and PITR
-
-**RU:**
 
 Основные варианты резервного копирования:
 
@@ -2860,8 +2294,6 @@ PgBouncer is commonly used with PostgreSQL. Connection pooling is particularly i
     
 
 Резервная копия должна регулярно проверяться через тестовое восстановление.
-
-**EN:**
 
 Common backup strategies include:
 
@@ -2876,8 +2308,6 @@ Backups should be regularly tested by performing actual restoration procedures.
 
 ## CAP theorem
 
-**RU:**
-
 CAP theorem описывает компромисс в распределённых системах во время сетевого разделения (Partition).
 
 При возникновении сетевого разделения система должна выбирать между:
@@ -2888,8 +2318,6 @@ CAP theorem описывает компромисс в распределённ�
     
 
 Важно: CAP не означает, что любая база данных всегда выбирает только два свойства. Ограничение относится к поведению системы во время сетевого разделения.
-
-**EN:**
 
 The CAP theorem describes a trade-off in distributed systems during a network partition.
 
@@ -2906,23 +2334,23 @@ CAP does not mean that a database can permanently provide only two of these thre
 
 **Q: What is the difference between replication and sharding?**
 
-**EN:** Replication copies the same data to multiple servers, mainly improving availability and read scalability. Sharding distributes different parts of the data across servers to scale storage and write workloads.
+Replication copies the same data to multiple servers, mainly improving availability and read scalability. Sharding distributes different parts of the data across servers to scale storage and write workloads.
 
 **Q: What is the difference between partitioning and sharding?**
 
-**EN:** Partitioning divides a logical table into smaller physical parts within a database system. Sharding distributes data across multiple independent database servers.
+Partitioning divides a logical table into smaller physical parts within a database system. Sharding distributes data across multiple independent database servers.
 
 **Q: What is replication lag?**
 
-**EN:** Replication lag is the delay between a transaction being committed on the primary and becoming visible on a replica.
+Replication lag is the delay between a transaction being committed on the primary and becoming visible on a replica.
 
 **Q: What is the CAP theorem?**
 
-**EN:** CAP states that during a network partition, a distributed system must choose between consistency and availability.
+CAP states that during a network partition, a distributed system must choose between consistency and availability.
 
 **Q: When would you introduce sharding?**
 
-**EN:** I would consider sharding only when query optimization, indexing, caching, vertical scaling, and replication are no longer sufficient. Sharding introduces significant architectural complexity.
+I would consider sharding only when query optimization, indexing, caching, vertical scaling, and replication are no longer sufficient. Sharding introduces significant architectural complexity.
 
 ---
 
