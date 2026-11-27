@@ -39,20 +39,6 @@ tags: [databases, sql, interview]
 
 # 1. What is a database and a DBMS
 
-## Main idea
-
-A database is an organized collection of data. A DBMS (Database Management System) is the program that stores this data, protects it and answers our queries. PostgreSQL and MySQL are DBMSs. In everyday speech, people often say "database" for both things.
-
-## Why do we not just use files?
-
-We could save data in a text file, but this quickly becomes a problem. A DBMS gives us things that a simple file does not give:
-
-- Fast search in millions of rows, because it uses indexes.
-- Safe work for many users at the same time, because it controls concurrent access.
-- Protection of data integrity, because it checks rules (constraints).
-- Protection after a crash, because it keeps a log of changes.
-- A standard language to ask questions, which is SQL.
-
 ## Basic words
 
 - A **table** is a set of data about one kind of object, for example `users` or `orders`.
