@@ -1926,7 +1926,6 @@ RANK leaves gaps after tied values, while DENSE_RANK does not.
 I would use DENSE_RANK with ORDER BY salary DESC and filter for rank 2. This also handles duplicate salary values correctly.
 
 ---
-
 # Part 3. Advanced topics
 
 ---
