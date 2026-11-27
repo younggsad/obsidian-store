@@ -511,10 +511,6 @@ By default, many databases work in autocommit mode: every single statement is it
 
 An index is a separate structure that speeds up search from O(N) to O(log N), but it slows down writes (`INSERT`, `UPDATE`, `DELETE`) and takes space. We should have exactly as many indexes as the real queries need.
 
-## The idea in simple words
-
-Think about a book. If we want to find the word "transaction", we can read all pages (this is a full table scan, or **Seq Scan**), or we can open the index at the end of the book and jump to the right page. A database index works in the same way.
-
 ## Index types
 
 - **B-Tree** (a balanced tree) is the default index. Its keys are sorted in the leaves, and the leaves are linked to each other. It supports equality, ranges (`>`, `<`, `BETWEEN`), `ORDER BY` and prefix search (`LIKE 'ivan%'`). It does not help with a leading wildcard (`LIKE '%ivan%'`) or when a function is applied to the column (`WHERE LOWER(email) = ...`). For that case, we need a functional index on `LOWER(email)`.
