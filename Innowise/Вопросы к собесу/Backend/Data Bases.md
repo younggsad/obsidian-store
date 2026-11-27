@@ -1089,7 +1089,6 @@ I would denormalize only after identifying a real performance bottleneck. For ex
 Because product prices can change over time, but an order must preserve the price that was valid at the moment of purchase. This is intentional duplication to preserve historical accuracy.
 
 ---
-
 # Part 2. Core interview topics
 
 ---
